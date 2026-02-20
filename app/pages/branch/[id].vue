@@ -143,8 +143,7 @@
 
   <!-- Check-in bottom sheet -->
   <Teleport to="body">
-    <Transition name="sheet">
-      <div v-if="showSheet" class="sheet-backdrop" @click.self="closeSheet">
+    <div v-if="showSheet" class="sheet-backdrop" @click.self="closeSheet">
         <div class="sheet">
           <div class="sheet-handle" />
           <div class="sheet-header">
@@ -171,8 +170,7 @@
             </button>
           </div>
         </div>
-      </div>
-    </Transition>
+    </div>
   </Teleport>
 </template>
 
@@ -673,9 +671,17 @@ function formatVisitDate(iso) {
   box-shadow: 0 4px 12px rgba(0,95,192,0.3);
 }
 
-/* Sheet transition */
-.sheet-enter-active, .sheet-leave-active {
-  transition: opacity 0.2s ease;
+/* Sheet open animation (CSS-only, no Vue Transition) */
+@keyframes sheet-in {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
-.sheet-enter-from, .sheet-leave-to { opacity: 0; }
+
+.sheet-backdrop {
+  animation: none; /* backdrop appears instantly */
+}
+
+.sheet {
+  animation: sheet-in 0.25s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+}
 </style>
