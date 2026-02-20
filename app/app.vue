@@ -1,7 +1,7 @@
 <template>
   <div class="app-shell">
     <NuxtRouteAnnouncer />
-    <NuxtPage :transition="{ name: 'page' }" />
+    <NuxtPage />
     <BottomNav />
   </div>
 </template>
