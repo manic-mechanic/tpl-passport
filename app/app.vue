@@ -45,15 +45,17 @@ onMounted(() => {
 <style>
 .passport-cover {
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
   z-index: 999;
   background: var(--tpl-navy);
   display: flex;
   align-items: center;
   justify-content: center;
-  max-width: 480px;
-  left: 50%;
-  transform: translateX(-50%);
 }
 
 .cover-inner {
