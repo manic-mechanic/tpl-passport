@@ -68,6 +68,33 @@
       </div>
     </section>
 
+    <!-- Appearance -->
+    <section class="settings-group">
+      <p class="section-label">Appearance</p>
+      <div class="settings-card card">
+        <div class="setting-row">
+          <span class="setting-label">Theme</span>
+          <div class="theme-toggle">
+            <button
+              class="theme-btn"
+              :class="{ 'theme-btn--active': passport.profile.theme === 'light' }"
+              @click="passport.profile.theme = 'light'"
+            >Light</button>
+            <button
+              class="theme-btn"
+              :class="{ 'theme-btn--active': passport.profile.theme === '' }"
+              @click="passport.profile.theme = ''"
+            >Auto</button>
+            <button
+              class="theme-btn"
+              :class="{ 'theme-btn--active': passport.profile.theme === 'dark' }"
+              @click="passport.profile.theme = 'dark'"
+            >Dark</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Demo mode -->
     <section class="settings-group">
       <p class="section-label">Demo mode</p>
@@ -296,6 +323,36 @@ function setDemo(mode) {
   vertical-align: middle;
 }
 
+/* Theme toggle */
+.theme-toggle {
+  display: flex;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 2px;
+}
+
+.theme-btn {
+  flex: 1;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.theme-btn--active {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Demo */
 .demo-grid {
   display: grid;
@@ -319,7 +376,7 @@ function setDemo(mode) {
 
 .demo-btn--active {
   border-color: var(--tpl-blue);
-  background: color-mix(in srgb, var(--tpl-blue) 6%, white);
+  background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface));
 }
 
 .demo-icon { font-size: 1.25rem; }

@@ -64,6 +64,10 @@ function stampStyle(branch) {
   }
 }
 
+function stampShape(branch) {
+  return getStampShape(branch.BranchCode)
+}
+
 function visitDate(branchCode) {
   const c = passport.checkIns.find(x => x.branchCode === branchCode)
   if (!c) return ''

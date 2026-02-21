@@ -8,10 +8,12 @@ export const usePassportStore = defineStore('passport', () => {
   const saved = import.meta.client ? JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') : {}
 
   const checkIns = ref(saved.checkIns ?? [])   // [{ branchCode, timestamp, note }]
-  const profile = ref(saved.profile ?? {
+  const profile = ref({
     name: '',
     favouriteBook: '',
     homeBranch: '',  // BranchCode of home branch
+    theme: '',       // '' = system, 'light', 'dark'
+    ...(saved.profile ?? {}),
   })
 
   // Persist to localStorage whenever state changes
