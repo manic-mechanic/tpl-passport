@@ -25,13 +25,14 @@
       <header class="page-header">
         <h1>Check In</h1>
         <p class="sub">
-          <template v-if="prefilled">Scanning at <strong>{{ selectedBranch?.BranchName }}</strong></template>
+          <template v-if="scanned">Scanned — <strong>{{ selectedBranch?.BranchName }}</strong></template>
+          <template v-else-if="prefilled">Scanning at <strong>{{ selectedBranch?.BranchName }}</strong></template>
           <template v-else>Select the branch you're visiting</template>
         </p>
       </header>
 
-      <!-- Branch selector (manual entry — hidden when QR pre-fills) -->
-      <div v-if="!prefilled" class="field-group">
+      <!-- Branch selector (manual — hidden when pre-filled via URL or QR scan) -->
+      <div v-if="!prefilled && !scanned" class="field-group">
         <label class="field-label" for="branch-select">Branch</label>
         <select id="branch-select" v-model="selectedCode" class="branch-select">
           <option value="">Choose a branch…</option>
@@ -49,6 +50,9 @@
         </div>
         <p class="stamp-name">{{ selectedBranch.BranchName }}</p>
         <p class="stamp-region">{{ selectedRegion }}</p>
+        <button v-if="scanned" class="change-branch-btn" @click="scanned = false; selectedCode = ''">
+          Change branch
+        </button>
       </div>
 
       <!-- Already visited today -->
@@ -110,20 +114,48 @@
           Collect stamp
         </button>
 
-        <button class="qr-hint" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="14" height="14">
+        <button class="qr-btn" @click="openScanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="15" height="15">
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
             <rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/>
           </svg>
-          QR code scanning · coming soon
+          Scan QR code
         </button>
+
+        <p v-if="scanError" class="scan-error">{{ scanError }}</p>
       </div>
     </template>
 
   </main>
+
+  <!-- ── QR Scanner overlay ────────────────────── -->
+  <Teleport to="body">
+    <div v-if="scannerActive" class="scanner-overlay">
+      <video ref="videoEl" class="scanner-video" playsinline autoplay muted />
+      <!-- Hidden canvas used to capture frames for jsQR -->
+      <canvas ref="scanCanvas" class="scanner-canvas" />
+
+      <!-- Viewfinder corners (decorative) -->
+      <div class="scanner-frame">
+        <div class="frame-corner frame-corner--tl" />
+        <div class="frame-corner frame-corner--tr" />
+        <div class="frame-corner frame-corner--bl" />
+        <div class="frame-corner frame-corner--br" />
+      </div>
+
+      <p class="scanner-hint">Point at a branch QR code</p>
+
+      <button class="scanner-close" @click="closeScanner" aria-label="Close scanner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
+import jsQR from 'jsqr'
 import { usePassportStore } from '~/stores/passport'
 import { useStampColor, getStampShape } from '~/composables/useStampColor'
 import { physicalBranches, getRegion } from '~/composables/useRegion'
@@ -131,9 +163,10 @@ import { physicalBranches, getRegion } from '~/composables/useRegion'
 const route   = useRoute()
 const passport = usePassportStore()
 
-// Branch selection — pre-filled from ?branch=CODE query param (QR code flow)
+// Branch selection — pre-filled from ?branch=CODE query param
 const selectedCode = ref(route.query.branch ?? '')
 const prefilled    = computed(() => !!route.query.branch)
+const scanned      = ref(false)   // true after a successful QR scan
 
 const sortedBranches = [...physicalBranches].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
 
@@ -192,11 +225,90 @@ const successStampStyle = computed(() => {
 })
 
 function reset() {
-  result.value    = null
+  result.value       = null
   selectedCode.value = ''
-  noteText.value  = ''
+  scanned.value      = false
+  noteText.value     = ''
   photoPreview.value = null
 }
+
+// ── QR Scanner ────────────────────────────────
+
+const scannerActive = ref(false)
+const scanError     = ref('')
+const videoEl       = ref(null)
+const scanCanvas    = ref(null)
+let stream = null
+let rafId  = null
+
+async function openScanner() {
+  scanError.value = ''
+  scannerActive.value = true
+  await nextTick()
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+    })
+    videoEl.value.srcObject = stream
+    await videoEl.value.play()
+    rafId = requestAnimationFrame(scanLoop)
+  } catch {
+    scanError.value = 'Camera access denied — check your browser settings.'
+    scannerActive.value = false
+  }
+}
+
+function scanLoop() {
+  const video  = videoEl.value
+  const canvas = scanCanvas.value
+  if (!video || !canvas || !scannerActive.value) return
+
+  // Wait until the video has a real frame
+  if (video.readyState < video.HAVE_ENOUGH_DATA) {
+    rafId = requestAnimationFrame(scanLoop)
+    return
+  }
+
+  canvas.width  = video.videoWidth
+  canvas.height = video.videoHeight
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(video, 0, 0)
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const code = jsQR(imageData.data, imageData.width, imageData.height)
+
+  if (code) {
+    handleQrResult(code.data)
+    return
+  }
+
+  rafId = requestAnimationFrame(scanLoop)
+}
+
+function handleQrResult(data) {
+  closeScanner()
+  try {
+    const url    = new URL(data)
+    const branch = url.searchParams.get('branch')
+    if (branch && physicalBranches.find(b => b.BranchCode === branch)) {
+      selectedCode.value = branch
+      scanned.value = true
+    } else {
+      scanError.value = 'QR code not recognised as a TPL branch.'
+    }
+  } catch {
+    scanError.value = 'QR code not recognised as a TPL branch.'
+  }
+}
+
+function closeScanner() {
+  scannerActive.value = false
+  if (rafId)  { cancelAnimationFrame(rafId); rafId = null }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null }
+}
+
+// Clean up camera if user navigates away mid-scan
+onUnmounted(closeScanner)
 </script>
 
 <style scoped>
@@ -249,7 +361,6 @@ function reset() {
   appearance: none;
   -webkit-appearance: none;
   box-shadow: var(--shadow-sm);
-  /* Down arrow */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238c849e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
@@ -313,9 +424,7 @@ function reset() {
   cursor: pointer;
 }
 
-.photo-input {
-  display: none;
-}
+.photo-input { display: none; }
 
 /* Stamp preview */
 .stamp-area {
@@ -367,6 +476,17 @@ function reset() {
   font-weight: 600;
 }
 
+.change-branch-btn {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tpl-blue);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
 /* Already visited notice */
 .visited-notice {
   display: flex;
@@ -415,20 +535,34 @@ function reset() {
 
 .checkin-btn:not(:disabled):active { transform: scale(0.98); }
 
-.qr-hint {
+.qr-btn {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   background: transparent;
-  color: var(--color-text-muted);
-  border: 1.5px dashed var(--color-border);
+  color: var(--tpl-blue);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius);
-  font-size: 0.78rem;
+  font-size: 0.875rem;
+  font-weight: 600;
   font-family: var(--font-body);
-  cursor: not-allowed;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.qr-btn:active {
+  background: color-mix(in srgb, var(--tpl-blue) 6%, transparent);
+  border-color: var(--tpl-blue);
+}
+
+.scan-error {
+  font-size: 0.8rem;
+  color: #c0392b;
+  text-align: center;
+  padding: 0 8px;
 }
 
 /* ── Success state ─────────────────────────── */
@@ -514,6 +648,78 @@ function reset() {
   font-weight: 600;
   font-family: var(--font-body);
   color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+/* ── QR Scanner overlay ─────────────────────── */
+.scanner-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.scanner-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Hidden — used only to capture frames for jsQR */
+.scanner-canvas { display: none; }
+
+/* Viewfinder frame */
+.scanner-frame {
+  position: relative;
+  z-index: 1;
+  width: 220px;
+  height: 220px;
+}
+
+.frame-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: #fff;
+  border-style: solid;
+  border-width: 0;
+}
+
+.frame-corner--tl { top: 0;    left: 0;  border-top-width: 3px;    border-left-width: 3px;  border-top-left-radius: 4px;     }
+.frame-corner--tr { top: 0;    right: 0; border-top-width: 3px;    border-right-width: 3px; border-top-right-radius: 4px;    }
+.frame-corner--bl { bottom: 0; left: 0;  border-bottom-width: 3px; border-left-width: 3px;  border-bottom-left-radius: 4px;  }
+.frame-corner--br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 4px; }
+
+.scanner-hint {
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  margin-top: 24px;
+  text-align: center;
+}
+
+.scanner-close {
+  position: absolute;
+  top: max(20px, env(safe-area-inset-top));
+  right: 20px;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 </style>

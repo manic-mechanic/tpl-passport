@@ -102,3 +102,16 @@ Circulation/visit stats could be revealed as "fun facts" when a user checks into
 **Assets**: `assets/Toronto_Public_Library_Logo.png`, `assets/tpl_meta_card_image.png`
 
 **Tone**: Fun and whimsical — this is a passport collecting experience, not a utility app.
+
+## Future Ideas
+
+These were discussed but not implemented in the MVP:
+
+- **Map view** on `/explore` — Leaflet.js or a simple `<iframe>` embed; branch `Lat`/`Long` fields are available in the data
+- **Onboarding flow** — first-launch name prompt before hitting the empty passport (currently jumps straight to dashboard)
+- **Share card** — generate a shareable image of passport progress (Canvas API or a styled `<div>` + `html2canvas`)
+- **Real events** — swap hardcoded events for live data from the CKAN programs API (resource `c73bbe54-3a48-4ada-8eef-a1a2864021e4`, filter by `library` field)
+- **Supabase backend** — sync passport data across devices; would replace localStorage with real auth + DB rows
+- **NFC check-in** — Web NFC API (`NDEFReader`) for tap-to-check-in; Chrome Android only as of 2026
+- **Photo persistence** — store check-in photos in Supabase Storage; currently captured but discarded
+- **Branch trivia** — unlock a "fun fact" on check-in using `PresentSiteYear`, `SquareFootage`, or circulation stats from the annual data APIs

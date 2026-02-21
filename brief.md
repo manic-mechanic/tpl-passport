@@ -49,3 +49,88 @@ Secondary blue: #001c71
 Generic blue: #02729e
 
 And with that, let's begin to plan and develop this mobile-first library app.
+
+## FEEDBACK + UPDATES
+
+Great first pass. Review my notes, prioritize them, ask questions as needed, make yourself a list, and check it off as you work through. Make sure you are following the guiding principle written in your CLAUDE.md file at all times.
+
+### OVERALL
+
+1. This should be an installable PWA. Use the small TPL logo as the Favicon.
+2. This should be deployed to Vercel, assuming it's free and good for our use
+3. There should be a tasteful dark mode design
+4. "Public Library" is helpful to guide design, but this is primarily a "Passport" and should draw inspiration from that too, when it comes to tone, fonts, etc.
+5. Consider refactoring into components, adding type-safety and OOP style.
+
+### branch/[id]
+
+1. BUG: Check-in Bottom Sheet: Tapping into the text area changes the focus and makes elements larger, resulting in content extending slightly outside of the viewport and a degraded experience. (Mobile Safari)
+2. FIX: Remove these elements:
+    1. Neighborhood Name
+    2. Ward Name
+    3. \# of public computers
+    4. \# of parking spots
+3. FIX: Add these elements:
+    1. Region name
+    2. Has Parking (T/F)
+4. FIX: Modify these elements
+    1. Address: Remove City + Postal code. Add link to open in native Google Maps/Apple Maps app
+    2. Today's Hours: Hard code this for now (10am-7pm or anything really). Remove outbound link. Consider moving to <header> below Branch Name/Region Name
+    3. Upcoming Events: Just hardcode a couple of fake dates + events for now. Consider moving above info card.
+    4. Past Visits: If pastVisitsHere = true, consider moving list above info card.
+    5. Check-in Bottom Sheet: Allow user to include an optional photo with their check-in
+5. NEW FEATURE: Each branch could have its own bonus stretch goals/achievements/badges, i.e., checking out a book, meeting the librarian, etc (lower priority but a nod would be nice)
+
+### settings
+
+1. BUG: Tapping input fields changes focus, changes content flow beyond viewport, degrades experience (Mobile Safari)
+2. BUG: Home branch drop down text is not aligned with user name and favorite book.
+3. UPDATE: Could take more inspiration from a Passport photo page
+
+### history
+
+1. FIX: Remove Ward Name from Rows
+
+### explore
+
+1. FIX: Remove Neighborhood Name from rows
+
+### passport
+
+1. UPDATE: add minimalist dashed borders to separate stamps, mimicking a real passport, and creating visual order and organization while allowing for stamps of different shapes and sizes
+2. UPDATE: Try out a few different shapes/designs for stamps - circle, square, rectangle, oval, pill, etc.
+
+### index
+
+1. NEW FEATURE: Dashboard can have awards or badges for meeting goals beyond strictly "visit 100 branches". These may include:
+    1. Milestone passport stamps (1st, 10th, 25th, etc.)
+    2. Visiting all branches in a single region
+    3. Visiting >= 1 branch in every region
+    4. Checking in @ your home branch (1st, 10th, etc.) (home branch hero)
+    5. Checking in @ a different branch > 5 times (home away from home)
+
+
+### NEW PAGE: Check-In
+
+1. Let's plan to move the primary check-in flow away from individual `branch/[id]` pages and into a dedicated route, with a tab in the lower nav.
+2. When the app is live, check-ins will be handled by QR code and/or NFC tag so I think a single place to do this makes sense
+3. We can remove the Settings icon from the nav to make room for this one (settings can still be accessed via avatar on index)
+4. We can generate QR codes for each branch that will allow a user to check in. We can create a hidden link with all of these codes so I can pull them on on a desktop and take pictures with my mobile device
+5. Users should still be able to include an optional note and/or photo with their check-ins
+6. There should still be a method to check-in that doesn't require this step while we're in MVP/testing
+7. PWAs have the ability to do this according to https://whatpwacando.today/
+
+### NEW PAGE: Loading Screen
+
+1. While waiting for data to load we can have a simple loading screen inspired by the front cover of a passport with the TPL style/brand colors.
+
+ROADMAP
+
+Roadmap
+Improve first load speed (not sure if this is just because I'm running it on local/ngrok)
+Add auth (but keep it very simple for now, ultimately I'd like to offer login via library card)
+support for other library systems // cross-check-ins
+
+
+find your favorite book in different branches (or visiting a branch page can show that information)
+if accountType = kid OR teen, visiting kid OR teen services at different branches
