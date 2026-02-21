@@ -7,63 +7,91 @@
       </div>
     </header>
 
-    <!-- Profile card -->
+    <!-- Passport document card -->
     <section class="settings-group">
-      <p class="section-label">Profile</p>
-      <div class="settings-card card">
+      <p class="section-label">Your Passport</p>
+      <div class="passport-doc">
 
-        <!-- Avatar row -->
-        <div class="setting-row setting-row--avatar">
-          <div class="avatar" :style="avatarStyle">
-            <span class="avatar-letter">{{ avatarLetter }}</span>
+        <!-- Document header band -->
+        <div class="doc-header">
+          <img src="/tpl-meta-card.png" class="doc-seal" alt="" aria-hidden="true" />
+          <div class="doc-header-text">
+            <p class="doc-country">CANADA · TORONTO PUBLIC LIBRARY</p>
+            <p class="doc-type">PASSPORT / PASSEPORT</p>
           </div>
-          <div class="avatar-meta">
-            <p class="avatar-name">{{ passport.profile.name || 'Collector' }}</p>
-            <p class="avatar-sub">{{ passport.visitCount }} of {{ physicalBranches.length }} stamps</p>
-          </div>
-          <!-- placeholder for future photo upload -->
-          <button class="avatar-edit-btn" disabled title="Photo upload coming soon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="15" height="15">
-              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-              <circle cx="12" cy="13" r="4"/>
-            </svg>
-          </button>
+          <span class="doc-type-code">P</span>
         </div>
 
-        <div class="setting-row">
-          <label class="setting-label" for="name-input">Name</label>
-          <input
-            id="name-input"
-            v-model="passport.profile.name"
-            type="text"
-            class="setting-input"
-            placeholder="Your name"
-          />
+        <!-- Photo + primary fields -->
+        <div class="doc-body">
+          <div class="doc-photo">
+            <div class="avatar" :style="avatarStyle">
+              <span class="avatar-letter">{{ avatarLetter }}</span>
+            </div>
+            <span class="doc-photo-label">PHOTO</span>
+          </div>
+
+          <div class="doc-fields">
+            <div class="doc-field">
+              <label class="doc-field-label" for="name-input">Name / Nom</label>
+              <input
+                id="name-input"
+                v-model="passport.profile.name"
+                type="text"
+                class="doc-field-input"
+                placeholder="Your name"
+                autocomplete="off"
+              />
+            </div>
+            <div class="doc-field">
+              <label class="doc-field-label" for="book-input">Favourite Book</label>
+              <input
+                id="book-input"
+                v-model="passport.profile.favouriteBook"
+                type="text"
+                class="doc-field-input"
+                placeholder="Title or author"
+                autocomplete="off"
+              />
+            </div>
+            <div class="doc-field">
+              <label class="doc-field-label" for="home-input">Home Branch</label>
+              <select
+                id="home-input"
+                v-model="passport.profile.homeBranch"
+                class="doc-field-input doc-field-select"
+              >
+                <option value="">None selected</option>
+                <option
+                  v-for="b in sortedBranches"
+                  :key="b.BranchCode"
+                  :value="b.BranchCode"
+                >{{ b.BranchName }}</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="setting-row">
-          <label class="setting-label" for="book-input">Favourite book</label>
-          <input
-            id="book-input"
-            v-model="passport.profile.favouriteBook"
-            type="text"
-            class="setting-input"
-            placeholder="Title or author"
-          />
+
+        <!-- Stats row -->
+        <div class="doc-stats">
+          <div class="doc-stat">
+            <span class="doc-field-label">Stamps Collected</span>
+            <span class="doc-stat-val">{{ passport.visitCount }} / {{ physicalBranches.length }}</span>
+          </div>
+          <div class="doc-stat">
+            <span class="doc-field-label">Progress</span>
+            <span class="doc-stat-val">{{ progressPct }}%</span>
+          </div>
+          <div class="doc-stat">
+            <span class="doc-field-label">Issued</span>
+            <span class="doc-stat-val">{{ issueYear }}</span>
+          </div>
         </div>
-        <div class="setting-row setting-row--select">
-          <label class="setting-label" for="home-input">Home branch</label>
-          <select
-            id="home-input"
-            v-model="passport.profile.homeBranch"
-            class="setting-select"
-          >
-            <option value="">None selected</option>
-            <option
-              v-for="b in sortedBranches"
-              :key="b.BranchCode"
-              :value="b.BranchCode"
-            >{{ b.BranchName }}</option>
-          </select>
+
+        <!-- Machine-readable zone -->
+        <div class="doc-mrz">
+          <p class="mrz-line">P&lt;CAN{{ mrzLine1 }}</p>
+          <p class="mrz-line">{{ mrzLine2 }}</p>
         </div>
       </div>
     </section>
@@ -126,6 +154,9 @@
           <span class="about-val">{{ physicalBranches.length }} Toronto branches</span>
         </div>
         <div class="about-row about-row--link">
+          <NuxtLink to="/qr-print" class="about-link">Branch QR Codes →</NuxtLink>
+        </div>
+        <div class="about-row about-row--link">
           <a href="https://tpl.ca" target="_blank" class="about-link">Toronto Public Library ↗</a>
         </div>
       </div>
@@ -154,6 +185,33 @@ const avatarStyle = computed(() => {
     ? useStampColor(branch.WardNo)
     : { color: 'var(--tpl-blue)', bg: 'color-mix(in srgb, var(--tpl-blue) 12%, var(--color-paper))', border: 'color-mix(in srgb, var(--tpl-blue) 30%, transparent)' }
   return { color, background: bg, borderColor: border }
+})
+
+const progressPct = computed(() =>
+  Math.round((passport.visitCount / physicalBranches.length) * 100)
+)
+
+const issueYear = new Date().getFullYear()
+
+// MRZ — decorative, based on real MRZ format rules
+// Line 1: P<CAN + surname<<given<names (padded to 39 chars after prefix)
+const mrzLine1 = computed(() => {
+  const raw = (passport.profile.name || 'COLLECTOR').toUpperCase()
+  const parts = raw.replace(/[^A-Z ]/g, '').split(' ').filter(Boolean)
+  const surname = parts[0] ?? 'COLLECTOR'
+  const given   = parts.slice(1).join('<') || ''
+  const nameStr = given ? `${surname}<<${given}` : `${surname}`
+  return nameStr.padEnd(39, '<').slice(0, 39)
+})
+
+// Line 2: passport number + check + country + DOB stub + personal number + progress
+const mrzLine2 = computed(() => {
+  const num     = `TPL${String(passport.visitCount).padStart(5, '0')}`
+  const country = 'CAN'
+  const dob     = `${issueYear}`.slice(-2) + '0101'  // YYMMDD
+  const pct     = String(progressPct.value).padStart(3, '0')
+  const raw     = `${num}0${country}${dob}0M260101${pct}PCT`
+  return raw.padEnd(44, '<').slice(0, 44)
 })
 
 // Home branch selector — sorted alphabetically
@@ -208,7 +266,196 @@ function setDemo(mode) {
   margin-bottom: 24px;
 }
 
-/* Profile */
+/* ── Passport document card ───────────────────── */
+.passport-doc {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-soft);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+/* Document header */
+.doc-header {
+  background: var(--tpl-navy);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doc-seal {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: brightness(10);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.doc-header-text {
+  flex: 1;
+}
+
+.doc-country {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.55);
+}
+
+.doc-type {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  margin-top: 1px;
+}
+
+.doc-type-code {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.2);
+  line-height: 1;
+  font-optical-sizing: auto;
+}
+
+/* Photo + fields */
+.doc-body {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.doc-photo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 72px;
+  height: 88px;
+  border-radius: 6px;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-letter {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  font-optical-sizing: auto;
+}
+
+.doc-photo-label {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+/* Fields */
+.doc-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.doc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-bottom: 1px solid var(--color-border-soft);
+  padding-bottom: 8px;
+}
+
+.doc-field:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.doc-field-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.doc-field-input {
+  font-size: 1rem; /* 16px — prevents iOS Safari auto-zoom */
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  width: 100%;
+}
+
+.doc-field-input::placeholder { color: var(--color-border); }
+
+.doc-field-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* Stats row */
+.doc-stats {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.doc-stat {
+  flex: 1;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-right: 1px solid var(--color-border-soft);
+}
+
+.doc-stat:last-child { border-right: none; }
+
+.doc-stat-val {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-optical-sizing: auto;
+}
+
+/* MRZ */
+.doc-mrz {
+  background: var(--tpl-navy);
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mrz-line {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* ── Shared settings card ─────────────────────── */
 .settings-card {
   overflow: hidden;
 }
@@ -223,104 +470,11 @@ function setDemo(mode) {
 
 .setting-row:last-child { border-bottom: none; }
 
-/* Avatar row */
-.setting-row--avatar {
-  gap: 12px;
-  justify-content: flex-start;
-}
-
-.avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.avatar-letter {
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 700;
-  font-optical-sizing: auto;
-}
-
-.avatar-meta {
-  flex: 1;
-  min-width: 0;
-}
-
-.avatar-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.avatar-sub {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-top: 1px;
-}
-
-.avatar-edit-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  color: var(--color-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: not-allowed;
-  flex-shrink: 0;
-}
-
 .setting-label {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text);
   flex-shrink: 0;
-}
-
-.setting-input {
-  border: none;
-  outline: none;
-  text-align: right;
-  font-size: 1rem; /* 16px minimum prevents iOS Safari auto-zoom on focus */
-  font-family: var(--font-body);
-  color: var(--color-text-mid);
-  background: transparent;
-  width: 160px;
-}
-
-.setting-input::placeholder { color: var(--color-text-muted); }
-
-.setting-row--select {
-  align-items: center;
-}
-
-.setting-select {
-  border: none;
-  outline: none;
-  text-align: right;
-  font-size: 1rem; /* 16px minimum prevents iOS Safari auto-zoom on focus */
-  font-family: var(--font-body);
-  color: var(--color-text-mid);
-  background: transparent;
-  max-width: 170px;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  /* align with text inputs */
-  padding: 0;
-  height: 1.5em;
-  vertical-align: middle;
 }
 
 /* Theme toggle */
