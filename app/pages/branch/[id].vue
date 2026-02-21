@@ -16,8 +16,8 @@
         </div>
         <div class="branch-title-area">
           <h1>{{ branch.BranchName }}</h1>
-          <p class="branch-ward">{{ branch.WardName }}</p>
-          <p class="branch-neighbourhood">{{ branch.NBHDName }}</p>
+          <p class="branch-region">{{ branchRegion }}</p>
+          <p class="branch-hours">Mon–Fri 10am–8pm · Sat &amp; Sun 10am–6pm</p>
         </div>
       </div>
     </header>
@@ -52,13 +52,41 @@
       </button>
     </div>
 
+    <!-- Upcoming events (hardcoded for MVP) -->
+    <section class="detail-section">
+      <h2 class="detail-heading">Upcoming events</h2>
+      <ul class="events-list">
+        <li v-for="evt in BRANCH_EVENTS" :key="evt.title" class="event-row">
+          <div class="event-date-badge">
+            <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
+            <span class="event-day">{{ formatEventDay(evt.date) }}</span>
+          </div>
+          <div class="event-info">
+            <span class="event-title">{{ evt.title }}</span>
+            <span class="event-meta">{{ evt.time }} · {{ evt.age }}</span>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Past visits at this branch (shown only if any exist) -->
+    <section v-if="pastVisitsHere.length" class="detail-section">
+      <h2 class="detail-heading">Your visits here</h2>
+      <ul class="visit-list">
+        <li v-for="visit in pastVisitsHere" :key="visit.timestamp" class="visit-row-small">
+          <span class="visit-row-small__date">{{ formatVisitDate(visit.timestamp) }}</span>
+          <span v-if="visit.note" class="visit-row-small__note">{{ visit.note }}</span>
+        </li>
+      </ul>
+    </section>
+
     <!-- Info -->
     <section class="info-card card">
       <div class="info-row">
         <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
         </svg>
-        <span>{{ branch.Address }}</span>
+        <a :href="mapsUrl" target="_blank" rel="noopener" class="info-link">{{ streetAddress }} ↗</a>
       </div>
       <div v-if="branch.Telephone" class="info-row">
         <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -66,28 +94,11 @@
         </svg>
         <a :href="`tel:${branch.Telephone}`" class="info-link">{{ branch.Telephone }}</a>
       </div>
-      <div class="info-row">
-        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-        <span class="info-hours-row">
-          <span>Today's hours</span>
-          <a v-if="branch.Website" :href="branch.Website" target="_blank" class="info-link hours-link">
-            See tpl.ca ↗
-          </a>
-        </span>
-      </div>
-      <div v-if="branch.Workstations > 0" class="info-row">
-        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-        </svg>
-        <span>{{ branch.Workstations }} public computer{{ branch.Workstations !== 1 ? 's' : '' }}</span>
-      </div>
-      <div v-if="branch.PublicParking && branch.PublicParking !== '0' && branch.PublicParking !== 0" class="info-row">
+      <div v-if="hasParking" class="info-row">
         <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
           <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 010 6H9"/>
         </svg>
-        <span>Parking: {{ branch.PublicParking === 'shared' ? 'shared' : `${branch.PublicParking} spaces` }}</span>
+        <span>Parking available</span>
       </div>
     </section>
 
@@ -99,38 +110,21 @@
       </div>
     </section>
 
-    <!-- Upcoming events -->
+    <!-- Branch challenges (coming soon) -->
     <section class="detail-section">
-      <h2 class="detail-heading">Upcoming events</h2>
-      <div v-if="eventsPending" class="events-loading">Loading events…</div>
-      <ul v-else-if="upcomingEvents.length" class="events-list">
-        <li v-for="evt in upcomingEvents" :key="evt._id" class="event-row">
-          <div class="event-date-badge">
-            <span class="event-month">{{ formatEventMonth(evt.startdate) }}</span>
-            <span class="event-day">{{ formatEventDay(evt.startdate) }}</span>
-          </div>
-          <div class="event-info">
-            <a :href="evt.pagelink" target="_blank" class="event-title">{{ evt.title }}</a>
-            <span class="event-meta">
-              <template v-if="evt.starttime && evt.starttime !== 'None'">{{ formatTime(evt.starttime) }}</template>
-              <template v-if="evt.agegroup1 && evt.agegroup1 !== 'None'"> · {{ evt.agegroup1 }}</template>
-            </span>
-          </div>
+      <h2 class="detail-heading">Branch challenges</h2>
+      <ul class="challenge-list">
+        <li class="challenge-item">
+          <span class="challenge-lock">🔒</span>
+          <span>Check out a book here</span>
         </li>
-      </ul>
-      <div v-else class="events-empty">
-        <p>No upcoming events found for this branch.</p>
-        <a v-if="branch.Website" :href="branch.Website" target="_blank" class="events-tpl-link">Check tpl.ca for the latest programs ↗</a>
-      </div>
-    </section>
-
-    <!-- Past visits at this branch -->
-    <section v-if="pastVisitsHere.length" class="detail-section">
-      <h2 class="detail-heading">Your visits here</h2>
-      <ul class="visit-list">
-        <li v-for="visit in pastVisitsHere" :key="visit.timestamp" class="visit-row-small">
-          <span class="visit-row-small__date">{{ formatVisitDate(visit.timestamp) }}</span>
-          <span v-if="visit.note" class="visit-row-small__note">{{ visit.note }}</span>
+        <li class="challenge-item">
+          <span class="challenge-lock">🔒</span>
+          <span>Attend a branch program</span>
+        </li>
+        <li class="challenge-item">
+          <span class="challenge-lock">🔒</span>
+          <span>Meet a librarian</span>
         </li>
       </ul>
     </section>
@@ -178,6 +172,7 @@
 import branchData from '#data/tpl-branch-general-information-2023.json'
 import { usePassportStore } from '~/stores/passport'
 import { useStampColor } from '~/composables/useStampColor'
+import { getRegion } from '~/composables/useRegion'
 
 const route   = useRoute()
 const passport = usePassportStore()
@@ -190,12 +185,24 @@ const stampStyles = computed(() => {
   return { color, background: bg, borderColor: border }
 })
 
-// ── Check-in sheet ─────────────────────────────
-const showSheet     = ref(false)
-const flashSuccess  = ref(false)
-const noteText      = ref('')
+const branchRegion   = computed(() => getRegion(branch.value?.WardNo) ?? '')
+const streetAddress  = computed(() => branch.value?.Address?.split(',')[0] ?? '')
+const mapsUrl        = computed(() => {
+  if (!branch.value) return '#'
+  const q = encodeURIComponent(`${streetAddress.value}, Toronto, ON`)
+  return `https://www.google.com/maps/search/?api=1&query=${q}`
+})
+const hasParking     = computed(() =>
+  branch.value?.PublicParking &&
+  branch.value.PublicParking !== '0' &&
+  branch.value.PublicParking !== 0
+)
 
-// Reactive button state — always reflects current store state
+// ── Check-in sheet ─────────────────────────────
+const showSheet    = ref(false)
+const flashSuccess = ref(false)
+const noteText     = ref('')
+
 const checkinState = computed(() => {
   if (flashSuccess.value) return 'success'
   if (passport.hasVisitedToday(branch.value?.BranchCode)) return 'blocked'
@@ -240,34 +247,12 @@ const services = computed(() => {
     .map(([, label]) => label)
 })
 
-// ── Events (via server proxy) ───────────────────
-const eventsRaw    = ref([])
-const eventsPending = ref(false)
-
-watch(
-  () => branch.value?.BranchName,
-  async (name) => {
-    if (!name) return
-    eventsPending.value = true
-    try {
-      eventsRaw.value = await $fetch('/api/branch-events', { params: { library: name } })
-    } catch {
-      eventsRaw.value = []
-    } finally {
-      eventsPending.value = false
-    }
-  },
-  { immediate: true }
-)
-
-const today = new Date().toISOString().split('T')[0]
-
-const upcomingEvents = computed(() =>
-  eventsRaw.value
-    .filter(e => e.enddate >= today)
-    .sort((a, b) => a.startdate.localeCompare(b.startdate))
-    .slice(0, 5)
-)
+// ── Events (hardcoded for MVP — replace with API when ready) ───
+const BRANCH_EVENTS = [
+  { title: 'Book Club: Winter Reads',   date: '2026-02-25', time: '6:00pm', age: 'Adults' },
+  { title: 'Lego Building Challenge',   date: '2026-03-01', time: '2:00pm', age: 'Kids 6–12' },
+  { title: 'Teen Drop-In Hangout',      date: '2026-03-08', time: '3:30pm', age: 'Teens' },
+]
 
 function formatEventMonth(date) {
   return new Date(date + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short' }).toUpperCase()
@@ -275,13 +260,6 @@ function formatEventMonth(date) {
 
 function formatEventDay(date) {
   return new Date(date + 'T00:00:00').getDate()
-}
-
-function formatTime(t) {
-  if (!t || t === 'None') return ''
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'pm' : 'am'
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')}${ampm}`
 }
 
 // ── Past visits ────────────────────────────────
@@ -342,9 +320,9 @@ function formatVisitDate(iso) {
   font-optical-sizing: auto;
 }
 
-.branch-title-area h1 { font-size: 1.35rem; line-height: 1.2; margin-bottom: 3px; }
-.branch-ward         { font-size: 0.8rem; color: var(--color-text-mid); font-weight: 600; }
-.branch-neighbourhood { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1px; }
+.branch-title-area h1  { font-size: 1.35rem; line-height: 1.2; margin-bottom: 3px; }
+.branch-region         { font-size: 0.8rem; color: var(--color-text-mid); font-weight: 600; margin-top: 2px; }
+.branch-hours          { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 3px; }
 
 /* Check-in */
 .checkin-area {
@@ -418,15 +396,6 @@ function formatVisitDate(iso) {
 
 .info-link { color: var(--tpl-blue); font-weight: 500; }
 
-.info-hours-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.hours-link { font-size: 0.8rem; }
-
 /* Generic detail section */
 .detail-section { margin-bottom: 24px; }
 
@@ -442,22 +411,6 @@ function formatVisitDate(iso) {
 }
 
 /* Events */
-.events-loading { font-size: 0.85rem; color: var(--color-text-muted); padding: 8px 0; }
-
-.events-empty {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.events-empty p { font-size: 0.85rem; color: var(--color-text-muted); }
-
-.events-tpl-link {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--tpl-blue);
-}
-
 .events-list {
   list-style: none;
   display: flex;
@@ -513,13 +466,7 @@ function formatVisitDate(iso) {
   font-weight: 600;
   color: var(--color-text);
   line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
-
-.event-title:hover { color: var(--tpl-blue); }
 
 .event-meta {
   font-size: 0.73rem;
@@ -556,10 +503,36 @@ function formatVisitDate(iso) {
   line-height: 1.5;
 }
 
-/* Bottom sheet */
+/* Branch challenges */
+.challenge-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.challenge-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  opacity: 0.75;
+}
+
+.challenge-lock { font-size: 0.85rem; }
+
+/* Bottom sheet — height: 100dvh shrinks when keyboard appears on mobile */
 .sheet-backdrop {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100dvh;
   background: rgba(0, 28, 113, 0.4);
   z-index: 200;
   display: flex;
@@ -573,6 +546,8 @@ function formatVisitDate(iso) {
   padding: 12px 20px 40px;
   width: 100%;
   max-width: 480px;
+  max-height: 80dvh;
+  overflow-y: auto;
 }
 
 .sheet-handle {
@@ -624,7 +599,7 @@ function formatVisitDate(iso) {
   padding: 12px 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  font-size: 0.9rem;
+  font-size: 1rem; /* 16px minimum prevents iOS Safari auto-zoom */
   font-family: var(--font-body);
   background: var(--color-surface);
   color: var(--color-text);
@@ -632,6 +607,7 @@ function formatVisitDate(iso) {
   resize: none;
   line-height: 1.5;
   transition: border-color 0.15s;
+  box-sizing: border-box;
 }
 
 .note-textarea:focus { border-color: var(--tpl-blue); }
@@ -675,10 +651,6 @@ function formatVisitDate(iso) {
 @keyframes sheet-in {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
-}
-
-.sheet-backdrop {
-  animation: none; /* backdrop appears instantly */
 }
 
 .sheet {

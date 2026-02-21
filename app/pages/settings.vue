@@ -265,7 +265,7 @@ function setDemo(mode) {
   border: none;
   outline: none;
   text-align: right;
-  font-size: 0.875rem;
+  font-size: 1rem; /* 16px minimum prevents iOS Safari auto-zoom on focus */
   font-family: var(--font-body);
   color: var(--color-text-mid);
   background: transparent;
@@ -282,7 +282,7 @@ function setDemo(mode) {
   border: none;
   outline: none;
   text-align: right;
-  font-size: 0.85rem;
+  font-size: 1rem; /* 16px minimum prevents iOS Safari auto-zoom on focus */
   font-family: var(--font-body);
   color: var(--color-text-mid);
   background: transparent;
@@ -290,6 +290,10 @@ function setDemo(mode) {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
+  /* align with text inputs */
+  padding: 0;
+  height: 1.5em;
+  vertical-align: middle;
 }
 
 /* Demo */

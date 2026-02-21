@@ -67,7 +67,8 @@ export const usePassportStore = defineStore('passport', () => {
     // Spread visits evenly backward from today, one per branch
     const makeCheckIns = (codes, totalDaysSpan) =>
       codes.map((branchCode, i) => {
-        const daysBack = Math.round((i / codes.length) * totalDaysSpan)
+        // Minimum 1 day back — demo check-ins should never land on today
+        const daysBack = Math.max(1, Math.round((i / codes.length) * totalDaysSpan))
         const d = new Date()
         d.setDate(d.getDate() - daysBack)
         d.setHours(10 + (i % 8), (i * 7) % 60, 0, 0) // vary the time of day

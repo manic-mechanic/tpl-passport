@@ -17,7 +17,7 @@
               />
               <div class="checkin-info">
                 <span class="checkin-name">{{ branchMap[visit.branchCode] ?? visit.branchCode }}</span>
-                <span class="checkin-meta">{{ wardMap[visit.branchCode] }}</span>
+                <span class="checkin-meta">{{ regionMap[visit.branchCode] }}</span>
               </div>
               <span class="checkin-time">{{ formatTime(visit.timestamp) }}</span>
             </NuxtLink>
@@ -40,12 +40,13 @@
 import branchData from '#data/tpl-branch-general-information-2023.json'
 import { usePassportStore } from '~/stores/passport'
 import { useStampColor } from '~/composables/useStampColor'
+import { getRegion } from '~/composables/useRegion'
 
 const passport = usePassportStore()
 
-const branchMap = Object.fromEntries(branchData.map(b => [b.BranchCode, b.BranchName]))
-const wardMap   = Object.fromEntries(branchData.map(b => [b.BranchCode, b.WardName]))
-const wardNoMap = Object.fromEntries(branchData.map(b => [b.BranchCode, b.WardNo]))
+const branchMap  = Object.fromEntries(branchData.map(b => [b.BranchCode, b.BranchName]))
+const wardNoMap  = Object.fromEntries(branchData.map(b => [b.BranchCode, b.WardNo]))
+const regionMap  = Object.fromEntries(branchData.map(b => [b.BranchCode, getRegion(b.WardNo)]))
 
 const grouped = computed(() => {
   const now = new Date()

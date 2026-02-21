@@ -36,7 +36,7 @@
           <div class="branch-dot" :style="dotStyle(branch)" />
           <div class="branch-info">
             <span class="branch-name">{{ branch.BranchName }}</span>
-            <span class="branch-meta">{{ branch.NBHDName }}</span>
+            <span class="branch-meta">{{ getRegion(branch.WardNo) }}</span>
           </div>
           <div class="branch-right">
             <svg v-if="passport.hasVisited(branch.BranchCode)" class="visited-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -60,7 +60,7 @@
               <div class="branch-dot" :style="dotStyle(branch)" />
               <div class="branch-info">
                 <span class="branch-name">{{ branch.BranchName }}</span>
-                <span class="branch-meta">{{ branch.NBHDName }}</span>
+                <span class="branch-meta">{{ getRegion(branch.WardNo) }}</span>
               </div>
               <div class="branch-right">
                 <svg v-if="passport.hasVisited(branch.BranchCode)" class="visited-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
