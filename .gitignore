@@ -20,6 +20,12 @@ logs
 .idea
 reference
 
+# LLM assistant config
+CLAUDE.md
+
+# Unused / superseded data files
+data/tpl-branch-general-information-2023.json
+
 # Local env files
 .env
 .env.*
