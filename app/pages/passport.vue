@@ -27,6 +27,8 @@
             <span class="stamp-unseen">not yet</span>
           </template>
         </NuxtLink>
+        <!-- fills the empty right cell when a district has an odd number of branches -->
+        <div v-if="(byRegion[region] ?? []).length % 2 !== 0" class="stamp-slot stamp-slot--phantom" aria-hidden="true" />
       </div>
     </div>
 
@@ -81,13 +83,35 @@ function visitDate(branchCode) {
   border-bottom: none;
 }
 
-/* Shared-border grid — cells share lines rather than each having their own box. */
+/* Vertical lines (left edge, middle divider, right edge) live on pseudo-elements, not grid cells.
+   iOS Safari has a bug where border-left/right don't render on elements that are both grid items
+   and flex containers. Pseudo-elements are position:absolute children, so they're unaffected. */
 .stamp-grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0;
-  border-top: 1.5px dashed var(--color-border);
+}
+
+/* Left and right outer borders */
+.stamp-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   border-left: 1.5px dashed var(--color-border);
+  border-right: 1.5px dashed var(--color-border);
+  pointer-events: none;
+}
+
+/* Middle vertical divider */
+.stamp-grid::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1.5px dashed var(--color-border);
+  pointer-events: none;
 }
 
 .stamp-slot {
@@ -99,8 +123,7 @@ function visitDate(branchCode) {
   text-decoration: none;
   color: var(--color-text);
   padding: 20px 12px;
-  border-right: 1.5px dashed var(--color-border);
-  border-bottom: 1.5px dashed var(--color-border);
+  border-top: 1.5px dashed var(--color-border);
   min-height: 150px;
 }
 
@@ -133,5 +156,9 @@ function visitDate(branchCode) {
   color: var(--color-border);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.stamp-slot--phantom {
+  pointer-events: none;
 }
 </style>
