@@ -4,6 +4,7 @@
 .nuxt
 .nitro
 .cache
+.claude
 dist
 
 # Node dependencies
@@ -17,7 +18,7 @@ logs
 .DS_Store
 .fleet
 .idea
-brief.md
+reference
 
 # Local env files
 .env
