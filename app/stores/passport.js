@@ -13,7 +13,8 @@ export const usePassportStore = defineStore('passport', () => {
     name: '',
     favouriteBook: '',
     homeBranch: '',  // BranchCode of home branch
-    theme: '',       // '' = system, 'light', 'dark'
+    theme: 'light',
+    bypassLocationFence: true,
     ...(saved.profile ?? {}),
   })
 

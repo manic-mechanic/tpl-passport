@@ -138,11 +138,19 @@
         <button
           v-if="selectedBranch"
           class="checkin-btn"
-          :disabled="alreadyVisitedToday"
+          :disabled="alreadyVisitedToday || locationStatus === 'checking'"
           @click="doCheckIn"
         >
-          Check in
+          <span v-if="locationStatus === 'checking'" class="btn-spinner" />
+          {{ locationStatus === 'checking' ? 'Checking location…' : 'Check in' }}
         </button>
+
+        <p v-if="locationStatus === 'too-far'" class="location-error">
+          You're {{ locationDistKm >= 1 ? locationDistKm.toFixed(1) + ' km' : Math.round(locationDistKm * 1000) + ' m' }} away — you need to be within 100 m of this branch to check in.
+        </p>
+        <p v-else-if="locationStatus === 'denied'" class="location-error">
+          Location access is required to check in. Allow it in your browser settings, or enable the bypass in Settings.
+        </p>
 
         <p v-if="scanError" class="scan-error">{{ scanError }}</p>
 
@@ -250,10 +258,47 @@ function onPhotoCapture(event) {
 }
 
 // Check-in
-const result = ref(null)
+const result         = ref(null)
+const locationStatus = ref('idle') // 'idle' | 'checking' | 'too-far' | 'denied'
+const locationDistKm = ref(null)
 
-function doCheckIn() {
+// Reset location status whenever the selected branch changes
+watch(selectedCode, () => { locationStatus.value = 'idle'; locationDistKm.value = null })
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+async function doCheckIn() {
   if (!selectedBranch.value || alreadyVisitedToday.value) return
+
+  if (!passport.profile.bypassLocationFence) {
+    locationStatus.value = 'checking'
+    try {
+      const pos = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+      )
+      const km = haversineKm(
+        pos.coords.latitude, pos.coords.longitude,
+        selectedBranch.value.Lat, selectedBranch.value.Long
+      )
+      if (km > 0.1) {
+        locationStatus.value = 'too-far'
+        locationDistKm.value = km
+        return
+      }
+    } catch {
+      locationStatus.value = 'denied'
+      return
+    }
+  }
+
+  locationStatus.value = 'idle'
   const ok = passport.checkIn(selectedBranch.value.BranchCode, noteText.value.trim())
   if (ok) {
     result.value = {
@@ -648,6 +693,28 @@ onUnmounted(closeScanner)
 }
 
 .checkin-btn:not(:disabled):active { transform: scale(0.98); }
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.location-error {
+  font-size: 0.82rem;
+  color: #c0392b;
+  text-align: center;
+  padding: 0 8px;
+  line-height: 1.5;
+}
 
 .scan-error {
   font-size: 0.8rem;

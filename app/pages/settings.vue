@@ -141,6 +141,31 @@
       </div>
     </section>
 
+    <!-- Developer -->
+    <section class="settings-group">
+      <p class="section-label">Developer</p>
+      <div class="settings-card card">
+        <div class="setting-row">
+          <div>
+            <span class="setting-label">Bypass location fence</span>
+            <p class="setting-hint">Allow check-in from anywhere, regardless of distance to branch.</p>
+          </div>
+          <div class="theme-toggle">
+            <button
+              class="theme-btn"
+              :class="{ 'theme-btn--active': !passport.profile.bypassLocationFence }"
+              @click="passport.profile.bypassLocationFence = false"
+            >Off</button>
+            <button
+              class="theme-btn"
+              :class="{ 'theme-btn--active': passport.profile.bypassLocationFence }"
+              @click="passport.profile.bypassLocationFence = true"
+            >On</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- About -->
     <section class="settings-group">
       <p class="section-label">About</p>
@@ -474,7 +499,13 @@ function setDemo(mode) {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text);
-  flex-shrink: 0;
+}
+
+.setting-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
 }
 
 /* Theme toggle */
