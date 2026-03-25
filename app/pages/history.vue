@@ -57,6 +57,7 @@
 <script setup>
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, DISTRICT_COLORS } from '~/composables/useRegion'
+import { calcWeekStreak } from '~/composables/useStreak'
 
 const passport = usePassportStore()
 
@@ -80,37 +81,7 @@ const grouped = computed(() => {
   return Object.entries(buckets).filter(([, items]) => items.length > 0)
 })
 
-// Week streak — consecutive calendar weeks (Mon–Sun) with at least one visit.
-// If the most recent visit week isn't this week or last week, streak resets to 0.
-const weekStreak = computed(() => {
-  if (!passport.checkIns.length) return 0
-
-  // Monday of the week containing a given date
-  function weekStart(date) {
-    const d = new Date(date)
-    const day = d.getDay() || 7   // treat Sunday as 7
-    d.setDate(d.getDate() - (day - 1))
-    d.setHours(0, 0, 0, 0)
-    return d.getTime()
-  }
-
-  const weeksWithVisit = new Set(passport.checkIns.map(c => weekStart(new Date(c.timestamp))))
-  const thisWeek = weekStart(new Date())
-  const lastWeekDate = new Date(thisWeek)
-  lastWeekDate.setDate(lastWeekDate.getDate() - 7)
-  const lastWeek = lastWeekDate.getTime()
-
-  // Streak only counts if the user visited this week or last week
-  if (!weeksWithVisit.has(thisWeek) && !weeksWithVisit.has(lastWeek)) return 0
-
-  let streak = 0
-  const cursorDate = new Date(weeksWithVisit.has(thisWeek) ? thisWeek : lastWeek)
-  while (weeksWithVisit.has(cursorDate.getTime())) {
-    streak++
-    cursorDate.setDate(cursorDate.getDate() - 7)
-  }
-  return streak
-})
+const weekStreak = computed(() => calcWeekStreak(passport.checkIns))
 
 function formatTime(iso) {
   const d = new Date(iso)

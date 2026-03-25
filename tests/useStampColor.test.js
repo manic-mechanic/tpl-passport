@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { useStampColor } from '../app/composables/useStampColor.js'
+import { useStampColor } from '../app/composables/useStamp.js'
 
 describe('useStampColor', () => {
   it('returns color, bg, and border for a valid ward', () => {
