@@ -2,11 +2,11 @@
   <main class="page-content" v-if="branch">
 
     <header class="branch-header">
-      <NuxtLink to="/explore" class="back-link">
+      <NuxtLink :to="backTo" class="back-link">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
-        Explore
+        {{ backLabel }}
       </NuxtLink>
 
       <div class="branch-hero">
@@ -58,10 +58,22 @@
       <ul class="visit-list">
         <li v-for="visit in pastVisitsHere" :key="visit.timestamp" class="visit-row-small">
           <span class="visit-row-small__date">{{ formatVisitDate(visit.timestamp) }}</span>
+          <button
+            v-if="photoUrls[visit.timestamp]"
+            class="visit-photo-btn"
+            @click="lightboxSrc = photoUrls[visit.timestamp]"
+          >
+            <img :src="photoUrls[visit.timestamp]" class="visit-photo-thumb" alt="Check-in photo" />
+          </button>
           <span v-if="visit.note" class="visit-row-small__note">{{ visit.note }}</span>
         </li>
       </ul>
     </section>
+
+    <!-- Photo lightbox -->
+    <div v-if="lightboxSrc" class="lightbox" @click="lightboxSrc = null">
+      <img :src="lightboxSrc" class="lightbox-img" alt="Check-in photo" />
+    </div>
 
     <!-- Info -->
     <section class="info-card card">
@@ -144,8 +156,19 @@
 <script setup>
 import branchData from '#data/updated-branch-info.json'
 import { usePassportStore } from '~/stores/passport'
+import { getPhotoUrl } from '~/composables/usePhotoStore'
 
-const route   = useRoute()
+const route  = useRoute()
+const router = useRouter()
+
+// Return to wherever the user came from, falling back to /explore
+const backTo    = computed(() => router.options.history.state?.back ?? '/explore')
+const backLabel = computed(() => {
+  if (typeof backTo.value !== 'string') return 'Explore'
+  if (backTo.value.startsWith('/history'))  return 'History'
+  if (backTo.value.startsWith('/passport')) return 'Passport'
+  return 'Explore'
+})
 const passport = usePassportStore()
 
 const branch = computed(() => branchData.find(b => b.BranchCode === route.params.id))
@@ -206,6 +229,16 @@ function formatEventDay(date) {
 const pastVisitsHere = computed(() =>
   passport.checkIns.filter(c => c.branchCode === branch.value?.BranchCode)
 )
+
+const photoUrls  = ref({})
+const lightboxSrc = ref(null)
+
+watch(pastVisitsHere, async (visits) => {
+  for (const visit of visits) {
+    if (visit.timestamp in photoUrls.value) continue
+    photoUrls.value[visit.timestamp] = await getPhotoUrl(visit.timestamp)
+  }
+}, { immediate: true })
 
 function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
@@ -417,6 +450,48 @@ const completedChallengesCount = computed(() =>
   font-size: 0.8rem;
   color: var(--color-text-muted);
   line-height: 1.5;
+}
+
+.visit-photo-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.visit-photo-thumb {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  animation: lightbox-in 0.2s ease both;
+}
+
+@keyframes lightbox-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
 }
 
 /* Branch challenges */

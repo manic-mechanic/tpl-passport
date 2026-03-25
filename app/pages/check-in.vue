@@ -111,7 +111,7 @@
 
         <div class="field-group">
           <label class="field-label">
-            Photo <span class="optional">optional · not saved</span>
+            Photo <span class="optional">optional</span>
           </label>
           <div class="photo-area">
             <img v-if="photoPreview" :src="photoPreview" class="photo-preview" alt="Check-in photo" />
@@ -195,6 +195,7 @@ import jsQR from 'jsqr'
 import { usePassportStore } from '~/stores/passport'
 import { useStampColor, getStampShape } from '~/composables/useStamp'
 import { physicalBranches } from '~/composables/useRegion'
+import { savePhoto } from '~/composables/usePhotoStore'
 
 const route   = useRoute()
 const passport = usePassportStore()
@@ -246,12 +247,14 @@ const previewStampStyle = computed(() => {
 })
 
 // Note + photo
-const noteText    = ref('')
+const noteText     = ref('')
 const photoPreview = ref(null)
+const photoFile    = ref(null)
 
 function onPhotoCapture(event) {
   const file = event.target.files?.[0]
   if (!file) return
+  photoFile.value = file
   const reader = new FileReader()
   reader.onload = (e) => { photoPreview.value = e.target.result }
   reader.readAsDataURL(file)
@@ -299,8 +302,9 @@ async function doCheckIn() {
   }
 
   locationStatus.value = 'idle'
-  const ok = passport.checkIn(selectedBranch.value.BranchCode, noteText.value.trim())
-  if (ok) {
+  const timestamp = passport.checkIn(selectedBranch.value.BranchCode, noteText.value.trim())
+  if (timestamp) {
+    if (photoFile.value) savePhoto(timestamp, photoFile.value)
     result.value = {
       branchCode: selectedBranch.value.BranchCode,
       branchName: selectedBranch.value.BranchName,
@@ -324,6 +328,7 @@ function reset() {
   scanned.value      = false
   noteText.value     = ''
   photoPreview.value = null
+  photoFile.value    = null
 }
 
 // ── QR Scanner ────────────────────────────────

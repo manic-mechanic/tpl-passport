@@ -63,15 +63,13 @@ export const usePassportStore = defineStore('passport', () => {
 
   // Adds a check-in. Returns false (no-op) if the user already checked in
   // at this branch today — one visit per branch per day.
+  // Returns the ISO timestamp of the new check-in, or null if already visited today.
   function checkIn(branchCode, note = '') {
-    if (hasVisitedToday(branchCode)) return false
+    if (hasVisitedToday(branchCode)) return null
 
-    checkIns.value.unshift({
-      branchCode,
-      timestamp: new Date().toISOString(),
-      note,
-    })
-    return true
+    const timestamp = new Date().toISOString()
+    checkIns.value.unshift({ branchCode, timestamp, note })
+    return timestamp
   }
 
   // Resets the passport to a preset demo state.
