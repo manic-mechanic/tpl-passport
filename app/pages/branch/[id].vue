@@ -2,11 +2,11 @@
   <main class="page-content" v-if="branch">
 
     <header class="branch-header">
-      <NuxtLink to="/explore" class="back-link">
+      <NuxtLink :to="backTo" class="back-link">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
-        Explore
+        {{ backLabel }}
       </NuxtLink>
 
       <div class="branch-hero">
@@ -35,21 +35,22 @@
       </button>
     </div>
 
-    <!-- Upcoming events (hardcoded for MVP) -->
-    <section class="detail-section">
+    <!-- Upcoming events (live from CKAN API) -->
+    <section v-if="events.length" class="detail-section">
       <h2 class="detail-heading">Upcoming events</h2>
       <ul class="events-list">
-        <li v-for="evt in BRANCH_EVENTS" :key="evt.title" class="event-row">
+        <li v-for="evt in events" :key="evt.title + evt.date" class="event-row">
           <div class="event-date-badge">
             <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
             <span class="event-day">{{ formatEventDay(evt.date) }}</span>
           </div>
           <div class="event-info">
             <span class="event-title">{{ evt.title }}</span>
-            <span class="event-meta">{{ evt.time }} · {{ evt.age }}</span>
+            <span class="event-meta">{{ evt.time }}<template v-if="evt.age"> · {{ evt.age }}</template></span>
           </div>
         </li>
       </ul>
+      <a :href="`https://tpl.ca/locations/${branch.BranchCode}/`" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
     </section>
 
     <!-- Past visits at this branch (shown only if any exist) -->
@@ -58,10 +59,22 @@
       <ul class="visit-list">
         <li v-for="visit in pastVisitsHere" :key="visit.timestamp" class="visit-row-small">
           <span class="visit-row-small__date">{{ formatVisitDate(visit.timestamp) }}</span>
+          <button
+            v-if="photoUrls[visit.timestamp]"
+            class="visit-photo-btn"
+            @click="lightboxSrc = photoUrls[visit.timestamp]"
+          >
+            <img :src="photoUrls[visit.timestamp]" class="visit-photo-thumb" alt="Check-in photo" />
+          </button>
           <span v-if="visit.note" class="visit-row-small__note">{{ visit.note }}</span>
         </li>
       </ul>
     </section>
+
+    <!-- Photo lightbox -->
+    <div v-if="lightboxSrc" class="lightbox" @click="lightboxSrc = null">
+      <img :src="lightboxSrc" class="lightbox-img" alt="Check-in photo" />
+    </div>
 
     <!-- Info -->
     <section class="info-card card">
@@ -144,8 +157,19 @@
 <script setup>
 import branchData from '#data/updated-branch-info.json'
 import { usePassportStore } from '~/stores/passport'
+import { getPhotoUrl } from '~/composables/usePhotoStore'
 
-const route   = useRoute()
+const route  = useRoute()
+const router = useRouter()
+
+// Return to wherever the user came from, falling back to /explore
+const backTo    = computed(() => router.options.history.state?.back ?? '/explore')
+const backLabel = computed(() => {
+  if (typeof backTo.value !== 'string') return 'Explore'
+  if (backTo.value.startsWith('/history'))  return 'History'
+  if (backTo.value.startsWith('/passport')) return 'Passport'
+  return 'Explore'
+})
 const passport = usePassportStore()
 
 const branch = computed(() => branchData.find(b => b.BranchCode === route.params.id))
@@ -188,11 +212,55 @@ const services = computed(() => {
     .map(([, label]) => label)
 })
 
-// ── Events (hardcoded for MVP — replace with API when ready) ──
-const BRANCH_EVENTS = [
-  { title: 'Book Club: Winter Reads', date: '2026-02-25', time: '6:00pm',  age: 'Adults'    },
-  { title: 'Lego Building Challenge', date: '2026-03-01', time: '2:00pm',  age: 'Kids 6–12' },
-]
+// ── Events (live from CKAN API via server proxy) ──────────────
+const { data: rawEvents } = useFetch('/api/branch-events', {
+  query: computed(() => ({ library: branch.value?.BranchName ?? '' })),
+  default: () => [],
+})
+
+// Normalise CKAN records to { title, date, time, age }
+// CKAN fields: Title, StartDateLocal (YYYY-MM-DD), StartTime (ISO datetime), Audiences
+const AUDIENCE_MAP = {
+  'Adults (18+)':               'Adults',
+  'Older Adults':               'Seniors',
+  'Younger Adults (18-24)':     'Ages 18–24',
+  'Teens (13-17)':              'Teens',
+  'School Age Children (6-12)': 'Kids 6–12',
+  'Preschool Children (0-5)':   'Ages 0–5',
+}
+
+const ADULT_GROUPS = new Set(['Adults (18+)', 'Older Adults', 'Younger Adults (18-24)'])
+const KID_GROUPS   = new Set(['Teens (13-17)', 'School Age Children (6-12)', 'Preschool Children (0-5)'])
+
+function formatAudiences(raw) {
+  if (!raw) return ''
+  const groups = raw.split(',').map(a => a.trim())
+  const adults = groups.filter(g => ADULT_GROUPS.has(g))
+  const kids   = groups.filter(g => KID_GROUPS.has(g))
+
+  if (adults.length >= 1 && kids.length >= 1) return 'All ages'
+  if (adults.length >= 2) return 'Adults'
+  if (kids.length >= 2)   return 'Kids'
+  return groups.map(g => AUDIENCE_MAP[g] ?? g).join(', ')
+}
+
+const events = computed(() =>
+  (rawEvents.value ?? []).map(e => ({
+    title: e.Title || '(Unnamed event)',
+    date:  e.StartDateLocal ?? '',
+    time:  formatEventTime(e.StartTime),
+    age:   formatAudiences(e.Audiences),
+  }))
+)
+
+function formatEventTime(isoDatetime) {
+  if (!isoDatetime) return ''
+  const timePart = isoDatetime.split('T')[1] ?? ''  // "14:00:00"
+  const [h, m] = timePart.split(':').map(Number)
+  const suffix = h >= 12 ? 'pm' : 'am'
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${h12}:${String(m).padStart(2, '0')}${suffix}`
+}
 
 function formatEventMonth(date) {
   return new Date(date + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short' }).toUpperCase()
@@ -206,6 +274,16 @@ function formatEventDay(date) {
 const pastVisitsHere = computed(() =>
   passport.checkIns.filter(c => c.branchCode === branch.value?.BranchCode)
 )
+
+const photoUrls  = ref({})
+const lightboxSrc = ref(null)
+
+watch(pastVisitsHere, async (visits) => {
+  for (const visit of visits) {
+    if (visit.timestamp in photoUrls.value) continue
+    photoUrls.value[visit.timestamp] = await getPhotoUrl(visit.timestamp)
+  }
+}, { immediate: true })
 
 function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
@@ -384,6 +462,17 @@ const completedChallengesCount = computed(() =>
   line-height: 1.35;
 }
 
+.events-more {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tpl-blue);
+  text-decoration: none;
+}
+
+.events-more:hover { text-decoration: underline; }
+
 .event-meta {
   font-size: 0.73rem;
   color: var(--color-text-muted);
@@ -417,6 +506,48 @@ const completedChallengesCount = computed(() =>
   font-size: 0.8rem;
   color: var(--color-text-muted);
   line-height: 1.5;
+}
+
+.visit-photo-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.visit-photo-thumb {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  animation: lightbox-in 0.2s ease both;
+}
+
+@keyframes lightbox-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
 }
 
 /* Branch challenges */

@@ -44,6 +44,14 @@ export default defineNuxtConfig({
     '#data': fileURLToPath(new URL('./data', import.meta.url)),
   },
 
+  // Dev-only features (demo mode, location fence bypass, QR scanner).
+  // Set NUXT_PUBLIC_IS_DEV=false in the production Vercel project settings.
+  runtimeConfig: {
+    public: {
+      isDev: true,
+    }
+  },
+
   vite: {
     server: {
       allowedHosts: ['nonprotesting-rochel-carpingly.ngrok-free.dev']

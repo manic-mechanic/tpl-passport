@@ -123,8 +123,8 @@
       </div>
     </section>
 
-    <!-- Demo mode -->
-    <section class="settings-group">
+    <!-- Demo mode — dev only -->
+    <section v-if="isDev" class="settings-group">
       <p class="section-label">Demo mode</p>
       <div class="demo-grid">
         <button
@@ -141,8 +141,8 @@
       </div>
     </section>
 
-    <!-- Developer -->
-    <section class="settings-group">
+    <!-- Developer — dev only -->
+    <section v-if="isDev" class="settings-group">
       <p class="section-label">Developer</p>
       <div class="settings-card card">
         <div class="setting-row">
@@ -174,13 +174,6 @@
           <span class="setting-label">Version</span>
           <span class="about-val">1.0 MVP</span>
         </div>
-        <div class="about-row">
-          <span class="setting-label">Branches</span>
-          <span class="about-val">{{ physicalBranches.length }} Toronto branches</span>
-        </div>
-        <div class="about-row about-row--link">
-          <NuxtLink to="/qr-print" class="about-link">Branch QR Codes →</NuxtLink>
-        </div>
         <div class="about-row about-row--link">
           <a href="https://tpl.ca" target="_blank" class="about-link">Toronto Public Library ↗</a>
         </div>
@@ -196,6 +189,7 @@ import { physicalBranches } from '~/composables/useRegion'
 import { useStampColor } from '~/composables/useStamp'
 
 const passport = usePassportStore()
+const { public: { isDev } } = useRuntimeConfig()
 
 // Avatar
 const avatarLetter = computed(() => {

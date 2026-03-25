@@ -53,7 +53,7 @@
         <span class="stat-chip__label">Branches</span>
       </div>
       <div class="stat-chip">
-        <span class="stat-chip__num">{{ progressPct }}%</span>
+        <span class="stat-chip__num">{{ overallPct }}%</span>
         <span class="stat-chip__label">Complete</span>
       </div>
     </div>
@@ -152,17 +152,15 @@ import { physicalBranches } from '~/composables/useRegion'
 
 const passport = usePassportStore()
 
-const CHALLENGES_PER_BRANCH = 3
 const totalBranches = physicalBranches.length
-const totalItems    = totalBranches + totalBranches * CHALLENGES_PER_BRANCH  // 400
+const totalItems = totalBranches * 4 // 1 stamp + 3 challenges per branch
 
 const branchMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.BranchName]))
 const regionMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.District]))
 const wardNoMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.WardNo]))
 
-// Progress includes both branch stamps and completed challenges
-const completedItems = computed(() => passport.visitCount + passport.completedChallengesCount)
-const progressPct    = computed(() => Math.round((completedItems.value / totalItems) * 100))
+const progressPct  = computed(() => Math.round((passport.visitCount / totalBranches) * 100))
+const overallPct   = computed(() => Math.round(((passport.visitCount + passport.completedChallengesCount) / totalItems) * 100))
 
 // Achievements — milestone numbers instead of emoji for a more considered look
 const ACHIEVEMENTS = [

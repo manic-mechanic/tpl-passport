@@ -37,9 +37,18 @@
                 <span class="checkin-name">{{ branchMap[visit.branchCode] ?? visit.branchCode }}</span>
                 <span class="checkin-meta">{{ regionMap[visit.branchCode] }}</span>
               </div>
-              <span class="checkin-time">{{ formatTime(visit.timestamp) }}</span>
+              <div class="checkin-right">
+                <svg v-if="visit.note" class="row-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-label="Has note">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                <svg v-if="photoUrls[visit.timestamp]" class="row-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-label="Has photo">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <span class="checkin-time">{{ formatTime(visit.timestamp) }}</span>
+              </div>
             </NuxtLink>
-            <p v-if="visit.note" class="checkin-note">{{ visit.note }}</p>
           </li>
         </ul>
       </section>
@@ -57,6 +66,8 @@
 <script setup>
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, DISTRICT_COLORS } from '~/composables/useRegion'
+import { calcWeekStreak } from '~/composables/useStreak'
+import { getPhotoUrl } from '~/composables/usePhotoStore'
 
 const passport = usePassportStore()
 
@@ -80,34 +91,16 @@ const grouped = computed(() => {
   return Object.entries(buckets).filter(([, items]) => items.length > 0)
 })
 
-// Week streak — consecutive calendar weeks (Mon–Sun) with at least one visit.
-// If the most recent visit week isn't this week or last week, streak resets to 0.
-const weekStreak = computed(() => {
-  if (!passport.checkIns.length) return 0
+const weekStreak = computed(() => calcWeekStreak(passport.checkIns))
 
-  // Monday of the week containing a given date
-  function weekStart(date) {
-    const d = new Date(date)
-    const day = d.getDay() || 7   // treat Sunday as 7
-    d.setDate(d.getDate() - (day - 1))
-    d.setHours(0, 0, 0, 0)
-    return d.getTime()
-  }
-
-  const weeksWithVisit = new Set(passport.checkIns.map(c => weekStart(new Date(c.timestamp))))
-  const thisWeek = weekStart(new Date())
-  const lastWeek = thisWeek - 7 * 86400000
-
-  // Streak only counts if the user visited this week or last week
-  if (!weeksWithVisit.has(thisWeek) && !weeksWithVisit.has(lastWeek)) return 0
-
-  let streak = 0
-  let cursor = weeksWithVisit.has(thisWeek) ? thisWeek : lastWeek
-  while (weeksWithVisit.has(cursor)) {
-    streak++
-    cursor -= 7 * 86400000
-  }
-  return streak
+// Photo thumbnails — loaded on demand from IndexedDB
+const photoUrls = ref({})
+async function loadPhoto(timestamp) {
+  if (timestamp in photoUrls.value) return
+  photoUrls.value[timestamp] = await getPhotoUrl(timestamp)
+}
+onMounted(() => {
+  passport.checkIns.forEach(c => loadPhoto(c.timestamp))
 })
 
 function formatTime(iso) {
@@ -232,6 +225,20 @@ function formatTime(iso) {
 .checkin-time {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.checkin-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.row-indicator {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-muted);
   flex-shrink: 0;
 }
 

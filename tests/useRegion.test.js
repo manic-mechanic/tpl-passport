@@ -1,38 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getRegion, physicalBranches, REGION_ORDER, WARD_TO_REGION } from '../app/composables/useRegion.js'
-
-describe('getRegion', () => {
-  it('returns the correct region for known wards', () => {
-    expect(getRegion(1)).toBe('Etobicoke')
-    expect(getRegion(6)).toBe('Downtown Toronto')
-    expect(getRegion(20)).toBe('Scarborough')
-    expect(getRegion(15)).toBe('Don Valley')
-  })
-
-  it('returns null for unknown or missing ward numbers', () => {
-    expect(getRegion(null)).toBeNull()
-    expect(getRegion(undefined)).toBeNull()
-    expect(getRegion(99)).toBeNull()
-  })
-
-  it('handles string ward numbers', () => {
-    expect(getRegion('1')).toBe('Etobicoke')
-    expect(getRegion('25')).toBe('Scarborough')
-  })
-})
-
-describe('REGION_ORDER', () => {
-  it('contains exactly 6 regions', () => {
-    expect(REGION_ORDER).toHaveLength(6)
-  })
-
-  it('covers all regions in WARD_TO_REGION', () => {
-    const uniqueRegions = new Set(Object.values(WARD_TO_REGION))
-    for (const region of uniqueRegions) {
-      expect(REGION_ORDER).toContain(region)
-    }
-  })
-})
+import { physicalBranches, DISTRICT_ORDER, DISTRICT_COLORS, getDistrictColor } from '../app/composables/useRegion.js'
 
 describe('physicalBranches', () => {
   it('contains exactly 100 branches', () => {
@@ -52,8 +19,32 @@ describe('physicalBranches', () => {
     expect(new Set(codes).size).toBe(codes.length)
   })
 
-  it('all map to a known region', () => {
-    const unmapped = physicalBranches.filter(b => !getRegion(b.WardNo))
+  it('all belong to a known district', () => {
+    const unmapped = physicalBranches.filter(b => !DISTRICT_ORDER.includes(b.District))
     expect(unmapped).toHaveLength(0)
+  })
+})
+
+describe('DISTRICT_ORDER', () => {
+  it('contains exactly 4 districts', () => {
+    expect(DISTRICT_ORDER).toHaveLength(4)
+  })
+
+  it('every district has a color in DISTRICT_COLORS', () => {
+    for (const district of DISTRICT_ORDER) {
+      expect(DISTRICT_COLORS).toHaveProperty(district)
+    }
+  })
+})
+
+describe('getDistrictColor', () => {
+  it('returns the correct color for known districts', () => {
+    expect(getDistrictColor('Etobicoke-York')).toBe('#c06b30')
+    expect(getDistrictColor('Scarborough')).toBe('#b84040')
+  })
+
+  it('returns fallback color for unknown districts', () => {
+    expect(getDistrictColor('Unknown')).toBe('#8c849e')
+    expect(getDistrictColor(undefined)).toBe('#8c849e')
   })
 })
