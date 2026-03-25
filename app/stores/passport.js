@@ -15,6 +15,7 @@ export const usePassportStore = defineStore('passport', () => {
     homeBranch: '',  // BranchCode of home branch
     theme: 'light',
     bypassLocationFence: true,
+    hasSeenOnboarding: false,
     ...(saved.profile ?? {}),
   })
 
