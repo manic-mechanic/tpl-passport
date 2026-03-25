@@ -31,8 +31,8 @@
         </p>
       </header>
 
-      <!-- QR scan — primary action, shown until a branch is selected -->
-      <div v-if="!prefilled && !scanned && !selectedBranch" class="qr-primary-area">
+      <!-- QR scan — dev only; production check-in will use geolocation only -->
+      <div v-if="isDev && !prefilled && !scanned && !selectedBranch" class="qr-primary-area">
         <button class="qr-btn-primary" @click="openScanner">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="18" height="18">
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -154,7 +154,7 @@
 
         <p v-if="scanError" class="scan-error">{{ scanError }}</p>
 
-        <p class="qr-tip">
+        <p v-if="isDev" class="qr-tip">
           Need a QR code to scan? Open
           <a href="https://tpl-passport.vercel.app/qr-print" target="_blank" rel="noopener" class="qr-tip-link">tpl&#8209;passport.vercel.app/qr&#8209;print</a>
           on another device.
@@ -164,9 +164,9 @@
 
   </main>
 
-  <!-- ── QR Scanner overlay ────────────────────── -->
+  <!-- ── QR Scanner overlay — dev only ────────── -->
   <Teleport to="body">
-    <div v-if="scannerActive" class="scanner-overlay">
+    <div v-if="isDev && scannerActive" class="scanner-overlay">
       <video ref="videoEl" class="scanner-video" playsinline autoplay muted />
       <!-- Hidden canvas used to capture frames for jsQR -->
       <canvas ref="scanCanvas" class="scanner-canvas" />
@@ -199,6 +199,7 @@ import { savePhoto } from '~/composables/usePhotoStore'
 
 const route   = useRoute()
 const passport = usePassportStore()
+const { public: { isDev } } = useRuntimeConfig()
 
 // Branch selection — pre-filled from ?branch=CODE query param
 const selectedCode = ref(route.query.branch ?? '')

@@ -8,21 +8,47 @@
 
     <div class="onboarding__body">
       <h1 class="onboarding__heading">Welcome, collector.</h1>
-      <p class="onboarding__desc">Visit all 100 branches and collect a stamp from each one. What name should go on your passport?</p>
+      <p class="onboarding__desc">Visit all 100 branches and collect a stamp from each one. Set up your passport — or skip and come back to it later.</p>
 
       <form @submit.prevent="submit" class="onboarding__form">
-        <input
-          v-model="nameInput"
-          class="onboarding__input"
-          type="text"
-          placeholder="Your name"
-          maxlength="40"
-          autocomplete="given-name"
-          autofocus
-        />
-        <button type="submit" class="onboarding__btn" :disabled="!nameInput.trim()">
-          Start my passport
-        </button>
+        <div class="onboarding__field">
+          <label class="onboarding__label" for="ob-name">Your name</label>
+          <input
+            id="ob-name"
+            v-model="nameInput"
+            class="onboarding__input"
+            type="text"
+            placeholder="Optional"
+            maxlength="40"
+            autocomplete="given-name"
+            autofocus
+          />
+        </div>
+
+        <div class="onboarding__field">
+          <label class="onboarding__label" for="ob-branch">Home branch</label>
+          <select id="ob-branch" v-model="homeBranchInput" class="onboarding__input onboarding__select">
+            <option value="">Optional</option>
+            <option v-for="b in sortedBranches" :key="b.BranchCode" :value="b.BranchCode">
+              {{ b.BranchName }}
+            </option>
+          </select>
+        </div>
+
+        <div class="onboarding__field">
+          <label class="onboarding__label" for="ob-book">Favourite book</label>
+          <input
+            id="ob-book"
+            v-model="bookInput"
+            class="onboarding__input"
+            type="text"
+            placeholder="Optional"
+            maxlength="80"
+            autocomplete="off"
+          />
+        </div>
+
+        <button type="submit" class="onboarding__btn">Start my passport</button>
       </form>
 
       <button class="onboarding__skip" @click="skip">Skip for now</button>
@@ -33,16 +59,23 @@
 </template>
 
 <script setup>
-const props = defineProps({ show: Boolean })
+import { physicalBranches } from '~/composables/useRegion'
+
+defineProps({ show: Boolean })
 const emit = defineEmits(['done'])
 
 const passport = usePassportStore()
-const nameInput = ref('')
+
+const nameInput       = ref('')
+const homeBranchInput = ref('')
+const bookInput       = ref('')
+
+const sortedBranches = [...physicalBranches].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
 
 function submit() {
-  const trimmed = nameInput.value.trim()
-  if (!trimmed) return
-  passport.profile.name = trimmed
+  if (nameInput.value.trim())       passport.profile.name         = nameInput.value.trim()
+  if (homeBranchInput.value)        passport.profile.homeBranch   = homeBranchInput.value
+  if (bookInput.value.trim())       passport.profile.favouriteBook = bookInput.value.trim()
   passport.profile.hasSeenOnboarding = true
   emit('done')
 }
@@ -67,6 +100,7 @@ function skip() {
   display: flex;
   flex-direction: column;
   animation: onboarding-in 0.35s ease both;
+  overflow-y: auto;
 }
 
 @keyframes onboarding-in {
@@ -81,6 +115,7 @@ function skip() {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .onboarding__logo {
@@ -137,7 +172,21 @@ function skip() {
 .onboarding__form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+}
+
+.onboarding__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.onboarding__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
 .onboarding__input {
@@ -158,6 +207,12 @@ function skip() {
   border-color: var(--tpl-blue);
 }
 
+.onboarding__select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
 .onboarding__btn {
   width: 100%;
   padding: 15px;
@@ -169,12 +224,8 @@ function skip() {
   border: none;
   border-radius: 12px;
   cursor: pointer;
+  margin-top: 4px;
   transition: opacity 0.15s;
-}
-
-.onboarding__btn:disabled {
-  opacity: 0.4;
-  cursor: default;
 }
 
 .onboarding__skip {
@@ -194,5 +245,6 @@ function skip() {
   height: 6px;
   background: linear-gradient(90deg, var(--tpl-blue) 0%, var(--tpl-teal) 50%, var(--tpl-blue) 100%);
   opacity: 0.6;
+  flex-shrink: 0;
 }
 </style>

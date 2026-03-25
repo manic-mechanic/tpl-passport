@@ -35,21 +35,22 @@
       </button>
     </div>
 
-    <!-- Upcoming events (hardcoded for MVP) -->
-    <section class="detail-section">
+    <!-- Upcoming events (live from CKAN API) -->
+    <section v-if="events.length" class="detail-section">
       <h2 class="detail-heading">Upcoming events</h2>
       <ul class="events-list">
-        <li v-for="evt in BRANCH_EVENTS" :key="evt.title" class="event-row">
+        <li v-for="evt in events" :key="evt.title + evt.date" class="event-row">
           <div class="event-date-badge">
             <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
             <span class="event-day">{{ formatEventDay(evt.date) }}</span>
           </div>
           <div class="event-info">
             <span class="event-title">{{ evt.title }}</span>
-            <span class="event-meta">{{ evt.time }} · {{ evt.age }}</span>
+            <span class="event-meta">{{ evt.time }}<template v-if="evt.age"> · {{ evt.age }}</template></span>
           </div>
         </li>
       </ul>
+      <a :href="`https://tpl.ca/locations/${branch.BranchCode}/`" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
     </section>
 
     <!-- Past visits at this branch (shown only if any exist) -->
@@ -211,11 +212,55 @@ const services = computed(() => {
     .map(([, label]) => label)
 })
 
-// ── Events (hardcoded for MVP — replace with API when ready) ──
-const BRANCH_EVENTS = [
-  { title: 'Book Club: Winter Reads', date: '2026-02-25', time: '6:00pm',  age: 'Adults'    },
-  { title: 'Lego Building Challenge', date: '2026-03-01', time: '2:00pm',  age: 'Kids 6–12' },
-]
+// ── Events (live from CKAN API via server proxy) ──────────────
+const { data: rawEvents } = useFetch('/api/branch-events', {
+  query: computed(() => ({ library: branch.value?.BranchName ?? '' })),
+  default: () => [],
+})
+
+// Normalise CKAN records to { title, date, time, age }
+// CKAN fields: Title, StartDateLocal (YYYY-MM-DD), StartTime (ISO datetime), Audiences
+const AUDIENCE_MAP = {
+  'Adults (18+)':               'Adults',
+  'Older Adults':               'Seniors',
+  'Younger Adults (18-24)':     'Ages 18–24',
+  'Teens (13-17)':              'Teens',
+  'School Age Children (6-12)': 'Kids 6–12',
+  'Preschool Children (0-5)':   'Ages 0–5',
+}
+
+const ADULT_GROUPS = new Set(['Adults (18+)', 'Older Adults', 'Younger Adults (18-24)'])
+const KID_GROUPS   = new Set(['Teens (13-17)', 'School Age Children (6-12)', 'Preschool Children (0-5)'])
+
+function formatAudiences(raw) {
+  if (!raw) return ''
+  const groups = raw.split(',').map(a => a.trim())
+  const adults = groups.filter(g => ADULT_GROUPS.has(g))
+  const kids   = groups.filter(g => KID_GROUPS.has(g))
+
+  if (adults.length >= 1 && kids.length >= 1) return 'All ages'
+  if (adults.length >= 2) return 'Adults'
+  if (kids.length >= 2)   return 'Kids'
+  return groups.map(g => AUDIENCE_MAP[g] ?? g).join(', ')
+}
+
+const events = computed(() =>
+  (rawEvents.value ?? []).map(e => ({
+    title: e.Title || '(Unnamed event)',
+    date:  e.StartDateLocal ?? '',
+    time:  formatEventTime(e.StartTime),
+    age:   formatAudiences(e.Audiences),
+  }))
+)
+
+function formatEventTime(isoDatetime) {
+  if (!isoDatetime) return ''
+  const timePart = isoDatetime.split('T')[1] ?? ''  // "14:00:00"
+  const [h, m] = timePart.split(':').map(Number)
+  const suffix = h >= 12 ? 'pm' : 'am'
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${h12}:${String(m).padStart(2, '0')}${suffix}`
+}
 
 function formatEventMonth(date) {
   return new Date(date + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short' }).toUpperCase()
@@ -416,6 +461,17 @@ const completedChallengesCount = computed(() =>
   color: var(--color-text);
   line-height: 1.35;
 }
+
+.events-more {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tpl-blue);
+  text-decoration: none;
+}
+
+.events-more:hover { text-decoration: underline; }
 
 .event-meta {
   font-size: 0.73rem;
