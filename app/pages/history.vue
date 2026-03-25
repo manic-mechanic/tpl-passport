@@ -96,16 +96,18 @@ const weekStreak = computed(() => {
 
   const weeksWithVisit = new Set(passport.checkIns.map(c => weekStart(new Date(c.timestamp))))
   const thisWeek = weekStart(new Date())
-  const lastWeek = thisWeek - 7 * 86400000
+  const lastWeekDate = new Date(thisWeek)
+  lastWeekDate.setDate(lastWeekDate.getDate() - 7)
+  const lastWeek = lastWeekDate.getTime()
 
   // Streak only counts if the user visited this week or last week
   if (!weeksWithVisit.has(thisWeek) && !weeksWithVisit.has(lastWeek)) return 0
 
   let streak = 0
-  let cursor = weeksWithVisit.has(thisWeek) ? thisWeek : lastWeek
-  while (weeksWithVisit.has(cursor)) {
+  const cursorDate = new Date(weeksWithVisit.has(thisWeek) ? thisWeek : lastWeek)
+  while (weeksWithVisit.has(cursorDate.getTime())) {
     streak++
-    cursor -= 7 * 86400000
+    cursorDate.setDate(cursorDate.getDate() - 7)
   }
   return streak
 })
