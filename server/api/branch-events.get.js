@@ -22,7 +22,9 @@ const cache = new Map() // key: shortName → { data, fetchedAt }
 function filterToWindow(records) {
   const today    = new Date().toISOString().slice(0, 10)
   const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
-  return records.filter(e => e.StartDateLocal >= today && e.StartDateLocal <= tomorrow)
+  return records
+    .filter(e => e.StartDateLocal >= today && e.StartDateLocal <= tomorrow)
+    .sort((a, b) => a.StartDateLocal < b.StartDateLocal ? -1 : 1)
 }
 
 async function fetchFromCKAN(shortName) {

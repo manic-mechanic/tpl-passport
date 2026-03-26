@@ -5,7 +5,9 @@ import { describe, it, expect } from 'vitest'
 function filterToWindow(records) {
   const today    = new Date().toISOString().slice(0, 10)
   const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
-  return records.filter(e => e.StartDateLocal >= today && e.StartDateLocal <= tomorrow)
+  return records
+    .filter(e => e.StartDateLocal >= today && e.StartDateLocal <= tomorrow)
+    .sort((a, b) => a.StartDateLocal < b.StartDateLocal ? -1 : 1)
 }
 
 describe('filterToWindow', () => {
@@ -37,6 +39,16 @@ describe('filterToWindow', () => {
       { StartDateLocal: '2099-12-31' },  // too far future — filtered out
     ]
     expect(filterToWindow(records)).toHaveLength(2)
+  })
+
+  it('returns events sorted earliest first regardless of input order', () => {
+    const today    = new Date().toISOString().slice(0, 10)
+    const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
+    // Simulate desc-sorted input from CKAN (tomorrow first)
+    const records = [{ StartDateLocal: tomorrow }, { StartDateLocal: today }]
+    const result  = filterToWindow(records)
+    expect(result[0].StartDateLocal).toBe(today)
+    expect(result[1].StartDateLocal).toBe(tomorrow)
   })
 })
 
