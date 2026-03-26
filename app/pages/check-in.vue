@@ -650,7 +650,7 @@ onUnmounted(closeScanner)
 
 /* ── Success state ─────────────────────────── */
 .success-view {
-  padding: 40px 0 24px;
+  padding: min(120px, 18vh) 0 24px;
 }
 
 .success-hero {
