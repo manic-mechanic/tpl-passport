@@ -173,6 +173,7 @@
 import branchData from '#data/updated-branch-info.json'
 import { usePassportStore } from '~/stores/passport'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
+import { haversineKm, formatDist } from '~/composables/useRegion'
 
 const route  = useRoute()
 const router = useRouter()
@@ -301,14 +302,6 @@ function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
-  return R * 2 * Math.asin(Math.sqrt(a))
-}
-
 const nearbyBranches = computed(() => {
   if (!branch.value?.Lat || !branch.value?.Long) return []
   return branchData
@@ -317,10 +310,6 @@ const nearbyBranches = computed(() => {
     .sort((a, b) => a.distKm - b.distKm)
     .slice(0, 2)
 })
-
-function formatDist(km) {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
-}
 
 const BRANCH_CHALLENGES = [
   { label: 'Check out a book here'   },

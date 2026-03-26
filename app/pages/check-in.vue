@@ -181,7 +181,7 @@
 <script setup>
 import jsQR from 'jsqr'
 import { usePassportStore } from '~/stores/passport'
-import { sortedBranches, haversineKm } from '~/composables/useRegion'
+import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { savePhoto } from '~/composables/usePhotoStore'
 
 const route   = useRoute()
@@ -280,10 +280,6 @@ const nearbySuccessBranches = computed(() => {
     .sort((a, b) => a.distKm - b.distKm)
     .slice(0, 2)
 })
-
-function formatDist(km) {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
-}
 
 const scannerActive = ref(false)
 const scanError     = ref('')
