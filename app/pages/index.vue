@@ -45,7 +45,7 @@
             <span class="doc-stat-label">Visits</span>
           </div>
           <div class="doc-stat-inline">
-            <span class="doc-stat-num">{{ progressPct }}%</span>
+            <span class="doc-stat-num">{{ overallPct }}%</span>
             <span class="doc-stat-label">Complete</span>
           </div>
         </div>
@@ -181,6 +181,7 @@ const regionMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.
 const wardNoMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.WardNo]))
 
 const { progressPct } = storeToRefs(passport)
+const overallPct = computed(() => Math.round(((passport.visitCount + passport.completedChallengesCount) / totalItems) * 100))
 
 const issueYear = new Date().getFullYear()
 
@@ -196,7 +197,7 @@ const mrzLine1 = computed(() => {
 const mrzLine2 = computed(() => {
   const num  = `TPL${String(passport.visitCount).padStart(5, '0')}`
   const dob  = String(issueYear % 100).padStart(2, '0') + '0101'
-  const pct  = String(progressPct.value).padStart(3, '0')
+  const pct  = String(overallPct.value).padStart(3, '0')
   const raw  = `${num}0CAN${dob}0M260101${pct}PCT`
   return raw.padEnd(44, '<').slice(0, 44)
 })
@@ -578,6 +579,8 @@ function formatDate(iso) {
 .doc-body {
   background: #f4efe4;
   padding: 14px 16px 12px;
+  border-top: 1px solid rgba(100,170,248,0.45);
+  border-bottom: 1px solid rgba(100,170,248,0.45);
 }
 
 .doc-name-row {
