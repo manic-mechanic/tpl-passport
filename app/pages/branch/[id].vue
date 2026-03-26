@@ -28,6 +28,9 @@
               Parking
             </span>
           </div>
+          <span v-if="compassPointDirection" class="compass-point-tag">
+            Compass point · {{ compassPointDirection }}
+          </span>
         </div>
       </div>
     </header>
@@ -308,6 +311,10 @@ function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+// Compass achievement: these 4 branches are the furthest in each cardinal direction
+const COMPASS_DIRECTIONS = { GHP: 'North', PU: 'East', LB: 'South', HW: 'West' }
+const compassPointDirection = computed(() => COMPASS_DIRECTIONS[branch.value?.BranchCode] ?? null)
+
 const nearbyBranches = computed(() => {
   if (!branch.value?.Lat || !branch.value?.Long) return []
   return branchData
@@ -359,6 +366,16 @@ const completedHere = computed(() =>
 .branch-title-area h1  { font-size: 1.35rem; line-height: 1.2; margin-bottom: 3px; }
 .branch-region         { font-size: 0.8rem; color: var(--color-text-mid); font-weight: 600; margin-top: 2px; }
 .branch-hours          { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 3px; }
+
+.compass-point-tag {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1e7a5a;
+}
 
 /* Check-in */
 .checkin-area {

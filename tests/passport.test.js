@@ -101,16 +101,16 @@ describe('loadDemoState', () => {
     expect(passport.completedChallenges).toHaveLength(0)
   })
 
-  it('mid loads ~28 check-ins', () => {
+  it('mid loads 31 check-ins', () => {
     const passport = usePassportStore()
     passport.loadDemoState('mid')
-    expect(passport.checkIns).toHaveLength(28)
+    expect(passport.checkIns).toHaveLength(31)
   })
 
-  it('completed loads 100 check-ins', () => {
+  it('completed loads 106 check-ins', () => {
     const passport = usePassportStore()
     passport.loadDemoState('completed')
-    expect(passport.checkIns).toHaveLength(100)
+    expect(passport.checkIns).toHaveLength(106)
   })
 
   it('demo check-ins never land on today', () => {

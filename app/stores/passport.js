@@ -81,6 +81,7 @@ export const usePassportStore = defineStore('passport', () => {
     if (mode === 'empty') {
       checkIns.value = []
       completedChallenges.value = []
+      profile.value = { ...profile.value, homeBranch: '' }
       return
     }
 
@@ -97,12 +98,56 @@ export const usePassportStore = defineStore('passport', () => {
         return { branchCode, timestamp: d.toISOString(), note: '' }
       })
 
+    // Returns an ISO timestamp N days ago at a specific UTC hour
+    const utcDaysAgo = (n, utcHour = 12) => {
+      const d = new Date()
+      d.setUTCDate(d.getUTCDate() - n)
+      d.setUTCHours(utcHour, 0, 0, 0)
+      return d.toISOString()
+    }
+
     if (mode === 'mid') {
       // First 28 physical branches (~28%), visited over the past 4 months
       checkIns.value = makeCheckIns(allCodes.slice(0, 28), 120)
+      // Day Tripper: 2 branches on the same UTC day
+      checkIns.value.push(
+        { branchCode: allCodes[0], timestamp: utcDaysAgo(30, 11), note: '' },
+        { branchCode: allCodes[1], timestamp: utcDaysAgo(30, 15), note: '' },
+      )
+      // Return Visitor: allCodes[1] gets a 3rd visit
+      checkIns.value.push(
+        { branchCode: allCodes[1], timestamp: utcDaysAgo(29), note: '' },
+      )
+      // Quest Master: all 3 challenges completed at allCodes[0]
+      completedChallenges.value = [
+        `${allCodes[0]}:0`, `${allCodes[0]}:1`, `${allCodes[0]}:2`,
+      ]
+      // Set home branch (2 visits so far — Homebody requires 5, not yet earned)
+      profile.value = { ...profile.value, homeBranch: allCodes[0] }
     } else if (mode === 'completed') {
       // All physical branches, visited over the past 2 years
       checkIns.value = makeCheckIns(allCodes, 730)
+      // Day Tripper: 2 branches on the same UTC day
+      checkIns.value.push(
+        { branchCode: allCodes[0], timestamp: utcDaysAgo(10, 11), note: '' },
+        { branchCode: allCodes[1], timestamp: utcDaysAgo(10, 15), note: '' },
+      )
+      // Homebody: allCodes[0] now has 5 total visits (1 from makeCheckIns + 1 day-trip above + 3 here)
+      checkIns.value.push(
+        { branchCode: allCodes[0], timestamp: utcDaysAgo(9), note: '' },
+        { branchCode: allCodes[0], timestamp: utcDaysAgo(8), note: '' },
+        { branchCode: allCodes[0], timestamp: utcDaysAgo(7), note: '' },
+      )
+      // Return Visitor: allCodes[1] now has 3 total visits (1 makeCheckIns + 1 day-trip + 1 here)
+      checkIns.value.push(
+        { branchCode: allCodes[1], timestamp: utcDaysAgo(6), note: '' },
+      )
+      // Quest Master: all 3 challenges completed at allCodes[0]
+      completedChallenges.value = [
+        `${allCodes[0]}:0`, `${allCodes[0]}:1`, `${allCodes[0]}:2`,
+      ]
+      // Set home branch for Homebody achievement
+      profile.value = { ...profile.value, homeBranch: allCodes[0] }
     }
   }
 

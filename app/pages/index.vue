@@ -64,38 +64,44 @@
         <h2>Achievements</h2>
       </div>
 
-      <!-- Earned badges — octagon/badge shape, 3-column grid -->
-      <div v-if="earnedBadges.length" class="badges-grid">
+      <!-- All 12 badges — earned = colored, locked = gray -->
+      <div class="badges-grid">
         <div
-          v-for="badge in earnedBadges"
+          v-for="badge in ACHIEVEMENTS"
           :key="badge.id"
           class="badge-item"
           :title="badge.desc"
         >
-          <div class="badge-hex">
-            <span class="badge-milestone">{{ badge.threshold === 1 ? '1st' : badge.threshold }}</span>
+          <div
+            class="badge-shape"
+            :class="[
+              `badge-shape--${badge.shape}`,
+              badge.id === 'world_tour' ? 'badge-shape--with-crosshair' : null,
+              getBadgeColorClass(badge)
+            ]"
+            :style="getBadgeInlineStyle(badge)"
+          >
+            <template v-if="badge.id === 'compass'">
+              <!-- Full-size compass rose: lines show quadrant divisions, labels at cardinal edges -->
+              <svg class="compass-rose" viewBox="0 0 64 64" aria-hidden="true">
+                <line x1="32" y1="2" x2="32" y2="62" stroke-width="1.5"/>
+                <line x1="2" y1="32" x2="62" y2="32" stroke-width="1.5"/>
+                <text x="32" y="12" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800">N</text>
+                <text x="56" y="33" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700">E</text>
+                <text x="32" y="54" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700">S</text>
+                <text x="8"  y="33" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700">W</text>
+                <circle cx="32" cy="32" r="3"/>
+              </svg>
+            </template>
+            <span v-else class="badge-content">{{ badge.stat ? badge.stat(achievementCtx) : badge.label }}</span>
           </div>
-          <span class="badge-name">{{ badge.title }}</span>
-        </div>
-      </div>
-
-      <!-- Next badge goal -->
-      <div v-if="nextBadge" class="next-badge card">
-        <div class="next-badge__header">
-          <span class="next-badge__eyebrow">Next goal</span>
-          <span class="next-badge__fraction">{{ passport.visitCount }} / {{ nextBadge.threshold }}</span>
-        </div>
-        <div class="next-badge__body">
-          <div class="badge-hex badge-hex--locked">
-            <span class="badge-milestone">{{ nextBadge.threshold === 1 ? '1st' : nextBadge.threshold }}</span>
+          <span class="badge-name" :class="{ 'badge-name--earned': badge.earned(achievementCtx) }">{{ badge.title }}</span>
+          <div v-if="showBadgeProgress(badge)" class="badge-progress">
+            <div class="badge-progress__bar">
+              <div class="badge-progress__fill" :style="{ width: badgeProgressPct(badge) + '%' }" />
+            </div>
+            <span class="badge-progress__text">{{ badge.progress(achievementCtx).current }}/{{ badge.progress(achievementCtx).total }}</span>
           </div>
-          <div class="next-badge__text">
-            <p class="next-badge__title">{{ nextBadge.title }}</p>
-            <p class="next-badge__desc">{{ nextBadge.desc }}</p>
-          </div>
-        </div>
-        <div class="next-badge__track">
-          <div class="next-badge__fill" :style="{ width: nextBadgePct + '%' }" />
         </div>
       </div>
     </section>
@@ -149,7 +155,7 @@
 import { usePassportStore } from '~/stores/passport'
 import { storeToRefs } from 'pinia'
 import { useStampColor } from '~/composables/useStamp'
-import { physicalBranches } from '~/composables/useRegion'
+import { physicalBranches, DISTRICT_ORDER, getDistrictColor } from '~/composables/useRegion'
 
 const passport = usePassportStore()
 
@@ -163,31 +169,239 @@ const wardNoMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.
 const { progressPct } = storeToRefs(passport)
 const overallPct   = computed(() => Math.round(((passport.visitCount + passport.completedChallengesCount) / totalItems) * 100))
 
-// Achievements — milestone numbers instead of emoji for a more considered look
+// Precomputed constants for achievements (not reactive)
+// compassPoints: the furthest branch in each cardinal direction by Lat/Long
+const compassPoints = (() => {
+  let n = physicalBranches[0], s = physicalBranches[0]
+  let e = physicalBranches[0], w = physicalBranches[0]
+  for (const b of physicalBranches) {
+    if (parseFloat(b.Lat) > parseFloat(n.Lat)) n = b
+    if (parseFloat(b.Lat) < parseFloat(s.Lat)) s = b
+    if (parseFloat(b.Long) > parseFloat(e.Long)) e = b
+    if (parseFloat(b.Long) < parseFloat(w.Long)) w = b
+  }
+  return { n: n.BranchCode, s: s.BranchCode, e: e.BranchCode, w: w.BranchCode }
+})()
+const compassBranches = new Set(Object.values(compassPoints))
+
+const districtBranchCounts = physicalBranches.reduce((acc, b) => {
+  acc[b.District] = (acc[b.District] ?? 0) + 1
+  return acc
+}, {})
+
+// Computed helpers for achievement context
+const branchVisitCounts = computed(() => {
+  const counts = {}
+  for (const c of passport.checkIns) {
+    counts[c.branchCode] = (counts[c.branchCode] ?? 0) + 1
+  }
+  return counts
+})
+
+const visitedDistricts = computed(() => {
+  const seen = new Set()
+  for (const code of passport.visitedBranchCodes) {
+    const b = physicalBranches.find(br => br.BranchCode === code)
+    if (b) seen.add(b.District)
+  }
+  return [...seen]
+})
+
+const maxBranchesInOneDay = computed(() => {
+  const byDay = {}
+  for (const c of passport.checkIns) {
+    const day = c.timestamp.slice(0, 10)
+    if (!byDay[day]) byDay[day] = new Set()
+    byDay[day].add(c.branchCode)
+  }
+  const sizes = Object.values(byDay).map(s => s.size)
+  return sizes.length ? Math.max(...sizes) : 0
+})
+
+const homeVisitCount = computed(() => {
+  const home = passport.profile.homeBranch
+  return home ? (branchVisitCounts.value[home] ?? 0) : 0
+})
+
+const maxNonHomeVisitCount = computed(() => {
+  const home = passport.profile.homeBranch
+  let max = 0
+  for (const [code, count] of Object.entries(branchVisitCounts.value)) {
+    if (code !== home && count > max) max = count
+  }
+  return max
+})
+
+// Reactive context object passed to each achievement's earned/stat/progress functions
+const achievementCtx = computed(() => ({
+  visitCount: passport.visitCount,
+  visitedDistricts: visitedDistricts.value,
+  branchVisitCounts: branchVisitCounts.value,
+  maxBranchesInOneDay: maxBranchesInOneDay.value,
+  homeVisitCount: homeVisitCount.value,
+  maxNonHomeVisitCount: maxNonHomeVisitCount.value,
+  visitedBranchCodes: passport.visitedBranchCodes,
+  completedChallenges: passport.completedChallenges,
+}))
+
+// Column-major order: groups run vertically across the 3×4 grid.
+// Stamps fill col 0 (rows 0–3) + col 1 row 3 overflow.
+// Circles fill col 1 rows 0–2. Stars fill col 2 all rows.
+// Template order: [s,c,h, s,c,h, s,c,h, s,s,h]
 const ACHIEVEMENTS = [
-  { id: 'first',      title: 'First Stamp',   desc: 'Check in at your first branch',    threshold: 1  },
-  { id: 'local',      title: 'Local',          desc: 'Visit 5 branches',                 threshold: 5  },
-  { id: 'explorer',   title: 'Explorer',       desc: 'Visit 10 branches',                threshold: 10 },
-  { id: 'adventurer', title: 'Adventurer',     desc: 'Visit 25 branches',                threshold: 25 },
-  { id: 'halfway',    title: 'Half Passport',  desc: 'Visit 50 branches',                threshold: 50 },
-  { id: 'nearly',     title: 'Almost There',   desc: 'Visit 75 branches',                threshold: 75 },
-  { id: 'complete',   title: 'Full Passport',  desc: `Visit all ${totalBranches} branches`, threshold: totalBranches },
+  // row 0
+  {
+    id: 'first', title: 'First Stamp', desc: 'Check in at your first branch',
+    shape: 'octagon', label: '1st',
+    earned: (ctx) => ctx.visitCount >= 1,
+    progress: (ctx) => ({ current: ctx.visitCount, total: 1 }),
+  },
+  {
+    id: 'world_tour', title: 'World Tour', desc: 'Visit a branch in every district',
+    shape: 'circle',
+    earned: (ctx) => ctx.visitedDistricts.length >= 4,
+  },
+  {
+    id: 'day_tripper', title: 'Day Tripper', desc: 'Visit 2+ branches in one day',
+    shape: 'star',
+    earned: (ctx) => ctx.maxBranchesInOneDay >= 2,
+    stat: (ctx) => ctx.maxBranchesInOneDay,
+    progress: (ctx) => ({ current: ctx.maxBranchesInOneDay, total: 2 }),
+  },
+  // row 1
+  {
+    id: 'explorer', title: 'Explorer', desc: 'Visit 10 branches',
+    shape: 'octagon', label: '10',
+    earned: (ctx) => ctx.visitCount >= 10,
+    progress: (ctx) => ({ current: ctx.visitCount, total: 10 }),
+  },
+  {
+    id: 'district_champ', title: 'District Champ', desc: 'Complete all branches in any district',
+    shape: 'circle', label: '★',
+    earned: (ctx) => {
+      const visited = {}
+      for (const code of ctx.visitedBranchCodes) {
+        const b = physicalBranches.find(br => br.BranchCode === code)
+        if (b) visited[b.District] = (visited[b.District] ?? 0) + 1
+      }
+      return Object.entries(districtBranchCounts).some(([d, total]) => (visited[d] ?? 0) >= total)
+    },
+  },
+  {
+    id: 'quest_master', title: 'Quest Master', desc: 'Complete all challenges at any branch',
+    shape: 'star', label: '✓',
+    earned: (ctx) => physicalBranches.some(b =>
+      ctx.completedChallenges.includes(`${b.BranchCode}:0`) &&
+      ctx.completedChallenges.includes(`${b.BranchCode}:1`) &&
+      ctx.completedChallenges.includes(`${b.BranchCode}:2`)
+    ),
+  },
+  // row 2
+  {
+    id: 'adventurer', title: 'Adventurer', desc: 'Visit 25 branches',
+    shape: 'octagon', label: '25',
+    earned: (ctx) => ctx.visitCount >= 25,
+    progress: (ctx) => ({ current: ctx.visitCount, total: 25 }),
+  },
+  {
+    id: 'compass', title: 'Compass',
+    desc: 'Visit the furthest branch in each direction: Goldhawk Park (N), Port Union (E), Long Branch (S), Humberwood (W)',
+    shape: 'circle',
+    earned: (ctx) => [...compassBranches].every(code => ctx.visitedBranchCodes.has(code)),
+  },
+  {
+    id: 'familiar_face', title: 'Familiar Face', desc: 'Check in at your home branch 5 times',
+    shape: 'star',
+    earned: (ctx) => ctx.homeVisitCount >= 5,
+    stat: (ctx) => ctx.homeVisitCount,
+    progress: (ctx) => ({ current: ctx.homeVisitCount, total: 5 }),
+  },
+  // row 3 — stamps overflow into col 1
+  {
+    id: 'globetrotter', title: 'Globetrotter', desc: 'Visit 50 branches',
+    shape: 'octagon', label: '50',
+    earned: (ctx) => ctx.visitCount >= 50,
+    progress: (ctx) => ({ current: ctx.visitCount, total: 50 }),
+  },
+  {
+    id: 'complete', title: 'Full Passport', desc: `Visit all ${totalBranches} branches`,
+    shape: 'octagon', label: '100',
+    earned: (ctx) => ctx.visitCount >= 100,
+    progress: (ctx) => ({ current: ctx.visitCount, total: 100 }),
+  },
+  {
+    id: 'return_visitor', title: 'Return Visitor', desc: 'Check in at any branch 3+ times',
+    shape: 'star',
+    earned: (ctx) => ctx.maxNonHomeVisitCount >= 3,
+    stat: (ctx) => ctx.maxNonHomeVisitCount,
+    progress: (ctx) => ({ current: ctx.maxNonHomeVisitCount, total: 3 }),
+  },
 ]
 
-const earnedBadges = computed(() =>
-  ACHIEVEMENTS.filter(a => passport.visitCount >= a.threshold)
+// ID of the next unearned stamp — only that one gets a progress pill
+const nextStampId = computed(() =>
+  ACHIEVEMENTS.find(a => a.shape === 'octagon' && !a.earned(achievementCtx.value))?.id ?? null
 )
 
-const nextBadge = computed(() =>
-  ACHIEVEMENTS.find(a => passport.visitCount < a.threshold) ?? null
-)
+// Returns true if a badge should show an inline progress pill
+function showBadgeProgress(badge) {
+  if (badge.earned(achievementCtx.value) || !badge.progress) return false
+  if (badge.progress(achievementCtx.value).current === 0) return false
+  if (badge.shape === 'octagon') return badge.id === nextStampId.value
+  return true
+}
 
-const nextBadgePct = computed(() => {
-  if (!nextBadge.value) return 100
-  const prev = earnedBadges.value.at(-1)?.threshold ?? 0
-  const range = nextBadge.value.threshold - prev
-  return Math.round(((passport.visitCount - prev) / range) * 100)
-})
+function badgeProgressPct(badge) {
+  const { current, total } = badge.progress(achievementCtx.value)
+  return Math.min(100, Math.round((current / total) * 100))
+}
+
+// Brighter district colors for World Tour badge (more vivid than the dot/border palette)
+const WORLD_TOUR_COLORS = {
+  'Etobicoke-York':    '#e07832',
+  'North York':        '#8f5fe0',
+  'Toronto-East York': '#1898c0',
+  'Scarborough':       '#d44545',
+}
+
+// World Tour: conic-gradient with one 90° segment per district (clockwise from top)
+// Each segment uses a bright district color if visited, or locked-grey if not.
+function worldTourGradient() {
+  const visited = visitedDistricts.value
+  const locked = 'var(--color-border)'
+  const segments = DISTRICT_ORDER.map((d, i) => {
+    const color = visited.includes(d) ? WORLD_TOUR_COLORS[d] : locked
+    return `${color} ${i * 90}deg ${(i + 1) * 90}deg`
+  })
+  return `conic-gradient(${segments.join(', ')})`
+}
+
+// Compass: conic-gradient with N/E/S/W quadrants (from -45deg so N is centred at top)
+// Visited = off-white compass face; unvisited = locked grey.
+function compassGradient() {
+  const visited = achievementCtx.value.visitedBranchCodes
+  const hit = '#e8e2d8'
+  const miss = 'var(--color-border)'
+  const n = visited.has(compassPoints.n) ? hit : miss
+  const e = visited.has(compassPoints.e) ? hit : miss
+  const s = visited.has(compassPoints.s) ? hit : miss
+  const w = visited.has(compassPoints.w) ? hit : miss
+  return `conic-gradient(from -45deg, ${n} 0deg 90deg, ${e} 90deg 180deg, ${s} 180deg 270deg, ${w} 270deg 360deg)`
+}
+
+// Returns the CSS class for badge background color.
+// world_tour and compass use inline style gradients instead.
+function getBadgeColorClass(badge) {
+  if (badge.id === 'world_tour' || badge.id === 'compass') return null
+  return badge.earned(achievementCtx.value) ? `badge-shape--${badge.id}` : 'badge-shape--locked'
+}
+
+// Returns inline style for badges that use dynamic gradients.
+function getBadgeInlineStyle(badge) {
+  if (badge.id === 'world_tour') return { background: worldTourGradient() }
+  if (badge.id === 'compass')    return { background: compassGradient() }
+  return {}
+}
 
 // Group most recent day's check-ins — show count if multiple on same day
 const recentActivity = computed(() => {
@@ -400,48 +614,118 @@ function formatDate(iso) {
   margin-bottom: 24px;
 }
 
-/* 3-column grid of hexagonal badge shapes */
+/* 3-column grid — always shows all 12 badges */
 .badges-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px 8px;
-  margin-bottom: 14px;
 }
 
 .badge-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
 }
 
-/* Octagon badge — clip-path gives the official stamp/medal shape */
-.badge-hex {
-  width: 72px;
-  height: 72px;
-  background: var(--tpl-navy);
-  clip-path: polygon(29% 0%, 71% 0%, 100% 29%, 100% 71%, 71% 100%, 29% 100%, 0% 71%, 0% 29%);
+/* Base badge shape */
+.badge-shape {
+  width: 64px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
 }
 
-.badge-hex--locked {
-  background: var(--color-border);
+/* Octagon — passport stamps */
+.badge-shape--octagon {
+  clip-path: polygon(29% 0%, 71% 0%, 100% 29%, 100% 71%, 71% 100%, 29% 100%, 0% 71%, 0% 29%);
 }
 
-.badge-milestone {
+/* Circle — geography */
+.badge-shape--circle {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+/* Crosshair notches — only World Tour */
+.badge-shape--with-crosshair::before {
+  content: '';
+  position: absolute;
+  inset: 10% 48%;
+  background: rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.badge-shape--with-crosshair::after {
+  content: '';
+  position: absolute;
+  inset: 48% 10%;
+  background: rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 5-point star — habit */
+.badge-shape--star {
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+/* Locked state — overrides group color */
+.badge-shape--locked {
+  background: var(--color-border) !important;
+}
+
+.badge-shape--locked .badge-content {
+  color: var(--color-text-muted);
+}
+
+/* Passport stamp colors — lighter blue → darker navy */
+.badge-shape--first        { background: #4a90d9; }
+.badge-shape--explorer     { background: var(--tpl-blue); }
+.badge-shape--adventurer   { background: #003d96; }
+.badge-shape--globetrotter { background: #001e78; }
+.badge-shape--complete     { background: var(--tpl-navy); }
+
+/* Geography badge color — teal (district_champ only; world_tour + compass use inline gradients) */
+.badge-shape--district_champ { background: #1e7a5a; }
+
+/* Habit badge color — amber */
+.badge-shape--day_tripper,
+.badge-shape--quest_master,
+.badge-shape--familiar_face,
+.badge-shape--return_visitor { background: #c06b30; }
+
+/* Badge content — centered number or symbol */
+.badge-content {
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 700;
   color: #ffffff;
   font-optical-sizing: auto;
   line-height: 1;
+  position: relative;
+  z-index: 1;
 }
 
-.badge-hex--locked .badge-milestone {
-  color: var(--color-text-muted);
+.compass-rose {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  color: #3d3530;
+}
+
+.compass-rose text,
+.compass-rose circle {
+  fill: currentColor;
+}
+
+.compass-rose line {
+  stroke: rgba(0, 0, 0, 0.2);
 }
 
 .badge-name {
@@ -453,66 +737,37 @@ function formatDate(iso) {
   line-height: 1.3;
 }
 
-/* Next badge goal */
-.next-badge {
-  padding: 14px 16px;
-}
-
-.next-badge__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.next-badge__eyebrow {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.next-badge__fraction {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--tpl-blue);
-}
-
-.next-badge__body {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 12px;
-}
-
-.next-badge__text { flex: 1; }
-
-.next-badge__title {
-  font-size: 0.95rem;
-  font-weight: 700;
+.badge-name--earned {
   color: var(--color-text);
 }
 
-.next-badge__desc {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-  margin-top: 1px;
+/* Inline progress pill — shown below locked badges with trackable progress */
+.badge-progress {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.next-badge__track {
-  height: 5px;
-  background: var(--color-border-soft);
-  border-radius: 3px;
+.badge-progress__bar {
+  width: 28px;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
   overflow: hidden;
 }
 
-.next-badge__fill {
+.badge-progress__fill {
   height: 100%;
-  background: var(--tpl-blue);
-  border-radius: 3px;
-  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  min-width: 4px;
+  background: var(--color-text-muted);
+  border-radius: 2px;
+  min-width: 2px;
+}
+
+.badge-progress__text {
+  font-size: 0.52rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  line-height: 1;
 }
 
 /* Recent visit — single compact row */
