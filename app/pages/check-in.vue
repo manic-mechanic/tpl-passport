@@ -2,21 +2,45 @@
   <main class="page-content">
 
     <div v-if="result" class="success-view">
-      <StampShape class="success-stamp" :branchCode="result.branchCode" :wardNo="result.wardNo" :size="110">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="32" height="32">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </StampShape>
-      <p class="success-label">Stamp collected!</p>
-      <p class="success-branch">{{ result.branchName }}</p>
-      <p class="success-region">{{ result.region }}</p>
-      <div class="success-actions">
-        <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-outline">View branch →</NuxtLink>
-        <button class="btn-ghost" @click="reset">Check in somewhere else</button>
+      <div class="success-hero">
+        <div class="success-stamp-wrap">
+          <StampShape class="success-stamp" :branchCode="result.branchCode" :wardNo="result.wardNo" :size="110" />
+          <div class="success-check-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="14" height="14">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+        <p class="success-label">Stamp collected!</p>
+        <p class="success-branch">{{ result.branchName }}</p>
+        <p class="success-region">{{ result.region }}</p>
+        <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-primary">View branch</NuxtLink>
+      </div>
+
+      <div v-if="nearbySuccessBranches.length" class="success-nearby">
+        <p class="success-nearby-heading">Also nearby</p>
+        <div class="nearby-list">
+          <NuxtLink
+            v-for="nb in nearbySuccessBranches"
+            :key="nb.BranchCode"
+            :to="`/branch/${nb.BranchCode}`"
+            class="nearby-row"
+          >
+            <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
+            <div class="nearby-info">
+              <span class="nearby-name">{{ nb.BranchName }}</span>
+              <span class="nearby-dist">{{ formatDist(nb.distKm) }} away · {{ nb.District }}</span>
+            </div>
+            <svg class="nearby-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </NuxtLink>
+        </div>
       </div>
     </div>
 
-    <header v-else class="page-header">
+    <template v-else>
+    <header class="page-header">
         <h1>Check In</h1>
         <p class="sub">
           <template v-if="scanned">Scanned — <strong>{{ selectedBranch?.BranchName }}</strong></template>
@@ -125,6 +149,7 @@
         </p>
       </div>
 
+    </template>
   </main>
 
   <!-- ── QR Scanner overlay — dev only ────────── -->
@@ -156,7 +181,7 @@
 <script setup>
 import jsQR from 'jsqr'
 import { usePassportStore } from '~/stores/passport'
-import { sortedBranches, haversineKm } from '~/composables/useRegion'
+import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { savePhoto } from '~/composables/usePhotoStore'
 
 const route   = useRoute()
@@ -245,14 +270,16 @@ async function doCheckIn() {
   }
 }
 
-function reset() {
-  result.value       = null
-  selectedCode.value = ''
-  scanned.value      = false
-  noteText.value     = ''
-  photoPreview.value = null
-  photoFile.value    = null
-}
+const nearbySuccessBranches = computed(() => {
+  if (!result.value) return []
+  const current = sortedBranches.find(b => b.BranchCode === result.value.branchCode)
+  if (!current?.Lat || !current?.Long) return []
+  return sortedBranches
+    .filter(b => b.BranchCode !== result.value.branchCode)
+    .map(b => ({ ...b, distKm: haversineKm(current.Lat, current.Long, b.Lat, b.Long) }))
+    .sort((a, b) => a.distKm - b.distKm)
+    .slice(0, 2)
+})
 
 const scannerActive = ref(false)
 const scanError     = ref('')
@@ -623,36 +650,47 @@ onUnmounted(closeScanner)
 
 /* ── Success state ─────────────────────────── */
 .success-view {
+  padding: min(120px, 18vh) 0 24px;
+}
+
+.success-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 48px 0 24px;
   text-align: center;
+  gap: 8px;
+  margin-bottom: 32px;
 }
 
-.success-stamp {
-  width: 110px;
-  height: 110px;
-  border: 3px solid currentColor;
+.success-stamp-wrap {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   animation: stamp-in 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
-.success-ring {
+.success-check-badge {
   position: absolute;
-  inset: 7px;
-  border: 1.5px solid currentColor;
-  opacity: 0.35;
+  bottom: -6px;
+  right: -6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #27ae60;
+  border: 2px solid var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: check-pop 0.25s cubic-bezier(0.34, 1.6, 0.64, 1) 0.3s both;
 }
 
 @keyframes stamp-in {
   from { transform: scale(1.4) rotate(-8deg); opacity: 0; }
   to   { transform: scale(1) rotate(0deg);    opacity: 1; }
+}
+
+@keyframes check-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 .success-label {
@@ -672,39 +710,81 @@ onUnmounted(closeScanner)
 .success-region {
   font-size: 0.8rem;
   color: var(--color-text-muted);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
-.success-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  max-width: 280px;
-}
-
-.btn-outline {
+.btn-primary {
   display: block;
-  padding: 13px;
-  border: 1.5px solid var(--tpl-blue);
+  padding: 14px 28px;
+  background: var(--tpl-navy);
+  color: white;
   border-radius: var(--radius);
   font-size: 0.95rem;
   font-weight: 700;
   font-family: var(--font-body);
-  color: var(--tpl-blue);
   text-align: center;
   text-decoration: none;
+  min-width: 200px;
 }
 
-.btn-ghost {
-  padding: 12px;
-  background: transparent;
-  border: none;
+.success-nearby {
+  width: 100%;
+}
+
+.success-nearby-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+
+.nearby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nearby-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text);
+  transition: background 0.12s;
+}
+
+.nearby-row:active { background: var(--color-paper); }
+
+.nearby-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nearby-name {
   font-size: 0.875rem;
   font-weight: 600;
-  font-family: var(--font-body);
+  line-height: 1.3;
+}
+
+.nearby-dist {
+  font-size: 0.75rem;
   color: var(--color-text-muted);
-  cursor: pointer;
+}
+
+.nearby-arrow {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: var(--color-text-muted);
 }
 
 /* ── QR Scanner overlay ─────────────────────── */
