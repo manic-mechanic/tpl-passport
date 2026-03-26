@@ -15,48 +15,46 @@
       </NuxtLink>
     </header>
 
-    <!-- Passport hero card -->
-    <section class="passport-card">
-      <div class="passport-card__inner">
-        <div class="passport-card__top">
+    <!-- Passport document card -->
+    <section class="passport-doc">
+      <div class="doc-header">
+        <img src="/tpl-meta-card.png" class="doc-seal" alt="" aria-hidden="true" />
+        <div class="doc-header-text">
+          <p class="doc-country">Canada · Toronto Public Library</p>
+          <p class="doc-type">PASSPORT / PASSEPORT</p>
+        </div>
+        <span class="doc-type-code">P</span>
+      </div>
+      <div class="doc-body">
+        <div class="doc-name-row">
           <div>
-            <p class="passport-card__eyebrow">Your Passport</p>
-            <p class="passport-card__greeting">
-              {{ passport.profile.name || 'Collector' }}
-            </p>
+            <p class="doc-field-label">Name / Nom</p>
+            <p class="doc-name">{{ passport.profile.name || 'Collector' }}</p>
           </div>
-          <div class="passport-card__badge">
-            <span class="badge-num">{{ passport.visitCount }}</span>
-            <span class="badge-denom">/ {{ totalBranches }}</span>
+          <div class="doc-count-badge">
+            <span class="doc-count-badge__num">{{ passport.visitCount }}</span>
+            <span class="doc-count-badge__denom">/ {{ totalBranches }}</span>
           </div>
         </div>
         <div class="progress-track">
           <div class="progress-fill" :style="{ width: progressPct + '%' }" />
         </div>
-        <p class="passport-card__sub">
-          <template v-if="passport.visitCount === 0">Visit your first branch to start collecting stamps</template>
-          <template v-else-if="passport.visitCount === totalBranches">You've completed your passport!</template>
-          <template v-else>{{ totalBranches - passport.visitCount }} branches left to collect</template>
-        </p>
+        <div class="doc-stats-line">
+          <div class="doc-stat-inline">
+            <span class="doc-stat-num">{{ passport.checkIns.length }}</span>
+            <span class="doc-stat-label">Visits</span>
+          </div>
+          <div class="doc-stat-inline">
+            <span class="doc-stat-num">{{ progressPct }}%</span>
+            <span class="doc-stat-label">Complete</span>
+          </div>
+        </div>
       </div>
-      <img src="/tpl-meta.png" class="passport-card__watermark" aria-hidden="true" />
+      <div class="doc-mrz">
+        <p class="doc-mrz-line">P&lt;CAN{{ mrzLine1 }}</p>
+        <p class="doc-mrz-line">{{ mrzLine2 }}</p>
+      </div>
     </section>
-
-    <!-- Stats row -->
-    <div class="stats-row">
-      <div class="stat-chip">
-        <span class="stat-chip__num">{{ passport.checkIns.length }}</span>
-        <span class="stat-chip__label">Visits</span>
-      </div>
-      <div class="stat-chip">
-        <span class="stat-chip__num">{{ passport.visitCount }}</span>
-        <span class="stat-chip__label">Branches</span>
-      </div>
-      <div class="stat-chip">
-        <span class="stat-chip__num">{{ overallPct }}%</span>
-        <span class="stat-chip__label">Complete</span>
-      </div>
-    </div>
 
     <!-- Achievements -->
     <section class="achievements-section">
@@ -183,7 +181,25 @@ const regionMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.
 const wardNoMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.WardNo]))
 
 const { progressPct } = storeToRefs(passport)
-const overallPct   = computed(() => Math.round(((passport.visitCount + passport.completedChallengesCount) / totalItems) * 100))
+
+const issueYear = new Date().getFullYear()
+
+const mrzLine1 = computed(() => {
+  const raw = (passport.profile.name || 'COLLECTOR').toUpperCase()
+  const parts = raw.replace(/[^A-Z ]/g, '').split(' ').filter(Boolean)
+  const surname = parts[0] ?? 'COLLECTOR'
+  const given   = parts.slice(1).join('<') || ''
+  const nameStr = given ? `${surname}<<${given}` : `${surname}`
+  return nameStr.padEnd(39, '<').slice(0, 39)
+})
+
+const mrzLine2 = computed(() => {
+  const num  = `TPL${String(passport.visitCount).padStart(5, '0')}`
+  const dob  = String(issueYear % 100).padStart(2, '0') + '0101'
+  const pct  = String(progressPct.value).padStart(3, '0')
+  const raw  = `${num}0CAN${dob}0M260101${pct}PCT`
+  return raw.padEnd(44, '<').slice(0, 44)
+})
 
 // Precomputed constants for achievements (not reactive)
 // compassPoints: the furthest branch in each cardinal direction by Lat/Long
@@ -508,136 +524,180 @@ function formatDate(iso) {
 
 .profile-btn svg { width: 18px; height: 18px; }
 
-/* Passport hero card */
-.passport-card {
-  position: relative;
-  background: var(--tpl-navy);
+/* Passport document hero card */
+.passport-doc {
   border-radius: var(--radius-lg);
-  padding: 22px 22px 20px;
-  margin-bottom: 14px;
   overflow: hidden;
   box-shadow: var(--shadow-md);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0,28,113,0.12);
+  margin-bottom: 14px;
 }
 
-.passport-card__inner { position: relative; z-index: 1; }
-
-.passport-card__top {
+.doc-header {
+  background: var(--tpl-navy);
+  padding: 9px 14px;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: 9px;
 }
 
-.passport-card__eyebrow {
-  font-size: 0.7rem;
-  font-weight: 600;
+.doc-seal {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: contain;
+  opacity: 0.7;
+}
+
+.doc-header-text { flex: 1; }
+
+.doc-country {
+  font-size: 0.56rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.5);
-  margin-bottom: 4px;
+  color: rgba(255,255,255,0.42);
 }
 
-.passport-card__greeting {
+.doc-type {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.88);
+  margin-top: 1px;
+}
+
+.doc-type-code {
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: rgba(255,255,255,0.14);
+  line-height: 1;
+}
+
+.doc-body {
+  background: #f4efe4;
+  padding: 14px 16px 12px;
+}
+
+.doc-name-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 11px;
+}
+
+.doc-field-label {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a9490;
+  margin-bottom: 2px;
+}
+
+.doc-name {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--tpl-navy);
+  line-height: 1.1;
   font-optical-sizing: auto;
 }
 
-.passport-card__badge {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.2);
+.doc-count-badge {
+  background: rgba(0,28,113,0.07);
+  border: 1px solid rgba(0,28,113,0.14);
   border-radius: var(--radius-pill);
-  padding: 4px 12px;
+  padding: 3px 10px;
   display: flex;
   align-items: baseline;
   gap: 2px;
-  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
-.badge-num {
+.doc-count-badge__num {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--tpl-navy);
+  font-optical-sizing: auto;
 }
 
-.badge-denom {
-  font-size: 0.8rem;
-  color: rgba(255,255,255,0.55);
+.doc-count-badge__denom {
+  font-size: 0.75rem;
+  color: rgba(0,28,113,0.45);
 }
 
 .progress-track {
-  height: 6px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 3px;
+  height: 5px;
+  background: rgba(0,28,113,0.14);
+  border-radius: 2px;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 11px;
 }
 
 .progress-fill {
   height: 100%;
   background: var(--tpl-blue);
-  border-radius: 3px;
+  border-radius: 2px;
   transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  min-width: 4px;
+  min-width: 2px;
 }
 
-.passport-card__sub {
-  font-size: 0.82rem;
-  color: rgba(255,255,255,0.55);
-}
-
-.passport-card__watermark {
-  position: absolute;
-  right: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  opacity: 0.06;
-  filter: brightness(10);
-  pointer-events: none;
-}
-
-/* Stats */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 24px;
-}
-
-.stat-chip {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius);
-  padding: 14px 10px 12px;
+.doc-stats-line {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 3px;
-  box-shadow: var(--shadow-sm);
 }
 
-.stat-chip__num {
+.doc-stat-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-right: 14px;
+  margin-right: 14px;
+  border-right: 1px solid rgba(0,28,113,0.12);
+}
+
+.doc-stat-inline:last-child {
+  border-right: none;
+  padding-right: 0;
+  margin-right: 0;
+}
+
+.doc-stat-num {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--tpl-blue);
-  line-height: 1;
   font-optical-sizing: auto;
 }
 
-.stat-chip__label {
-  font-size: 0.7rem;
+.doc-stat-label {
+  font-size: 0.62rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  color: #9a9490;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.doc-mrz {
+  background: var(--tpl-navy);
+  padding: 8px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.doc-mrz-line {
+  font-family: 'Courier New', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.28);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* Achievements */
