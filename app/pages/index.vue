@@ -76,21 +76,37 @@
             class="badge-shape"
             :class="[
               `badge-shape--${badge.shape}`,
-              badge.id === 'world_tour' ? 'badge-shape--with-crosshair' : null,
               getBadgeColorClass(badge)
             ]"
             :style="getBadgeInlineStyle(badge)"
           >
             <template v-if="badge.id === 'compass'">
-              <!-- Full-size compass rose: lines show quadrant divisions, labels at cardinal edges -->
               <svg class="compass-rose" viewBox="0 0 64 64" aria-hidden="true">
-                <line x1="32" y1="2" x2="32" y2="62" stroke-width="1.5"/>
-                <line x1="2" y1="32" x2="62" y2="32" stroke-width="1.5"/>
-                <text x="32" y="12" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800">N</text>
-                <text x="56" y="33" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700">E</text>
-                <text x="32" y="54" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700">S</text>
-                <text x="8"  y="33" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700">W</text>
-                <circle cx="32" cy="32" r="3"/>
+                <defs>
+                  <linearGradient id="compass-border-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%"   stop-color="#e0e0e0"/>
+                    <stop offset="50%"  stop-color="#888888"/>
+                    <stop offset="100%" stop-color="#cccccc"/>
+                  </linearGradient>
+                </defs>
+                <!-- Silver border ring -->
+                <circle cx="32" cy="32" r="30" fill="none" stroke="url(#compass-border-grad)" stroke-width="4"/>
+                <!-- Diagonal lines — sit exactly on the conic-gradient quadrant boundaries -->
+                <line x1="14" y1="14" x2="50" y2="50" stroke="rgba(0,0,0,0.12)" stroke-width="1"/>
+                <line x1="50" y1="14" x2="14" y2="50" stroke="rgba(0,0,0,0.12)" stroke-width="1"/>
+                <!-- N arrow -->
+                <polygon points="32,5 28.5,13 35.5,13" :fill="compassLabelColor('n', true)"/>
+                <!-- Cardinal ticks — E, S, W -->
+                <line x1="60" y1="32" x2="51" y2="32" stroke-width="1.5" :stroke="compassLineColor('e')"/>
+                <line x1="32" y1="60" x2="32" y2="51" stroke-width="1.5" :stroke="compassLineColor('s')"/>
+                <line x1="4"  y1="32" x2="13" y2="32" stroke-width="1.5" :stroke="compassLineColor('w')"/>
+                <!-- Direction labels -->
+                <text x="32" y="22" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="800" :fill="compassLabelColor('n', true)">N</text>
+                <text x="45" y="33" text-anchor="middle" dominant-baseline="middle" font-size="9"  font-weight="700" :fill="compassLabelColor('e')">E</text>
+                <text x="32" y="45" text-anchor="middle" dominant-baseline="middle" font-size="9"  font-weight="700" :fill="compassLabelColor('s')">S</text>
+                <text x="19" y="33" text-anchor="middle" dominant-baseline="middle" font-size="9"  font-weight="700" :fill="compassLabelColor('w')">W</text>
+                <!-- Centre dot -->
+                <circle cx="32" cy="32" r="2.5" fill="rgba(0,0,0,0.22)"/>
               </svg>
             </template>
             <span v-else class="badge-content">{{ badge.stat ? badge.stat(achievementCtx) : badge.label }}</span>
@@ -155,7 +171,7 @@
 import { usePassportStore } from '~/stores/passport'
 import { storeToRefs } from 'pinia'
 import { useStampColor } from '~/composables/useStamp'
-import { physicalBranches, DISTRICT_ORDER, getDistrictColor } from '~/composables/useRegion'
+import { physicalBranches, DISTRICT_ORDER } from '~/composables/useRegion'
 
 const passport = usePassportStore()
 
@@ -373,20 +389,35 @@ function worldTourGradient() {
     const color = visited.includes(d) ? WORLD_TOUR_COLORS[d] : locked
     return `${color} ${i * 90}deg ${(i + 1) * 90}deg`
   })
-  return `conic-gradient(${segments.join(', ')})`
+  const highlight = 'radial-gradient(circle, rgba(255,255,255,0.28) 0%, transparent 55%)'
+  return `${highlight}, conic-gradient(${segments.join(', ')})`
 }
 
 // Compass: conic-gradient with N/E/S/W quadrants (from -45deg so N is centred at top)
-// Visited = off-white compass face; unvisited = locked grey.
+// Visited = bright white compass face; unvisited = locked grey.
 function compassGradient() {
   const visited = achievementCtx.value.visitedBranchCodes
-  const hit = '#e8e2d8'
+  const hit = '#f8f5f0'
   const miss = 'var(--color-border)'
   const n = visited.has(compassPoints.n) ? hit : miss
   const e = visited.has(compassPoints.e) ? hit : miss
   const s = visited.has(compassPoints.s) ? hit : miss
   const w = visited.has(compassPoints.w) ? hit : miss
   return `conic-gradient(from -45deg, ${n} 0deg 90deg, ${e} 90deg 180deg, ${s} 180deg 270deg, ${w} 270deg 360deg)`
+}
+
+// Returns fill colour for a compass rose label — muted when unvisited, prominent when visited.
+// N gets red (classic compass convention) when visited.
+function compassLabelColor(dir, isNorth = false) {
+  const visited = achievementCtx.value.visitedBranchCodes.has(compassPoints[dir])
+  if (visited) return isNorth ? '#c0201a' : '#1a1510'
+  return 'rgba(0,0,0,0.2)'
+}
+
+// Returns stroke colour for a compass rose line half — faint when unvisited.
+function compassLineColor(dir) {
+  const visited = achievementCtx.value.visitedBranchCodes.has(compassPoints[dir])
+  return visited ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)'
 }
 
 // Returns the CSS class for badge background color.
@@ -649,25 +680,6 @@ function formatDate(iso) {
   overflow: hidden;
 }
 
-/* Crosshair notches — only World Tour */
-.badge-shape--with-crosshair::before {
-  content: '';
-  position: absolute;
-  inset: 10% 48%;
-  background: rgba(255, 255, 255, 0.25);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.badge-shape--with-crosshair::after {
-  content: '';
-  position: absolute;
-  inset: 48% 10%;
-  background: rgba(255, 255, 255, 0.25);
-  pointer-events: none;
-  z-index: 1;
-}
-
 /* 5-point star — habit */
 .badge-shape--star {
   clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
@@ -682,21 +694,21 @@ function formatDate(iso) {
   color: var(--color-text-muted);
 }
 
-/* Passport stamp colors — lighter blue → darker navy */
-.badge-shape--first        { background: #4a90d9; }
-.badge-shape--explorer     { background: var(--tpl-blue); }
-.badge-shape--adventurer   { background: #003d96; }
-.badge-shape--globetrotter { background: #001e78; }
-.badge-shape--complete     { background: var(--tpl-navy); }
+/* Passport stamp colors — radial light→dark, progression maintained across the set */
+.badge-shape--first        { background: radial-gradient(circle, #7ab4ec 0%, #3878c4 100%); }
+.badge-shape--explorer     { background: radial-gradient(circle, #4a90d9 0%, #0048a8 100%); }
+.badge-shape--adventurer   { background: radial-gradient(circle, #1e60b4 0%, #001e78 100%); }
+.badge-shape--globetrotter { background: radial-gradient(circle, #002880 0%, #000e50 100%); }
+.badge-shape--complete     { background: radial-gradient(circle, #001c70 0%, #000640 100%); }
 
-/* Geography badge color — teal (district_champ only; world_tour + compass use inline gradients) */
-.badge-shape--district_champ { background: #1e7a5a; }
+/* Geography badge color — radial green (world_tour + compass use inline gradients) */
+.badge-shape--district_champ { background: radial-gradient(circle, #52cc84 0%, #1a6640 100%); }
 
-/* Habit badge color — amber */
+/* Habit badge color — warm amber radial */
 .badge-shape--day_tripper,
 .badge-shape--quest_master,
 .badge-shape--familiar_face,
-.badge-shape--return_visitor { background: #c06b30; }
+.badge-shape--return_visitor { background: radial-gradient(circle, #eaa040 0%, #9e3c14 100%); }
 
 /* Badge content — centered number or symbol */
 .badge-content {
@@ -716,16 +728,11 @@ function formatDate(iso) {
   width: 100%;
   height: 100%;
   z-index: 1;
-  color: #3d3530;
 }
 
-.compass-rose text,
-.compass-rose circle {
-  fill: currentColor;
-}
-
-.compass-rose line {
-  stroke: rgba(0, 0, 0, 0.2);
+/* Star clip-path bottom tips reach 91%, so visual centre is ~45.5% — nudge content down */
+.badge-shape--star .badge-content {
+  margin-top: 3px;
 }
 
 .badge-name {
