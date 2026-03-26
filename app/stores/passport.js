@@ -1,3 +1,4 @@
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
 
@@ -38,13 +39,14 @@ export const usePassportStore = defineStore('passport', () => {
   const hasVisited = (branchCode) => visitedBranchCodes.value.has(branchCode)
 
   const hasVisitedToday = (branchCode) => {
-    const today = new Date().toDateString()
+    const todayPrefix = new Date().toISOString().slice(0, 10)
     return checkIns.value.some(
-      c => c.branchCode === branchCode && new Date(c.timestamp).toDateString() === today
+      c => c.branchCode === branchCode && c.timestamp.startsWith(todayPrefix)
     )
   }
 
-  const visitCount = computed(() => visitedBranchCodes.value.size)
+  const visitCount    = computed(() => visitedBranchCodes.value.size)
+  const progressPct   = computed(() => Math.round((visitCount.value / physicalBranches.length) * 100))
 
   const completedChallengesCount = computed(() => completedChallenges.value.length)
 
@@ -61,9 +63,8 @@ export const usePassportStore = defineStore('passport', () => {
 
   // --- Actions ---
 
-  // Adds a check-in. Returns false (no-op) if the user already checked in
-  // at this branch today — one visit per branch per day.
-  // Returns the ISO timestamp of the new check-in, or null if already visited today.
+  // Adds a check-in. Returns the ISO timestamp of the new check-in,
+  // or null if the user already visited this branch today.
   function checkIn(branchCode, note = '') {
     if (hasVisitedToday(branchCode)) return null
 
@@ -79,6 +80,7 @@ export const usePassportStore = defineStore('passport', () => {
   function loadDemoState(mode) {
     if (mode === 'empty') {
       checkIns.value = []
+      completedChallenges.value = []
       return
     }
 
@@ -91,7 +93,7 @@ export const usePassportStore = defineStore('passport', () => {
         const daysBack = Math.max(1, Math.round((i / codes.length) * totalDaysSpan))
         const d = new Date()
         d.setDate(d.getDate() - daysBack)
-        d.setHours(10 + (i % 8), (i * 7) % 60, 0, 0) // vary the time of day
+        d.setHours(10 + (i % 8), (i * 7) % 60, 0, 0)
         return { branchCode, timestamp: d.toISOString(), note: '' }
       })
 
@@ -111,6 +113,7 @@ export const usePassportStore = defineStore('passport', () => {
     hasVisited,
     hasVisitedToday,
     visitCount,
+    progressPct,
     completedChallenges,
     completedChallengesCount,
     hasCompletedChallenge,

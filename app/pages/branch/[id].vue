@@ -19,7 +19,6 @@
       </div>
     </header>
 
-    <!-- Check-in -->
     <div class="checkin-area">
       <NuxtLink
         v-if="checkinState !== 'blocked'"
@@ -27,8 +26,7 @@
         class="checkin-btn"
         :class="{ 'checkin-btn--visited': checkinState === 'visited' }"
       >
-        <template v-if="checkinState === 'visited'">Check in again</template>
-        <template v-else>Check in here</template>
+        {{ checkinState === 'visited' ? 'Check in again' : 'Check in here' }}
       </NuxtLink>
       <button v-else class="checkin-btn checkin-btn--blocked" disabled>
         Already visited today
@@ -39,7 +37,7 @@
     <section v-if="events.length" class="detail-section">
       <h2 class="detail-heading">Upcoming events</h2>
       <ul class="events-list">
-        <li v-for="evt in events" :key="evt.title + evt.date" class="event-row">
+        <li v-for="evt in events" :key="evt.title + evt.date + evt.time" class="event-row">
           <div class="event-date-badge">
             <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
             <span class="event-day">{{ formatEventDay(evt.date) }}</span>
@@ -53,7 +51,6 @@
       <a :href="`https://tpl.ca/locations/${branch.BranchCode}/`" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
     </section>
 
-    <!-- Past visits at this branch (shown only if any exist) -->
     <section v-if="pastVisitsHere.length" class="detail-section">
       <h2 class="detail-heading">Your visits here</h2>
       <ul class="visit-list">
@@ -71,12 +68,10 @@
       </ul>
     </section>
 
-    <!-- Photo lightbox -->
     <div v-if="lightboxSrc" class="lightbox" @click="lightboxSrc = null">
       <img :src="lightboxSrc" class="lightbox-img" alt="Check-in photo" />
     </div>
 
-    <!-- Info -->
     <section class="info-card card">
       <div class="info-row">
         <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -98,7 +93,6 @@
       </div>
     </section>
 
-    <!-- Services -->
     <section v-if="services.length" class="detail-section">
       <h2 class="detail-heading">Programs &amp; services</h2>
       <div class="tag-list">
@@ -106,18 +100,17 @@
       </div>
     </section>
 
-    <!-- Branch challenges — only shown after a check-in -->
     <section v-if="passport.hasVisited(branch.BranchCode)" class="detail-section">
       <h2 class="detail-heading">
         Branch challenges
-        <span class="challenge-tally">{{ completedChallengesCount }}/{{ BRANCH_CHALLENGES.length }} completed</span>
+        <span class="challenge-tally">{{ completedHere }}/{{ BRANCH_CHALLENGES.length }} completed</span>
       </h2>
       <ul class="challenge-list">
         <li
-          v-for="(challenge, i) in BRANCH_CHALLENGES"
+          v-for="(challenge, i) in challengeStates"
           :key="i"
           class="challenge-item"
-          :class="{ 'challenge-item--done': passport.hasCompletedChallenge(branch.BranchCode, i) }"
+          :class="{ 'challenge-item--done': challenge.done }"
           @click="passport.toggleChallenge(branch.BranchCode, i)"
         >
           <svg class="challenge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
@@ -140,7 +133,7 @@
             </template>
           </svg>
           <span class="challenge-label">{{ challenge.label }}</span>
-          <svg v-if="passport.hasCompletedChallenge(branch.BranchCode, i)" class="challenge-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg v-if="challenge.done" class="challenge-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </li>
@@ -165,7 +158,6 @@ const router = useRouter()
 // Return to wherever the user came from, falling back to /explore
 const backTo    = computed(() => router.options.history.state?.back ?? '/explore')
 const backLabel = computed(() => {
-  if (typeof backTo.value !== 'string') return 'Explore'
   if (backTo.value.startsWith('/history'))  return 'History'
   if (backTo.value.startsWith('/passport')) return 'Passport'
   return 'Explore'
@@ -187,14 +179,12 @@ const hasParking = computed(() =>
   branch.value.PublicParking !== 0
 )
 
-// ── Check-in ──────────────────────────────────────
 const checkinState = computed(() => {
   if (passport.hasVisitedToday(branch.value?.BranchCode)) return 'blocked'
   if (passport.hasVisited(branch.value?.BranchCode)) return 'visited'
   return 'idle'
 })
 
-// ── Services ──────────────────────────────────────
 const SERVICE_FLAGS = {
   KidsStop:             'Kids Stop',
   LeadingReading:       'Leading to Reading',
@@ -212,14 +202,12 @@ const services = computed(() => {
     .map(([, label]) => label)
 })
 
-// ── Events (live from CKAN API via server proxy) ──────────────
+// Events proxied via /api/branch-events — CKAN doesn't send CORS headers so direct browser calls fail
 const { data: rawEvents } = useFetch('/api/branch-events', {
   query: computed(() => ({ library: branch.value?.BranchName ?? '' })),
   default: () => [],
+  transform: data => Array.isArray(data) ? data : [],
 })
-
-// Normalise CKAN records to { title, date, time, age }
-// CKAN fields: Title, StartDateLocal (YYYY-MM-DD), StartTime (ISO datetime), Audiences
 const AUDIENCE_MAP = {
   'Adults (18+)':               'Adults',
   'Older Adults':               'Seniors',
@@ -255,8 +243,10 @@ const events = computed(() =>
 
 function formatEventTime(isoDatetime) {
   if (!isoDatetime) return ''
-  const timePart = isoDatetime.split('T')[1] ?? ''  // "14:00:00"
-  const [h, m] = timePart.split(':').map(Number)
+  const tIdx = isoDatetime.indexOf('T')
+  if (tIdx === -1) return ''
+  const [h, m] = isoDatetime.slice(tIdx + 1).split(':').map(Number)
+  if (isNaN(h) || isNaN(m)) return ''
   const suffix = h >= 12 ? 'pm' : 'am'
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
   return `${h12}:${String(m).padStart(2, '0')}${suffix}`
@@ -270,7 +260,6 @@ function formatEventDay(date) {
   return new Date(date + 'T00:00:00').getDate()
 }
 
-// ── Past visits ───────────────────────────────────
 const pastVisitsHere = computed(() =>
   passport.checkIns.filter(c => c.branchCode === branch.value?.BranchCode)
 )
@@ -281,6 +270,7 @@ const lightboxSrc = ref(null)
 watch(pastVisitsHere, async (visits) => {
   for (const visit of visits) {
     if (visit.timestamp in photoUrls.value) continue
+    photoUrls.value[visit.timestamp] = null  // claim slot before await to prevent duplicate loads
     photoUrls.value[visit.timestamp] = await getPhotoUrl(visit.timestamp)
   }
 }, { immediate: true })
@@ -289,16 +279,21 @@ function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-// ── Branch challenges ─────────────────────────────
 const BRANCH_CHALLENGES = [
   { label: 'Check out a book here'   },
   { label: 'Attend a branch program' },
   { label: 'Meet a librarian'        },
 ]
 
-const completedChallengesCount = computed(() =>
-  BRANCH_CHALLENGES.reduce((n, _, i) =>
-    n + (passport.hasCompletedChallenge(branch.value?.BranchCode, i) ? 1 : 0), 0)
+const challengeStates = computed(() =>
+  BRANCH_CHALLENGES.map((c, i) => ({
+    ...c,
+    done: passport.hasCompletedChallenge(branch.value?.BranchCode, i),
+  }))
+)
+
+const completedHere = computed(() =>
+  challengeStates.value.filter(c => c.done).length
 )
 </script>
 

@@ -31,7 +31,7 @@
             <NuxtLink :to="`/branch/${visit.branchCode}`" class="checkin-row">
               <div
                 class="checkin-dot"
-                :style="{ background: DISTRICT_COLORS[regionMap[visit.branchCode]] ?? 'var(--color-border)' }"
+                :style="{ background: getDistrictColor(regionMap[visit.branchCode]) }"
               />
               <div class="checkin-info">
                 <span class="checkin-name">{{ branchMap[visit.branchCode] ?? visit.branchCode }}</span>
@@ -65,7 +65,7 @@
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, DISTRICT_COLORS } from '~/composables/useRegion'
+import { physicalBranches, getDistrictColor } from '~/composables/useRegion'
 import { calcWeekStreak } from '~/composables/useStreak'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
 

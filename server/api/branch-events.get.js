@@ -9,22 +9,21 @@
 
 const EVENTS_RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'
 const CKAN = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action'
-const CACHE_TTL = 60 * 60 * 1000 // 1 hour in ms
+const CACHE_TTL = 60 * 60 * 1000
 
 const cache = new Map() // key: shortName → { data, fetchedAt }
 
-function todayAndTomorrow() {
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  return [today.toISOString().slice(0, 10), tomorrow.toISOString().slice(0, 10)]
+function filterToWindow(records) {
+  const today    = new Date().toISOString().slice(0, 10)
+  const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
+  return records.filter(e => e.StartDateLocal >= today && e.StartDateLocal <= tomorrow)
 }
 
 async function fetchFromCKAN(shortName) {
-  const filters = JSON.stringify({ LocationName: shortName })
   // Limit 200 — active branches can have 100+ historical records sorted before upcoming ones.
   // We store raw records in cache and filter to today/tomorrow at read time, so stale
   // cache entries always return the correct date window even if the API is temporarily down.
+  const filters = `{"LocationName":"${shortName}"}`
   const url = `${CKAN}/datastore_search?id=${EVENTS_RESOURCE}&filters=${encodeURIComponent(filters)}&limit=200&sort=StartDateLocal`
   const res = await $fetch(url)
   return res.result?.records ?? []
@@ -32,31 +31,25 @@ async function fetchFromCKAN(shortName) {
 
 export default defineEventHandler(async (event) => {
   const { library } = getQuery(event)
-  if (!library) return []
+  if (!library || Array.isArray(library)) return []
 
-  const shortName = String(library).replace(/ Branch$/i, '')
+  const shortName = library.replace(/ Branch$/i, '')
   const cached = cache.get(shortName)
   const now = Date.now()
 
   if (cached) {
-    const stale = now - cached.fetchedAt > CACHE_TTL
-    if (stale) {
-      // Return stale data immediately; refresh in background
+    if (now - cached.fetchedAt > CACHE_TTL) {
       fetchFromCKAN(shortName)
         .then(data => cache.set(shortName, { data, fetchedAt: Date.now() }))
         .catch(() => {})
     }
-    // Filter to today/tomorrow at read time so stale cache stays correct
-    const [todayStr, tomorrowStr] = todayAndTomorrow()
-    return cached.data.filter(e => e.StartDateLocal >= todayStr && e.StartDateLocal <= tomorrowStr)
+    return filterToWindow(cached.data)
   }
 
-  // No cache entry — fetch and cache before returning
   try {
     const records = await fetchFromCKAN(shortName)
     cache.set(shortName, { data: records, fetchedAt: now })
-    const [todayStr, tomorrowStr] = todayAndTomorrow()
-    return records.filter(e => e.StartDateLocal >= todayStr && e.StartDateLocal <= tomorrowStr)
+    return filterToWindow(records)
   } catch {
     return []
   }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { physicalBranches, DISTRICT_ORDER, DISTRICT_COLORS, getDistrictColor } from '../app/composables/useRegion.js'
+import { physicalBranches, sortedBranches, DISTRICT_ORDER, getDistrictColor, haversineKm } from '../app/composables/useRegion.js'
 
 describe('physicalBranches', () => {
   it('contains exactly 100 branches', () => {
@@ -25,14 +25,28 @@ describe('physicalBranches', () => {
   })
 })
 
+describe('sortedBranches', () => {
+  it('contains the same 100 branches as physicalBranches', () => {
+    expect(sortedBranches).toHaveLength(physicalBranches.length)
+  })
+
+  it('is sorted alphabetically by BranchName', () => {
+    for (let i = 1; i < sortedBranches.length; i++) {
+      expect(sortedBranches[i - 1].BranchName.localeCompare(sortedBranches[i].BranchName)).toBeLessThanOrEqual(0)
+    }
+  })
+})
+
 describe('DISTRICT_ORDER', () => {
   it('contains exactly 4 districts', () => {
     expect(DISTRICT_ORDER).toHaveLength(4)
   })
 
-  it('every district has a color in DISTRICT_COLORS', () => {
+  it('every district has a color via getDistrictColor', () => {
     for (const district of DISTRICT_ORDER) {
-      expect(DISTRICT_COLORS).toHaveProperty(district)
+      const color = getDistrictColor(district)
+      expect(color).toMatch(/^#[0-9a-f]{6}$/i)
+      expect(color).not.toBe('#8c849e') // should not fall back to the unknown color
     }
   })
 })
@@ -46,5 +60,24 @@ describe('getDistrictColor', () => {
   it('returns fallback color for unknown districts', () => {
     expect(getDistrictColor('Unknown')).toBe('#8c849e')
     expect(getDistrictColor(undefined)).toBe('#8c849e')
+  })
+})
+
+describe('haversineKm', () => {
+  it('returns 0 for identical coordinates', () => {
+    expect(haversineKm(43.7, -79.4, 43.7, -79.4)).toBe(0)
+  })
+
+  it('calculates a reasonable distance between two Toronto branches', () => {
+    // Roughly: Agincourt (43.7804, -79.2756) to Bloor/Gladstone (43.6538, -79.4282)
+    const km = haversineKm(43.7804, -79.2756, 43.6538, -79.4282)
+    expect(km).toBeGreaterThan(15)
+    expect(km).toBeLessThan(20)
+  })
+
+  it('is symmetric', () => {
+    const a = haversineKm(43.7, -79.4, 43.65, -79.38)
+    const b = haversineKm(43.65, -79.38, 43.7, -79.4)
+    expect(a).toBeCloseTo(b, 10)
   })
 })

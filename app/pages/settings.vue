@@ -56,18 +56,7 @@
             </div>
             <div class="doc-field">
               <label class="doc-field-label" for="home-input">Home Branch</label>
-              <select
-                id="home-input"
-                v-model="passport.profile.homeBranch"
-                class="doc-field-input doc-field-select"
-              >
-                <option value="">None selected</option>
-                <option
-                  v-for="b in sortedBranches"
-                  :key="b.BranchCode"
-                  :value="b.BranchCode"
-                >{{ b.BranchName }}</option>
-              </select>
+              <BranchCombobox id="home-input" v-model="passport.profile.homeBranch" variant="inline" placeholder="None selected" />
             </div>
           </div>
         </div>
@@ -185,6 +174,7 @@
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
+import { storeToRefs } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
 import { useStampColor } from '~/composables/useStamp'
 
@@ -206,9 +196,7 @@ const avatarStyle = computed(() => {
   return { color, background: bg, borderColor: border }
 })
 
-const progressPct = computed(() =>
-  Math.round((passport.visitCount / physicalBranches.length) * 100)
-)
+const { progressPct } = storeToRefs(passport)
 
 const issueYear = new Date().getFullYear()
 
@@ -227,16 +215,11 @@ const mrzLine1 = computed(() => {
 const mrzLine2 = computed(() => {
   const num     = `TPL${String(passport.visitCount).padStart(5, '0')}`
   const country = 'CAN'
-  const dob     = `${issueYear}`.slice(-2) + '0101'  // YYMMDD
+  const dob     = String(issueYear % 100).padStart(2, '0') + '0101'
   const pct     = String(progressPct.value).padStart(3, '0')
   const raw     = `${num}0${country}${dob}0M260101${pct}PCT`
   return raw.padEnd(44, '<').slice(0, 44)
 })
-
-// Home branch selector — sorted alphabetically
-const sortedBranches = computed(() =>
-  [...physicalBranches].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
-)
 
 // Demo mode
 const demoModes = [
@@ -424,11 +407,6 @@ function setDemo(mode) {
 
 .doc-field-input::placeholder { color: var(--color-border); }
 
-.doc-field-select {
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-}
 
 /* Stats row */
 .doc-stats {

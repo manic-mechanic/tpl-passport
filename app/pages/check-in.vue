@@ -1,28 +1,22 @@
 <template>
   <main class="page-content">
 
-    <!-- ── Success state ─────────────────────── -->
-    <template v-if="result">
-      <div class="success-view">
-        <div class="success-stamp" :style="successStampStyle">
-          <div class="success-ring" :style="{ borderRadius: successStampStyle.borderRadius }" />
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="32" height="32">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </div>
-        <p class="success-label">Stamp collected!</p>
-        <p class="success-branch">{{ result.branchName }}</p>
-        <p class="success-region">{{ result.region }}</p>
-        <div class="success-actions">
-          <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-outline">View branch →</NuxtLink>
-          <button class="btn-ghost" @click="reset">Check in somewhere else</button>
-        </div>
+    <div v-if="result" class="success-view">
+      <StampShape class="success-stamp" :branchCode="result.branchCode" :wardNo="result.wardNo" :size="110">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="32" height="32">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </StampShape>
+      <p class="success-label">Stamp collected!</p>
+      <p class="success-branch">{{ result.branchName }}</p>
+      <p class="success-region">{{ result.region }}</p>
+      <div class="success-actions">
+        <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-outline">View branch →</NuxtLink>
+        <button class="btn-ghost" @click="reset">Check in somewhere else</button>
       </div>
-    </template>
+    </div>
 
-    <!-- ── Check-in form ─────────────────────── -->
-    <template v-else>
-      <header class="page-header">
+    <header v-else class="page-header">
         <h1>Check In</h1>
         <p class="sub">
           <template v-if="scanned">Scanned — <strong>{{ selectedBranch?.BranchName }}</strong></template>
@@ -31,7 +25,7 @@
         </p>
       </header>
 
-      <!-- QR scan — dev only; production check-in will use geolocation only -->
+      <!-- QR scan button — dev only; production uses geolocation only -->
       <div v-if="isDev && !prefilled && !scanned && !selectedBranch" class="qr-primary-area">
         <button class="qr-btn-primary" @click="openScanner">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="18" height="18">
@@ -43,48 +37,20 @@
         <p class="or-divider">or</p>
       </div>
 
-      <!-- Branch combo box — manual fallback, hidden when pre-filled via URL or QR scan -->
       <div v-if="!prefilled && !scanned" class="field-group">
         <label class="field-label" for="branch-search">Branch</label>
-        <div class="combo-wrap">
-          <input
-            id="branch-search"
-            v-model="searchText"
-            class="branch-combo"
-            type="text"
-            autocomplete="off"
-            placeholder="Search branches…"
-            @focus="showDropdown = true"
-            @blur="onComboBlur"
-            @input="selectedCode = ''"
-          />
-          <ul v-if="showDropdown && filteredBranches.length" class="combo-dropdown">
-            <li
-              v-for="b in filteredBranches"
-              :key="b.BranchCode"
-              class="combo-option"
-              @mousedown.prevent="selectBranch(b)"
-            >
-              {{ b.BranchName }}
-            </li>
-          </ul>
-        </div>
+        <BranchCombobox id="branch-search" v-model="selectedCode" />
       </div>
 
-      <!-- Stamp preview -->
       <div v-if="selectedBranch" class="stamp-area">
-        <div class="stamp-lg" :style="previewStampStyle">
-          <div class="stamp-lg-ring" :style="{ borderRadius: previewStampStyle.borderRadius }" />
-          <span class="stamp-lg-code">{{ selectedBranch.BranchCode }}</span>
-        </div>
+        <StampShape :branchCode="selectedBranch.BranchCode" :wardNo="selectedBranch.WardNo" :size="100" />
         <p class="stamp-name">{{ selectedBranch.BranchName }}</p>
-        <p class="stamp-region">{{ selectedRegion }}</p>
+        <p class="stamp-region">{{ selectedBranch.District }}</p>
         <button v-if="scanned" class="change-branch-btn" @click="scanned = false; selectedCode = ''">
           Change branch
         </button>
       </div>
 
-      <!-- Already visited today -->
       <div v-if="selectedBranch && alreadyVisitedToday" class="visited-notice">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -92,7 +58,6 @@
         You've already checked in here today
       </div>
 
-      <!-- Note + photo (only when branch selected + not already visited) -->
       <template v-if="selectedBranch && !alreadyVisitedToday">
         <div class="field-group">
           <label class="field-label" for="note-input">
@@ -133,20 +98,19 @@
         </div>
       </template>
 
-      <!-- CTA -->
       <div class="cta-area">
         <button
           v-if="selectedBranch"
           class="checkin-btn"
-          :disabled="alreadyVisitedToday || locationStatus === 'checking'"
+          :disabled="alreadyVisitedToday || isCheckingLocation"
           @click="doCheckIn"
         >
-          <span v-if="locationStatus === 'checking'" class="btn-spinner" />
-          {{ locationStatus === 'checking' ? 'Checking location…' : 'Check in' }}
+          <span v-if="isCheckingLocation" class="btn-spinner" />
+          {{ isCheckingLocation ? 'Checking location…' : 'Check in' }}
         </button>
 
         <p v-if="locationStatus === 'too-far'" class="location-error">
-          You're {{ locationDistKm >= 1 ? locationDistKm.toFixed(1) + ' km' : Math.round(locationDistKm * 1000) + ' m' }} away — you need to be within 100 m of this branch to check in.
+          You're {{ locationDistFormatted }} away — you need to be within 100 m of this branch to check in.
         </p>
         <p v-else-if="locationStatus === 'denied'" class="location-error">
           Location access is required to check in. Allow it in your browser settings, or enable the bypass in Settings.
@@ -160,7 +124,6 @@
           on another device.
         </p>
       </div>
-    </template>
 
   </main>
 
@@ -193,61 +156,30 @@
 <script setup>
 import jsQR from 'jsqr'
 import { usePassportStore } from '~/stores/passport'
-import { useStampColor, getStampShape } from '~/composables/useStamp'
-import { physicalBranches } from '~/composables/useRegion'
+import { sortedBranches, haversineKm } from '~/composables/useRegion'
 import { savePhoto } from '~/composables/usePhotoStore'
 
 const route   = useRoute()
 const passport = usePassportStore()
 const { public: { isDev } } = useRuntimeConfig()
 
-// Branch selection — pre-filled from ?branch=CODE query param
 const selectedCode = ref(route.query.branch ?? '')
-const prefilled    = computed(() => !!route.query.branch)
-const scanned      = ref(false)   // true after a successful QR scan
+const prefilled    = !!route.query.branch  // static — query string doesn't change after load
+const scanned      = ref(false)
 
-const sortedBranches = [...physicalBranches].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
 
-// Combo box state
-const searchText   = ref('')
-const showDropdown = ref(false)
-
-const filteredBranches = computed(() => {
-  const q = searchText.value.trim().toLowerCase()
-  if (!q) return sortedBranches
-  return sortedBranches.filter(b => b.BranchName.toLowerCase().includes(q))
-})
-
-function selectBranch(branch) {
-  selectedCode.value = branch.BranchCode
-  searchText.value   = branch.BranchName
-  showDropdown.value = false
-}
-
-function onComboBlur() {
-  setTimeout(() => { showDropdown.value = false }, 150)
-}
 
 const selectedBranch = computed(() =>
   selectedCode.value
-    ? physicalBranches.find(b => b.BranchCode === selectedCode.value) ?? null
+    ? sortedBranches.find(b => b.BranchCode ===selectedCode.value) ?? null
     : null
 )
-
-const selectedRegion = computed(() => selectedBranch.value?.District ?? '')
 
 const alreadyVisitedToday = computed(() =>
   passport.hasVisitedToday(selectedBranch.value?.BranchCode)
 )
 
-// Stamp preview styling
-const previewStampStyle = computed(() => {
-  if (!selectedBranch.value) return {}
-  const { color, bg, border } = useStampColor(selectedBranch.value.WardNo)
-  return { color, background: bg, borderColor: border, borderRadius: getStampShape(selectedBranch.value.BranchCode).borderRadius }
-})
 
-// Note + photo
 const noteText     = ref('')
 const photoPreview = ref(null)
 const photoFile    = ref(null)
@@ -261,22 +193,20 @@ function onPhotoCapture(event) {
   reader.readAsDataURL(file)
 }
 
-// Check-in
 const result         = ref(null)
 const locationStatus = ref('idle') // 'idle' | 'checking' | 'too-far' | 'denied'
 const locationDistKm = ref(null)
 
-// Reset location status whenever the selected branch changes
-watch(selectedCode, () => { locationStatus.value = 'idle'; locationDistKm.value = null })
+const isCheckingLocation = computed(() => locationStatus.value === 'checking')
 
-function haversineKm(lat1, lng1, lat2, lng2) {
-  const R = 6371
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
+const locationDistFormatted = computed(() => {
+  if (locationDistKm.value === null) return ''
+  return locationDistKm.value >= 1
+    ? `${locationDistKm.value.toFixed(1)} km`
+    : `${Math.round(locationDistKm.value * 1000)} m`
+})
+
+watch(selectedCode, () => { locationStatus.value = 'idle'; locationDistKm.value = null })
 
 async function doCheckIn() {
   if (!selectedBranch.value || alreadyVisitedToday.value) return
@@ -309,30 +239,20 @@ async function doCheckIn() {
     result.value = {
       branchCode: selectedBranch.value.BranchCode,
       branchName: selectedBranch.value.BranchName,
-      region:     selectedRegion.value,
+      region:     selectedBranch.value.District ?? '',
+      wardNo:     selectedBranch.value.WardNo,
     }
   }
 }
 
-const successStampStyle = computed(() => {
-  if (!result.value) return {}
-  const branch = physicalBranches.find(b => b.BranchCode === result.value.branchCode)
-  if (!branch) return {}
-  const { color, bg, border } = useStampColor(branch.WardNo)
-  return { color, background: bg, borderColor: border, borderRadius: getStampShape(branch.BranchCode).borderRadius }
-})
-
 function reset() {
   result.value       = null
   selectedCode.value = ''
-  searchText.value   = ''
   scanned.value      = false
   noteText.value     = ''
   photoPreview.value = null
   photoFile.value    = null
 }
-
-// ── QR Scanner ────────────────────────────────
 
 const scannerActive = ref(false)
 const scanError     = ref('')
@@ -340,6 +260,7 @@ const videoEl       = ref(null)
 const scanCanvas    = ref(null)
 let stream = null
 let rafId  = null
+let ctx    = null  // canvas 2d context — hoisted so it's not re-fetched every frame
 
 async function openScanner() {
   scanError.value = ''
@@ -351,6 +272,10 @@ async function openScanner() {
     })
     videoEl.value.srcObject = stream
     await videoEl.value.play()
+    // Set canvas dimensions once — videoWidth/Height are fixed for a given camera stream
+    scanCanvas.value.width  = videoEl.value.videoWidth
+    scanCanvas.value.height = videoEl.value.videoHeight
+    ctx = scanCanvas.value.getContext('2d')
     rafId = requestAnimationFrame(scanLoop)
   } catch {
     scanError.value = 'Camera access denied — check your browser settings.'
@@ -363,15 +288,11 @@ function scanLoop() {
   const canvas = scanCanvas.value
   if (!video || !canvas || !scannerActive.value) return
 
-  // Wait until the video has a real frame
   if (video.readyState < video.HAVE_ENOUGH_DATA) {
     rafId = requestAnimationFrame(scanLoop)
     return
   }
 
-  canvas.width  = video.videoWidth
-  canvas.height = video.videoHeight
-  const ctx = canvas.getContext('2d')
   ctx.drawImage(video, 0, 0)
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
@@ -390,7 +311,7 @@ function handleQrResult(data) {
   try {
     const url    = new URL(data)
     const branch = url.searchParams.get('branch')
-    if (branch && physicalBranches.find(b => b.BranchCode === branch)) {
+    if (branch && sortedBranches.find(b => b.BranchCode ===branch)) {
       selectedCode.value = branch
       scanned.value = true
     } else {
@@ -405,9 +326,9 @@ function closeScanner() {
   scannerActive.value = false
   if (rafId)  { cancelAnimationFrame(rafId); rafId = null }
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null }
+  ctx = null
 }
 
-// Clean up camera if user navigates away mid-scan
 onUnmounted(closeScanner)
 </script>
 
@@ -486,52 +407,6 @@ onUnmounted(closeScanner)
   letter-spacing: 0.08em;
 }
 
-/* Combo box */
-.combo-wrap {
-  position: relative;
-}
-
-.branch-combo {
-  width: 100%;
-  padding: 14px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  font-size: 1rem;
-  font-family: var(--font-body);
-  background: var(--color-surface);
-  color: var(--color-text);
-  outline: none;
-  box-shadow: var(--shadow-sm);
-  box-sizing: border-box;
-}
-
-.branch-combo:focus { border-color: var(--tpl-blue); }
-
-.combo-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  max-height: 220px;
-  overflow-y: auto;
-  z-index: 100;
-  list-style: none;
-  margin: 0;
-  padding: 4px 0;
-}
-
-.combo-option {
-  padding: 11px 16px;
-  font-size: 0.9rem;
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.combo-option:hover { background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface)); }
 
 .note-textarea {
   width: 100%;

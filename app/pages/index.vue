@@ -147,6 +147,7 @@
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
+import { storeToRefs } from 'pinia'
 import { useStampColor } from '~/composables/useStamp'
 import { physicalBranches } from '~/composables/useRegion'
 
@@ -159,7 +160,7 @@ const branchMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.
 const regionMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.District]))
 const wardNoMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.WardNo]))
 
-const progressPct  = computed(() => Math.round((passport.visitCount / totalBranches) * 100))
+const { progressPct } = storeToRefs(passport)
 const overallPct   = computed(() => Math.round(((passport.visitCount + passport.completedChallengesCount) / totalItems) * 100))
 
 // Achievements — milestone numbers instead of emoji for a more considered look

@@ -27,12 +27,7 @@
 
         <div class="onboarding__field">
           <label class="onboarding__label" for="ob-branch">Home branch</label>
-          <select id="ob-branch" v-model="homeBranchInput" class="onboarding__input onboarding__select">
-            <option value="">Optional</option>
-            <option v-for="b in sortedBranches" :key="b.BranchCode" :value="b.BranchCode">
-              {{ b.BranchName }}
-            </option>
-          </select>
+          <BranchCombobox id="ob-branch" v-model="homeBranchInput" placeholder="Optional" />
         </div>
 
         <div class="onboarding__field">
@@ -59,7 +54,6 @@
 </template>
 
 <script setup>
-import { physicalBranches } from '~/composables/useRegion'
 
 defineProps({ show: Boolean })
 const emit = defineEmits(['done'])
@@ -70,7 +64,6 @@ const nameInput       = ref('')
 const homeBranchInput = ref('')
 const bookInput       = ref('')
 
-const sortedBranches = [...physicalBranches].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
 
 function submit() {
   if (nameInput.value.trim())       passport.profile.name         = nameInput.value.trim()
@@ -207,11 +200,6 @@ function skip() {
   border-color: var(--tpl-blue);
 }
 
-.onboarding__select {
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-}
 
 .onboarding__btn {
   width: 100%;
