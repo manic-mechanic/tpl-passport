@@ -155,7 +155,7 @@ function visitDate(branchCode) {
 
 .stamp-unseen {
   font-size: 0.58rem;
-  color: var(--color-border);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
