@@ -46,9 +46,11 @@ export default defineNuxtConfig({
 
   // Dev-only features (demo mode, location fence bypass, QR scanner).
   // Set NUXT_PUBLIC_IS_DEV=false in the production Vercel project settings.
+  // Set NUXT_PUBLIC_BYPASS_GEOFENCE=true to allow check-ins from any location (e.g. for testers).
   runtimeConfig: {
     public: {
       isDev: true,
+      bypassGeofence: false,
     }
   },
 

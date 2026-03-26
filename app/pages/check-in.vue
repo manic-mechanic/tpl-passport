@@ -280,7 +280,8 @@ watch(selectedCode, () => { locationStatus.value = 'idle'; locationDistKm.value 
 async function doCheckIn() {
   if (!selectedBranch.value || alreadyVisitedToday.value) return
 
-  if (!passport.profile.bypassLocationFence) {
+  const config = useRuntimeConfig()
+  if (!passport.profile.bypassLocationFence && !config.public.bypassGeofence) {
     locationStatus.value = 'checking'
     try {
       const pos = await new Promise((resolve, reject) =>
