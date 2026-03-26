@@ -14,7 +14,7 @@
         <div class="branch-title-area">
           <h1>{{ branch.BranchName }}</h1>
           <p class="branch-region">{{ branchRegion }}</p>
-          <p class="branch-hours">Mon–Fri 10am–8pm · Sat &amp; Sun 10am–6pm</p>
+          <p v-if="todayHours" class="branch-hours">Today {{ todayHours }}</p>
         </div>
       </div>
     </header>
@@ -171,6 +171,7 @@
 
 <script setup>
 import branchData from '#data/updated-branch-info.json'
+import branchHours from '#data/branch-hours.json'
 import { usePassportStore } from '~/stores/passport'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
 import { haversineKm, formatDist } from '~/composables/useRegion'
@@ -196,6 +197,14 @@ const passport = usePassportStore()
 const branch = computed(() => branchData.find(b => b.BranchCode === route.params.id))
 
 const branchRegion  = computed(() => branch.value?.District ?? '')
+
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const todayHours = computed(() => {
+  if (!branch.value) return null
+  const hours = branchHours[branch.value.BranchCode]
+  if (!hours) return null
+  return hours[DAYS[new Date().getDay()]] ?? null
+})
 const streetAddress = computed(() => branch.value?.Address?.split(',')[0] ?? '')
 const mapsUrl       = computed(() => {
   if (!branch.value) return '#'
