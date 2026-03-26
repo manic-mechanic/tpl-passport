@@ -34,9 +34,9 @@
     </div>
 
     <!-- Upcoming events (live from CKAN API) -->
-    <section v-if="events.length" class="detail-section">
+    <section class="detail-section">
       <h2 class="detail-heading">Upcoming events</h2>
-      <ul class="events-list">
+      <ul v-if="events.length" class="events-list">
         <li v-for="evt in events" :key="evt.title + evt.date + evt.time" class="event-row">
           <div class="event-date-badge">
             <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
@@ -48,7 +48,8 @@
           </div>
         </li>
       </ul>
-      <a :href="`https://tpl.ca/locations/${branch.BranchCode}/`" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
+      <p v-else-if="!eventsPending" class="events-empty">No events today or tomorrow.</p>
+      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
     </section>
 
     <section v-if="pastVisitsHere.length" class="detail-section">
@@ -90,6 +91,27 @@
           <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 010 6H9"/>
         </svg>
         <span>Parking available</span>
+      </div>
+    </section>
+
+    <section v-if="nearbyBranches.length" class="detail-section">
+      <h2 class="detail-heading">Nearby branches</h2>
+      <div class="nearby-list">
+        <NuxtLink
+          v-for="nb in nearbyBranches"
+          :key="nb.BranchCode"
+          :to="`/branch/${nb.BranchCode}`"
+          class="nearby-row"
+        >
+          <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
+          <div class="nearby-info">
+            <span class="nearby-name">{{ nb.BranchName }}</span>
+            <span class="nearby-dist">{{ formatDist(nb.distKm) }} away · {{ nb.District }}</span>
+          </div>
+          <svg class="nearby-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </NuxtLink>
       </div>
     </section>
 
@@ -203,7 +225,7 @@ const services = computed(() => {
 })
 
 // Events proxied via /api/branch-events — CKAN doesn't send CORS headers so direct browser calls fail
-const { data: rawEvents } = useFetch('/api/branch-events', {
+const { data: rawEvents, pending: eventsPending } = useFetch('/api/branch-events', {
   query: computed(() => ({ library: branch.value?.BranchName ?? '' })),
   default: () => [],
   transform: data => Array.isArray(data) ? data : [],
@@ -277,6 +299,27 @@ watch(pastVisitsHere, async (visits) => {
 
 function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.asin(Math.sqrt(a))
+}
+
+const nearbyBranches = computed(() => {
+  if (!branch.value?.Lat || !branch.value?.Long) return []
+  return branchData
+    .filter(b => b.PhysicalBranch === 1 && b.BranchCode !== branch.value.BranchCode)
+    .map(b => ({ ...b, distKm: haversineKm(branch.value.Lat, branch.value.Long, b.Lat, b.Long) }))
+    .sort((a, b) => a.distKm - b.distKm)
+    .slice(0, 2)
+})
+
+function formatDist(km) {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
 
 const BRANCH_CHALLENGES = [
@@ -468,6 +511,12 @@ const completedHere = computed(() =>
 
 .events-more:hover { text-decoration: underline; }
 
+.events-empty {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
 .event-meta {
   font-size: 0.73rem;
   color: var(--color-text-muted);
@@ -543,6 +592,54 @@ const completedHere = computed(() =>
   max-height: 100%;
   object-fit: contain;
   border-radius: var(--radius-sm);
+}
+
+/* Nearby branches */
+.nearby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nearby-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text);
+  transition: background 0.12s;
+}
+
+.nearby-row:active { background: var(--color-paper); }
+
+.nearby-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nearby-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.nearby-dist {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.nearby-arrow {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: var(--color-text-muted);
 }
 
 /* Branch challenges */
