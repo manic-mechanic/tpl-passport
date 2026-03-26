@@ -15,6 +15,20 @@
           <h1>{{ branch.BranchName }}</h1>
           <p class="branch-region">{{ branchRegion }}</p>
           <p v-if="todayHours" class="branch-hours">Today {{ todayHours }}</p>
+          <div class="branch-meta">
+            <a :href="mapsUrl" target="_blank" rel="noopener" class="meta-item meta-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="meta-icon"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              {{ streetAddress }}
+            </a>
+            <a v-if="branch.Telephone" :href="`tel:${branch.Telephone}`" class="meta-item meta-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="meta-icon"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.8a2 2 0 011.72-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91"/></svg>
+              {{ branch.Telephone }}
+            </a>
+            <span v-if="hasParking" class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="meta-icon"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 010 6H9"/></svg>
+              Parking
+            </span>
+          </div>
         </div>
       </div>
     </header>
@@ -32,95 +46,6 @@
         Already visited today
       </button>
     </div>
-
-    <!-- Upcoming events (live from CKAN API) -->
-    <section class="detail-section">
-      <h2 class="detail-heading">Upcoming events</h2>
-      <ul v-if="events.length" class="events-list">
-        <li v-for="evt in events" :key="evt.title + evt.date + evt.time" class="event-row">
-          <div class="event-date-badge">
-            <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
-            <span class="event-day">{{ formatEventDay(evt.date) }}</span>
-          </div>
-          <div class="event-info">
-            <span class="event-title">{{ evt.title }}</span>
-            <span class="event-meta">{{ evt.time }}<template v-if="evt.age"> · {{ evt.age }}</template></span>
-          </div>
-        </li>
-      </ul>
-      <p v-else-if="!eventsPending" class="events-empty">No events today or tomorrow.</p>
-      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
-    </section>
-
-    <section v-if="pastVisitsHere.length" class="detail-section">
-      <h2 class="detail-heading">Your visits here</h2>
-      <ul class="visit-list">
-        <li v-for="visit in pastVisitsHere" :key="visit.timestamp" class="visit-row-small">
-          <span class="visit-row-small__date">{{ formatVisitDate(visit.timestamp) }}</span>
-          <button
-            v-if="photoUrls[visit.timestamp]"
-            class="visit-photo-btn"
-            @click="lightboxSrc = photoUrls[visit.timestamp]"
-          >
-            <img :src="photoUrls[visit.timestamp]" class="visit-photo-thumb" alt="Check-in photo" />
-          </button>
-          <span v-if="visit.note" class="visit-row-small__note">{{ visit.note }}</span>
-        </li>
-      </ul>
-    </section>
-
-    <div v-if="lightboxSrc" class="lightbox" @click="lightboxSrc = null">
-      <img :src="lightboxSrc" class="lightbox-img" alt="Check-in photo" />
-    </div>
-
-    <section class="info-card card">
-      <div class="info-row">
-        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-        </svg>
-        <a :href="mapsUrl" target="_blank" rel="noopener" class="info-link">{{ streetAddress }} ↗</a>
-      </div>
-      <div v-if="branch.Telephone" class="info-row">
-        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.8a2 2 0 011.72-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91"/>
-        </svg>
-        <a :href="`tel:${branch.Telephone}`" class="info-link">{{ branch.Telephone }}</a>
-      </div>
-      <div v-if="hasParking" class="info-row">
-        <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 010 6H9"/>
-        </svg>
-        <span>Parking available</span>
-      </div>
-    </section>
-
-    <section v-if="nearbyBranches.length" class="detail-section">
-      <h2 class="detail-heading">Nearby branches</h2>
-      <div class="nearby-list">
-        <NuxtLink
-          v-for="nb in nearbyBranches"
-          :key="nb.BranchCode"
-          :to="`/branch/${nb.BranchCode}`"
-          class="nearby-row"
-        >
-          <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
-          <div class="nearby-info">
-            <span class="nearby-name">{{ nb.BranchName }}</span>
-            <span class="nearby-dist">{{ formatDist(nb.distKm) }} away · {{ nb.District }}</span>
-          </div>
-          <svg class="nearby-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </NuxtLink>
-      </div>
-    </section>
-
-    <section v-if="services.length" class="detail-section">
-      <h2 class="detail-heading">Programs &amp; services</h2>
-      <div class="tag-list">
-        <span v-for="s in services" :key="s" class="tag">{{ s }}</span>
-      </div>
-    </section>
 
     <section v-if="passport.hasVisited(branch.BranchCode)" class="detail-section">
       <h2 class="detail-heading">
@@ -160,6 +85,74 @@
           </svg>
         </li>
       </ul>
+    </section>
+
+    <section v-if="pastVisitsHere.length" class="detail-section">
+      <h2 class="detail-heading">Your visits here</h2>
+      <ul class="visit-list">
+        <li v-for="visit in pastVisitsHere" :key="visit.timestamp" class="visit-row-small">
+          <span class="visit-row-small__date">{{ formatVisitDate(visit.timestamp) }}</span>
+          <button
+            v-if="photoUrls[visit.timestamp]"
+            class="visit-photo-btn"
+            @click="lightboxSrc = photoUrls[visit.timestamp]"
+          >
+            <img :src="photoUrls[visit.timestamp]" class="visit-photo-thumb" alt="Check-in photo" />
+          </button>
+          <span v-if="visit.note" class="visit-row-small__note">{{ visit.note }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <div v-if="lightboxSrc" class="lightbox" @click="lightboxSrc = null">
+      <img :src="lightboxSrc" class="lightbox-img" alt="Check-in photo" />
+    </div>
+
+    <!-- Upcoming events (live from CKAN API) -->
+    <section class="detail-section">
+      <h2 class="detail-heading">Upcoming events</h2>
+      <ul v-if="events.length" class="events-list">
+        <li v-for="evt in events" :key="evt.title + evt.date + evt.time" class="event-row">
+          <div class="event-date-badge">
+            <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
+            <span class="event-day">{{ formatEventDay(evt.date) }}</span>
+          </div>
+          <div class="event-info">
+            <span class="event-title">{{ evt.title }}</span>
+            <span class="event-meta">{{ evt.time }}<template v-if="evt.age"> · {{ evt.age }}</template></span>
+          </div>
+        </li>
+      </ul>
+      <p v-else-if="!eventsPending" class="events-empty">No events today or tomorrow.</p>
+      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
+    </section>
+
+    <section v-if="services.length" class="detail-section">
+      <h2 class="detail-heading">Programs &amp; services</h2>
+      <div class="tag-list">
+        <span v-for="s in services" :key="s" class="tag">{{ s }}</span>
+      </div>
+    </section>
+
+    <section v-if="nearbyBranches.length" class="detail-section">
+      <h2 class="detail-heading">Nearby branches</h2>
+      <div class="nearby-list">
+        <NuxtLink
+          v-for="nb in nearbyBranches"
+          :key="nb.BranchCode"
+          :to="`/branch/${nb.BranchCode}`"
+          class="nearby-row"
+        >
+          <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
+          <div class="nearby-info">
+            <span class="nearby-name">{{ nb.BranchName }}</span>
+            <span class="nearby-dist">{{ formatDist(nb.distKm) }} away · {{ nb.District }}</span>
+          </div>
+          <svg class="nearby-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </NuxtLink>
+      </div>
     </section>
 
   </main>
@@ -397,30 +390,35 @@ const completedHere = computed(() =>
 .checkin-btn--visited { background: var(--tpl-navy); box-shadow: none; }
 .checkin-btn--blocked { background: var(--color-text-muted); box-shadow: none; cursor: default; opacity: 0.7; }
 
-/* Info card */
-.info-card {
-  padding: 4px 16px;
-  margin-bottom: 22px;
-}
-
-.info-row {
+/* Compact branch meta (address, phone, parking) */
+.branch-meta {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--color-border-soft);
-  font-size: 0.875rem;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 5px;
 }
-.info-row:last-child { border-bottom: none; }
 
-.info-icon {
-  width: 16px; height: 16px;
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.meta-icon {
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
-  margin-top: 1px;
   stroke: var(--color-text-muted);
 }
 
-.info-link { color: var(--tpl-blue); font-weight: 500; }
+.meta-link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+.meta-link:hover { text-decoration: underline; }
 
 /* Generic detail section */
 .detail-section { margin-bottom: 24px; }
