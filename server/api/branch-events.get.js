@@ -3,8 +3,11 @@
 // LocationName uses short names (e.g., "Agincourt"), so we strip the
 // common " Branch" suffix from the branch name before filtering.
 //
-// Uses datastore_search_sql to filter by date so we only fetch upcoming events —
-// a plain datastore_search with limit=200 would return mostly past records.
+// datastore_search_sql is not available on this CKAN host (returns 404).
+// Instead: sort descending so future events come first, then filter to
+// today/tomorrow in filterToWindow. 100 records is plenty — sorting desc
+// means we hit upcoming events immediately rather than wading through
+// hundreds of past records.
 //
 // In-memory stale-while-revalidate cache (per library, ~1 hour TTL).
 // Returns cached data immediately and refreshes in the background if stale.
@@ -23,11 +26,8 @@ function filterToWindow(records) {
 }
 
 async function fetchFromCKAN(shortName) {
-  const today = new Date().toISOString().slice(0, 10)
-  // SQL query filters to upcoming events only, avoiding the issue where
-  // a branch with many past records fills the limit before any upcoming ones.
-  const sql = `SELECT * FROM "${EVENTS_RESOURCE}" WHERE "LocationName"='${shortName}' AND "StartDateLocal">='${today}' ORDER BY "StartDateLocal" LIMIT 50`
-  const url = `${CKAN}/datastore_search_sql?sql=${encodeURIComponent(sql)}`
+  const filters = `{"LocationName":"${shortName}"}`
+  const url = `${CKAN}/datastore_search?id=${EVENTS_RESOURCE}&filters=${encodeURIComponent(filters)}&limit=100&sort=StartDateLocal%20desc`
   const res = await $fetch(url)
   return res.result?.records ?? []
 }
