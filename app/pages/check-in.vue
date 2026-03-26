@@ -15,6 +15,12 @@
         <p class="success-branch">{{ result.branchName }}</p>
         <p class="success-region">{{ result.region }}</p>
         <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-primary">View branch</NuxtLink>
+        <button v-if="photoBlob" class="save-photo-btn" @click="savePhotoToDevice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="15" height="15">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Save photo
+        </button>
       </div>
 
       <div v-if="nearbySuccessBranches.length" class="success-nearby">
@@ -113,7 +119,6 @@
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 class="photo-input"
                 @change="onPhotoCapture"
               />
@@ -134,10 +139,14 @@
         </button>
 
         <p v-if="locationStatus === 'too-far'" class="location-error">
-          You're {{ locationDistFormatted }} away — you need to be within 100 m of this branch to check in.
+          You're {{ locationDistFormatted }} away — you need to be within 100 m to check in.
+          <NuxtLink :to="`/branch/${selectedBranch.BranchCode}`" class="error-link">View branch page</NuxtLink>
+        </p>
+        <p v-else-if="locationStatus === 'timeout'" class="location-error">
+          Location check timed out. Check your signal and try again.
         </p>
         <p v-else-if="locationStatus === 'denied'" class="location-error">
-          Location access is required to check in. Allow it in your browser settings, or enable the bypass in Settings.
+          Location access was denied. Allow it in your device or browser settings and try again.
         </p>
 
         <p v-if="scanError" class="scan-error">{{ scanError }}</p>
@@ -206,20 +215,55 @@ const alreadyVisitedToday = computed(() =>
 
 
 const noteText     = ref('')
-const photoPreview = ref(null)
-const photoFile    = ref(null)
+const photoPreview = ref(null)  // object URL — revoked on unmount / photo change
+const photoBlob    = ref(null)  // compressed JPEG blob, kept for save-to-device after check-in
 
-function onPhotoCapture(event) {
+// Resize to ≤ 1200 px wide and compress to JPEG — keeps IndexedDB small
+// and matches what we'll need for Supabase Storage uploads later.
+function compressPhoto(file, maxWidth = 1200, quality = 0.82) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale   = Math.min(1, maxWidth / img.width)
+      const canvas  = document.createElement('canvas')
+      canvas.width  = Math.round(img.width  * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(resolve, 'image/jpeg', quality)
+    }
+    img.src = url
+  })
+}
+
+async function onPhotoCapture(event) {
   const file = event.target.files?.[0]
   if (!file) return
-  photoFile.value = file
-  const reader = new FileReader()
-  reader.onload = (e) => { photoPreview.value = e.target.result }
-  reader.readAsDataURL(file)
+  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
+  const blob = await compressPhoto(file)
+  photoBlob.value    = blob
+  photoPreview.value = URL.createObjectURL(blob)
+}
+
+// Triggers native share sheet (iOS/Android) so user can "Save Image",
+// with a direct download fallback for desktop browsers.
+async function savePhotoToDevice() {
+  if (!photoBlob.value) return
+  const file = new File([photoBlob.value], 'tpl-checkin.jpg', { type: 'image/jpeg' })
+  if (navigator.canShare?.({ files: [file] })) {
+    await navigator.share({ files: [file] })
+  } else {
+    const a  = document.createElement('a')
+    a.href   = URL.createObjectURL(photoBlob.value)
+    a.download = 'tpl-checkin.jpg'
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
 }
 
 const result         = ref(null)
-const locationStatus = ref('idle') // 'idle' | 'checking' | 'too-far' | 'denied'
+const locationStatus = ref('idle') // 'idle' | 'checking' | 'too-far' | 'timeout' | 'denied'
 const locationDistKm = ref(null)
 
 const isCheckingLocation = computed(() => locationStatus.value === 'checking')
@@ -240,7 +284,7 @@ async function doCheckIn() {
     locationStatus.value = 'checking'
     try {
       const pos = await new Promise((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
       )
       const km = haversineKm(
         pos.coords.latitude, pos.coords.longitude,
@@ -251,8 +295,8 @@ async function doCheckIn() {
         locationDistKm.value = km
         return
       }
-    } catch {
-      locationStatus.value = 'denied'
+    } catch (err) {
+      locationStatus.value = err?.code === 3 ? 'timeout' : 'denied'
       return
     }
   }
@@ -260,7 +304,7 @@ async function doCheckIn() {
   locationStatus.value = 'idle'
   const timestamp = passport.checkIn(selectedBranch.value.BranchCode, noteText.value.trim())
   if (timestamp) {
-    if (photoFile.value) savePhoto(timestamp, photoFile.value)
+    if (photoBlob.value) savePhoto(timestamp, photoBlob.value)
     result.value = {
       branchCode: selectedBranch.value.BranchCode,
       branchName: selectedBranch.value.BranchName,
@@ -356,7 +400,10 @@ function closeScanner() {
   ctx = null
 }
 
-onUnmounted(closeScanner)
+onUnmounted(() => {
+  closeScanner()
+  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
+})
 </script>
 
 <style scoped>
@@ -624,6 +671,14 @@ onUnmounted(closeScanner)
   line-height: 1.5;
 }
 
+.error-link {
+  display: block;
+  margin-top: 8px;
+  color: var(--tpl-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .scan-error {
   font-size: 0.8rem;
   color: #c0392b;
@@ -725,6 +780,21 @@ onUnmounted(closeScanner)
   text-align: center;
   text-decoration: none;
   min-width: 200px;
+}
+
+.save-photo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-mid);
+  background: var(--color-surface);
+  cursor: pointer;
 }
 
 .success-nearby {
