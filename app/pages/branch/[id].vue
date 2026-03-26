@@ -13,7 +13,6 @@
         <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="72" />
         <div class="branch-title-area">
           <h1>{{ branch.BranchName }}</h1>
-          <p class="branch-region">{{ branchRegion }}</p>
           <p v-if="todayHours" class="branch-hours">Today {{ todayHours }}</p>
           <div class="branch-meta">
             <a :href="mapsUrl" target="_blank" rel="noopener" class="meta-item meta-link">
@@ -146,7 +145,7 @@
           <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
           <div class="nearby-info">
             <span class="nearby-name">{{ nb.BranchName }}</span>
-            <span class="nearby-dist">{{ formatDist(nb.distKm) }} away · {{ nb.District }}</span>
+            <span class="nearby-dist">{{ formatDist(nb.distKm) }} away</span>
           </div>
           <svg class="nearby-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="9 18 15 12 9 6"/>
@@ -189,7 +188,6 @@ const passport = usePassportStore()
 
 const branch = computed(() => branchData.find(b => b.BranchCode === route.params.id))
 
-const branchRegion  = computed(() => branch.value?.District ?? '')
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const todayHours = computed(() => {
