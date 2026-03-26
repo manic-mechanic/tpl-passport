@@ -178,8 +178,14 @@ import { haversineKm, formatDist } from '~/composables/useRegion'
 const route  = useRoute()
 const router = useRouter()
 
-// Return to wherever the user came from, falling back to /explore
-const backTo    = computed(() => router.options.history.state?.back ?? '/explore')
+// Only go back to a known top-level page — never to another branch page
+const backTo = computed(() => {
+  const back = router.options.history.state?.back ?? ''
+  if (back.startsWith('/history'))  return back
+  if (back.startsWith('/passport')) return back
+  if (back.startsWith('/explore'))  return back
+  return '/explore'
+})
 const backLabel = computed(() => {
   if (backTo.value.startsWith('/history'))  return 'History'
   if (backTo.value.startsWith('/passport')) return 'Passport'
