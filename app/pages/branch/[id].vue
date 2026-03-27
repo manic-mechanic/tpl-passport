@@ -9,8 +9,10 @@
         {{ backLabel }}
       </NuxtLink>
 
-      <div class="branch-hero">
-        <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="72" />
+      <div class="branch-hero" :class="{ 'branch-hero--visited': hasVisited }">
+        <div :class="{ 'stamp-ghost': !hasVisited }">
+          <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="hasVisited ? 88 : 72" />
+        </div>
         <div class="branch-title-area">
           <h1>{{ branch.BranchName }}</h1>
           <p v-if="todayHours" class="branch-hours">Today {{ todayHours }}</p>
@@ -174,9 +176,11 @@ const hasParking = computed(() =>
   branch.value.PublicParking !== 0
 )
 
+const hasVisited = computed(() => passport.hasVisited(branch.value?.BranchCode))
+
 const checkinState = computed(() => {
   if (passport.hasVisitedToday(branch.value?.BranchCode)) return 'blocked'
-  if (passport.hasVisited(branch.value?.BranchCode)) return 'visited'
+  if (hasVisited.value) return 'visited'
   return 'idle'
 })
 
@@ -310,6 +314,25 @@ const nearbyBranches = computed(() => {
   gap: 16px;
 }
 
+/* Post-visit: stamp centered and prominent, info below */
+.branch-hero--visited {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.branch-hero--visited .branch-meta {
+  align-items: center;
+}
+
+/* Ghosted stamp for pre-visit state */
+.stamp-ghost {
+  opacity: 0.13;
+  filter: grayscale(1);
+  flex-shrink: 0;
+}
+
 .branch-title-area h1  { font-size: 1.35rem; line-height: 1.2; margin-bottom: 3px; }
 .branch-region         { font-size: 0.8rem; color: var(--color-text-mid); font-weight: 600; margin-top: 2px; }
 .branch-hours          { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 3px; }
@@ -349,7 +372,14 @@ const nearbyBranches = computed(() => {
   text-decoration: none;
 }
 .checkin-btn:active { transform: scale(0.98); }
-.checkin-btn--visited { background: var(--tpl-navy); box-shadow: none; }
+.checkin-btn--visited {
+  background: transparent;
+  color: var(--color-text-mid);
+  box-shadow: none;
+  border: 1.5px solid var(--color-border);
+  font-size: 0.9rem;
+  padding: 12px;
+}
 .checkin-btn--blocked { background: var(--color-text-muted); box-shadow: none; cursor: default; opacity: 0.7; }
 
 /* Compact branch meta (address, phone, parking) */
