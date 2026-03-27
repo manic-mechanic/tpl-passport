@@ -47,8 +47,9 @@ onMounted(() => {
   position: fixed;
   top: 0;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   width: 100%;
   max-width: 480px;
   z-index: 999;
