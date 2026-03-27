@@ -255,22 +255,20 @@ function formatVisitDate(ts) {
   grid-template-columns: repeat(2, 1fr);
 }
 
-/* Center vertical divider */
+/* Center vertical divider — dashed to match stamp slot borders */
 .stamp-grid::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 1px;
-  background: rgba(0, 0, 0, 0.06);
+  width: 1.5px;
+  background-image: repeating-linear-gradient(to bottom, var(--color-border) 0, var(--color-border) 4px, transparent 4px, transparent 8px);
+  background-size: 1.5px 8px;
   pointer-events: none;
 }
 
-:global([data-theme="dark"]) .stamp-grid::after { background: rgba(255, 255, 255, 0.07); }
-@media (prefers-color-scheme: dark) {
-  .stamp-grid::after { background: rgba(255, 255, 255, 0.07); }
-}
+/* center divider uses var(--color-border) via background-image gradient — adapts in dark mode */
 
 /* ── Stamp slots ── */
 .stamp-slot {
@@ -281,7 +279,7 @@ function formatVisitDate(ts) {
   gap: 8px;
   padding: 20px 12px;
   min-height: 140px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1.5px dashed var(--color-border);
   /* Reset for both <button> and <a> */
   text-decoration: none;
   color: var(--color-text);
@@ -295,10 +293,7 @@ function formatVisitDate(ts) {
   cursor: default;
 }
 
-:global([data-theme="dark"]) .stamp-slot { border-bottom-color: rgba(255, 255, 255, 0.07); }
-@media (prefers-color-scheme: dark) {
-  .stamp-slot { border-bottom-color: rgba(255, 255, 255, 0.07); }
-}
+/* border-bottom uses var(--color-border) which already adapts in dark mode */
 
 .stamp-slot--collected {
   cursor: pointer;
