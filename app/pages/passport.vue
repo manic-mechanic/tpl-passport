@@ -9,30 +9,33 @@
         <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
       </header>
 
-      <div class="tab-strip" role="tablist">
-        <button class="tab" :class="{ 'tab--active': activeTab === 'stamps' }" role="tab" :aria-selected="activeTab === 'stamps'" @click="activeTab = 'stamps'">Stamps</button>
-        <button class="tab" :class="{ 'tab--active': activeTab === 'badges' }" role="tab" :aria-selected="activeTab === 'badges'" @click="activeTab = 'badges'">Badges</button>
-      </div>
-
-      <!-- Page navigation pills — stamps tab only -->
-      <nav v-show="activeTab === 'stamps'" class="page-nav" aria-label="Passport pages">
-      <button
-        v-for="(page, i) in branchesByAlphaPage"
-        :key="page.label"
-        class="page-pill"
-        :class="{
-          'page-pill--active':    activePage === i,
-          'page-pill--complete':  isPageComplete(page),
-        }"
-        @click="scrollToPage(i)"
-        :aria-current="activePage === i ? 'true' : undefined"
-      >
-        {{ page.label }}
-      </button>
+      <!-- Page navigation pills: alpha ranges + Badges -->
+      <nav class="page-nav" aria-label="Passport pages">
+        <button
+          v-for="(page, i) in branchesByAlphaPage"
+          :key="page.label"
+          class="page-pill"
+          :class="{
+            'page-pill--active':   activePage === i,
+            'page-pill--complete': isPageComplete(page),
+          }"
+          @click="scrollToPage(i)"
+          :aria-current="activePage === i ? 'true' : undefined"
+        >
+          {{ page.label }}
+        </button>
+        <button
+          class="page-pill"
+          :class="{ 'page-pill--active': activePage === BADGES_IDX }"
+          @click="scrollToPage(BADGES_IDX)"
+          :aria-current="activePage === BADGES_IDX ? 'true' : undefined"
+        >
+          Badges
+        </button>
       </nav>
     </div>
 
-    <div v-show="activeTab === 'stamps'" class="passport-book">
+    <div v-show="activePage !== BADGES_IDX" class="passport-book">
       <section
         v-for="(page, i) in branchesByAlphaPage"
         :key="page.label"
@@ -82,7 +85,7 @@
       </section>
     </div>
 
-    <div v-show="activeTab === 'badges'" class="badges-tab">
+    <div v-show="activePage === BADGES_IDX" class="badges-tab">
       <AchievementsSection />
     </div>
   </main>
@@ -136,21 +139,16 @@ import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 const passport = usePassportStore()
 const route = useRoute()
 
-const activeTab     = ref('stamps')
-const activeStamp   = ref(null)
-const activePage    = ref(0)
-const sectionEls    = []
-const stickyTopRef  = ref(null)
-const stickyHeight  = ref(156) // measured on mount; drives section header top + scroll-spy threshold
+const BADGES_IDX  = branchesByAlphaPage.length  // index of the Badges pill (= 5)
+const activeStamp  = ref(null)
+const activePage   = ref(0)
+const sectionEls   = []
+const stickyTopRef = ref(null)
+const stickyHeight = ref(156) // measured on mount; drives section header top + scroll-spy threshold
 
 function remeasureStickyHeight() {
   if (stickyTopRef.value) stickyHeight.value = stickyTopRef.value.offsetHeight
 }
-
-watch(activeTab, async () => {
-  await nextTick()
-  remeasureStickyHeight()
-})
 
 // Suppress scroll-spy during programmatic scroll so pill tap doesn't get overridden
 let suppressSpy = false
@@ -167,9 +165,10 @@ function onScroll() {
   activePage.value = active
 }
 
-// Pill tap: set pill immediately, then smooth-scroll (spy suppressed during scroll)
+// Pill tap: set pill immediately; Badges pill just swaps content, alpha pills smooth-scroll
 function scrollToPage(i) {
   activePage.value = i
+  if (i === BADGES_IDX) return
   suppressSpy = true
   clearTimeout(suppressTimer)
   sectionEls[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -207,7 +206,7 @@ function onKeydown(e) {
 
 onMounted(() => {
   if (!import.meta.client) return
-  if (route.query.tab === 'badges') activeTab.value = 'badges'
+  if (route.query.tab === 'badges') activePage.value = BADGES_IDX
   remeasureStickyHeight()
   window.addEventListener('scroll', onScroll, { passive: true })
   document.addEventListener('keydown', onKeydown)
@@ -485,33 +484,6 @@ function formatVisitDate(ts) {
   font-size: 0.62rem;
   color: var(--color-text-muted);
   font-weight: 500;
-}
-
-/* ── Stamps / Badges tab strip ── */
-.tab-strip {
-  display: flex;
-  border-bottom: 1.5px solid var(--color-border);
-}
-
-.tab {
-  padding: 9px 4px 10px;
-  margin-right: 22px;
-  background: none;
-  border: none;
-  font: inherit;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1.5px;
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.tab--active {
-  color: var(--color-brand-text);
-  border-bottom-color: var(--tpl-navy);
 }
 
 /* Badges tab content — small top gap from sticky header */
