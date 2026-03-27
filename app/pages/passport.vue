@@ -8,27 +8,42 @@
       <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
     </header>
 
+    <!-- Page navigation pills -->
+    <nav class="page-nav" aria-label="Passport pages">
+      <button
+        v-for="(page, i) in branchesByAlphaPage"
+        :key="page.label"
+        class="page-pill"
+        :class="{
+          'page-pill--active':    activePage === i,
+          'page-pill--complete':  isPageComplete(page),
+        }"
+        @click="switchPage(i)"
+        :aria-current="activePage === i ? 'true' : undefined"
+      >
+        {{ page.label }}
+      </button>
+    </nav>
+
     <div class="passport-book">
       <section
-        v-for="page in branchesByAlphaPage"
-        :key="page.label"
         class="passport-page"
-        :class="{ 'passport-page--complete': isPageComplete(page) }"
+        :class="{ 'passport-page--complete': isPageComplete(currentPage) }"
       >
         <div class="page-header-row">
-          <span class="page-range">{{ page.label }}</span>
+          <span class="page-range">{{ currentPage.label }}</span>
           <div class="page-header-right">
-            <svg v-if="isPageComplete(page)" class="page-seal" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
+            <svg v-if="isPageComplete(currentPage)" class="page-seal" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
               <circle cx="10" cy="10" r="8.5" stroke-width="1.5"/>
               <circle cx="10" cy="10" r="5.5" stroke-width="1" opacity="0.35"/>
               <polyline points="6.5 10 9 12.5 13.5 7.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span class="page-count">{{ pageVisitCount(page) }}/{{ page.branches.length }}</span>
+            <span class="page-count">{{ pageVisitCount(currentPage) }}/{{ currentPage.branches.length }}</span>
           </div>
         </div>
 
         <div class="stamp-grid">
-          <template v-for="branch in page.branches" :key="branch.BranchCode">
+          <template v-for="branch in currentPage.branches" :key="branch.BranchCode">
             <!-- Visited: button opens detail sheet -->
             <button
               v-if="passport.hasVisited(branch.BranchCode)"
@@ -52,7 +67,7 @@
             </NuxtLink>
           </template>
           <!-- phantom cell keeps the grid even when a page has an odd branch count -->
-          <div v-if="page.branches.length % 2 !== 0" class="stamp-slot stamp-slot--phantom" aria-hidden="true" />
+          <div v-if="currentPage.branches.length % 2 !== 0" class="stamp-slot stamp-slot--phantom" aria-hidden="true" />
         </div>
       </section>
     </div>
@@ -106,6 +121,13 @@ import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 
 const passport = usePassportStore()
 const activeStamp = ref(null)
+const activePage  = ref(0)
+const currentPage = computed(() => branchesByAlphaPage[activePage.value])
+
+function switchPage(i) {
+  activePage.value = i
+  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'instant' })
+}
 
 const branchVisits = computed(() => {
   if (!activeStamp.value) return []
@@ -179,6 +201,45 @@ function formatVisitDate(ts) {
   text-decoration: none;
   white-space: nowrap;
   padding-bottom: 2px;
+}
+
+/* ── Page navigation pills ── */
+.page-nav {
+  display: flex;
+  gap: 6px;
+  padding: 2px 0 14px;
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  z-index: 10;
+}
+
+.page-pill {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 20px;
+  border: 1.5px solid var(--color-border);
+  background: none;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.page-pill--active {
+  background: var(--tpl-navy);
+  border-color: var(--tpl-navy);
+  color: #fff;
+}
+
+/* Completed but not active — signals progress at a glance */
+.page-pill--complete:not(.page-pill--active) {
+  border-color: var(--tpl-blue);
+  color: var(--tpl-blue);
 }
 
 /* ── Book container ── */
