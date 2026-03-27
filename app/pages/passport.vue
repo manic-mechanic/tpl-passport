@@ -18,7 +18,7 @@
           'page-pill--active':    activePage === i,
           'page-pill--complete':  isPageComplete(page),
         }"
-        @click="switchPage(i)"
+        @click="scrollToPage(i)"
         :aria-current="activePage === i ? 'true' : undefined"
       >
         {{ page.label }}
@@ -27,23 +27,26 @@
 
     <div class="passport-book">
       <section
+        v-for="(page, i) in branchesByAlphaPage"
+        :key="page.label"
+        :ref="el => { if (el) sectionEls[i] = el }"
         class="passport-page"
-        :class="{ 'passport-page--complete': isPageComplete(currentPage) }"
+        :class="{ 'passport-page--complete': isPageComplete(page) }"
       >
         <div class="page-header-row">
-          <span class="page-range">{{ currentPage.label }}</span>
+          <span class="page-range">{{ page.label }}</span>
           <div class="page-header-right">
-            <svg v-if="isPageComplete(currentPage)" class="page-seal" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
+            <svg v-if="isPageComplete(page)" class="page-seal" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
               <circle cx="10" cy="10" r="8.5" stroke-width="1.5"/>
               <circle cx="10" cy="10" r="5.5" stroke-width="1" opacity="0.35"/>
               <polyline points="6.5 10 9 12.5 13.5 7.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span class="page-count">{{ pageVisitCount(currentPage) }}/{{ currentPage.branches.length }}</span>
+            <span class="page-count">{{ pageVisitCount(page) }}/{{ page.branches.length }}</span>
           </div>
         </div>
 
         <div class="stamp-grid">
-          <template v-for="branch in currentPage.branches" :key="branch.BranchCode">
+          <template v-for="branch in page.branches" :key="branch.BranchCode">
             <!-- Visited: button opens detail sheet -->
             <button
               v-if="passport.hasVisited(branch.BranchCode)"
@@ -67,7 +70,7 @@
             </NuxtLink>
           </template>
           <!-- phantom cell keeps the grid even when a page has an odd branch count -->
-          <div v-if="currentPage.branches.length % 2 !== 0" class="stamp-slot stamp-slot--phantom" aria-hidden="true" />
+          <div v-if="page.branches.length % 2 !== 0" class="stamp-slot stamp-slot--phantom" aria-hidden="true" />
         </div>
       </section>
     </div>
@@ -122,12 +125,25 @@ import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 const passport = usePassportStore()
 const activeStamp = ref(null)
 const activePage  = ref(0)
-const currentPage = computed(() => branchesByAlphaPage[activePage.value])
+const sectionEls  = []
 
-function switchPage(i) {
-  activePage.value = i
-  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'instant' })
+// Scroll-spy: update active pill as sections cross the sticky nav threshold
+function onScroll() {
+  let active = 0
+  for (let i = 0; i < sectionEls.length; i++) {
+    if (!sectionEls[i]) continue
+    if (sectionEls[i].getBoundingClientRect().top <= 64) active = i
+  }
+  activePage.value = active
 }
+
+// Pill tap: smooth-scroll to that section (scroll-margin-top handles nav offset)
+function scrollToPage(i) {
+  sectionEls[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+onMounted(() => { if (import.meta.client) window.addEventListener('scroll', onScroll, { passive: true }) })
+onUnmounted(() => { if (import.meta.client) window.removeEventListener('scroll', onScroll) })
 
 const branchVisits = computed(() => {
   if (!activeStamp.value) return []
@@ -252,6 +268,7 @@ function formatVisitDate(ts) {
 
 /* ── Each alpha "page" is a card ── */
 .passport-page {
+  scroll-margin-top: 56px; /* clears sticky pill nav on tap-to-scroll */
   background: rgba(255, 255, 255, 0.72);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.05);
