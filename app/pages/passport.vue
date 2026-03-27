@@ -388,12 +388,7 @@ function formatVisitDate(ts) {
 }
 
 .passport-page--complete .page-header-row {
-  background: rgba(160, 100, 30, 0.07);
-}
-
-:global([data-theme="dark"]) .passport-page--complete .page-header-row { background: rgba(200, 150, 60, 0.1); }
-@media (prefers-color-scheme: dark) {
-  .passport-page--complete .page-header-row { background: rgba(200, 150, 60, 0.1); }
+  background: var(--color-bg);
 }
 
 .page-range {
