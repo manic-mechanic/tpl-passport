@@ -67,7 +67,12 @@ export function buildAchievementCtx({ checkIns, visitedBranchCodes, completedCha
     maxNonHomeVisitCount: maxNonHomeVisitCount(counts, homeBranch),
     visitedBranchCodes,
     completedChallenges,
+    checkIns,
   }
+}
+
+export function fullyDocumentedCount(checkIns) {
+  return checkIns.filter(c => c.note?.trim() && c.hasPhoto).length
 }
 
 // Column-major grid order: stamps col 0+overflow, circles col 1, stars col 2
@@ -90,11 +95,17 @@ export const ACHIEVEMENTS = [
       }
       return Object.entries(districtBranchCounts).some(([d, total]) => (visited[d] ?? 0) >= total)
     } },
-  { id: 'quest_master',  shape: 'star',    title: 'Quest Master',   label: '✓',  desc: 'Complete all challenges at any branch',
-    earned: ctx => physicalBranches.some(b =>
-      ctx.completedChallenges.includes(`${b.BranchCode}:0`) &&
-      ctx.completedChallenges.includes(`${b.BranchCode}:1`) &&
-      ctx.completedChallenges.includes(`${b.BranchCode}:2`)) },
+  // STASHED: quest_master — restore when FEATURES.challenges = true
+  // { id: 'quest_master',  shape: 'star',    title: 'Quest Master',   label: '✓',  desc: 'Complete all challenges at any branch',
+  //   earned: ctx => physicalBranches.some(b =>
+  //     ctx.completedChallenges.includes(`${b.BranchCode}:0`) &&
+  //     ctx.completedChallenges.includes(`${b.BranchCode}:1`) &&
+  //     ctx.completedChallenges.includes(`${b.BranchCode}:2`)) },
+  // END STASHED: quest_master
+  { id: 'archivist',     shape: 'star',    title: 'Archivist',      label: '✎',  desc: 'Add a note and photo to any check-in',
+    earned: ctx => fullyDocumentedCount(ctx.checkIns) >= 1,
+    stat:   ctx => fullyDocumentedCount(ctx.checkIns),
+    progress: ctx => ({ current: Math.min(fullyDocumentedCount(ctx.checkIns), 1), total: 1 }) },
 
   { id: 'adventurer',    shape: 'octagon', title: 'Adventurer',     label: '25',  desc: 'Visit 25 branches',
     earned: ctx => ctx.visitCount >= 25,  progress: ctx => ({ current: ctx.visitCount, total: 25 }) },

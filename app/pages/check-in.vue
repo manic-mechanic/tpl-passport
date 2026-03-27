@@ -55,8 +55,8 @@
         </p>
       </header>
 
-      <!-- QR scan button — dev only; production uses geolocation only -->
-      <div v-if="isDev && !prefilled && !scanned && !selectedBranch" class="qr-primary-area">
+      <!-- QR scan button — gated behind FEATURES.qrCheckIn (awaiting QR deployment at branches) -->
+      <div v-if="FEATURES.qrCheckIn && !prefilled && !scanned && !selectedBranch" class="qr-primary-area">
         <button class="qr-btn-primary" @click="openScanner">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="18" height="18">
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -151,19 +151,21 @@
 
         <p v-if="scanError" class="scan-error">{{ scanError }}</p>
 
-        <p v-if="isDev" class="qr-tip">
+        <!-- STASHED: QR dev tip — restore when FEATURES.qrCheckIn = true -->
+        <!-- <p v-if="FEATURES.qrCheckIn" class="qr-tip">
           Need a QR code to scan? Open
           <a href="https://tpl-passport.vercel.app/qr-print" target="_blank" rel="noopener" class="qr-tip-link">tpl&#8209;passport.vercel.app/qr&#8209;print</a>
           on another device.
-        </p>
+        </p> -->
+        <!-- END STASHED: QR dev tip -->
       </div>
 
     </template>
   </main>
 
-  <!-- ── QR Scanner overlay — dev only ────────── -->
+  <!-- ── QR Scanner overlay ────────── -->
   <Teleport to="body">
-    <div v-if="isDev && scannerActive" class="scanner-overlay">
+    <div v-if="FEATURES.qrCheckIn && scannerActive" class="scanner-overlay">
       <video ref="videoEl" class="scanner-video" playsinline autoplay muted />
       <!-- Hidden canvas used to capture frames for jsQR -->
       <canvas ref="scanCanvas" class="scanner-canvas" />
@@ -192,10 +194,10 @@ import jsQR from 'jsqr'
 import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { savePhoto } from '~/composables/usePhotoStore'
+import { FEATURES } from '~/composables/useFeatureFlags'
 
 const route   = useRoute()
 const passport = usePassportStore()
-const { public: { isDev } } = useRuntimeConfig()
 
 const selectedCode = ref(route.query.branch ?? '')
 const prefilled    = !!route.query.branch  // static — query string doesn't change after load
@@ -305,7 +307,10 @@ async function doCheckIn() {
   locationStatus.value = 'idle'
   const timestamp = passport.checkIn(selectedBranch.value.BranchCode, noteText.value.trim())
   if (timestamp) {
-    if (photoBlob.value) savePhoto(timestamp, photoBlob.value)
+    if (photoBlob.value) {
+      savePhoto(timestamp, photoBlob.value)
+      passport.markCheckInHasPhoto(timestamp)
+    }
     result.value = {
       branchCode: selectedBranch.value.BranchCode,
       branchName: selectedBranch.value.BranchName,

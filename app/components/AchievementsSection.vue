@@ -150,6 +150,7 @@ function getBadgeInlineStyle(badge) {
 .badge-shape--district_champ { background: radial-gradient(circle, #52cc84 0%, #1a6640 100%); }
 /* Habit */
 .badge-shape--day_tripper,
+.badge-shape--archivist,
 .badge-shape--quest_master,
 .badge-shape--familiar_face,
 .badge-shape--return_visitor { background: radial-gradient(circle, #eaa040 0%, #9e3c14 100%); }

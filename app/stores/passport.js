@@ -8,7 +8,7 @@ export const usePassportStore = defineStore('passport', () => {
   // --- State (hydrated from localStorage on first load) ---
   const saved = import.meta.client ? JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') : {}
 
-  const checkIns = ref(saved.checkIns ?? [])             // [{ branchCode, timestamp, note }]
+  const checkIns = ref(saved.checkIns ?? [])             // [{ branchCode, timestamp, note, hasPhoto? }]
   const completedChallenges = ref(saved.completedChallenges ?? [])  // ["BranchCode:index", ...]
   const profile = ref({
     name: '',
@@ -45,21 +45,27 @@ export const usePassportStore = defineStore('passport', () => {
     )
   }
 
-  const visitCount             = computed(() => visitedBranchCodes.value.size)
-  const completedChallengesCount = computed(() => completedChallenges.value.length)
-  const progressPct   = computed(() => Math.round((visitCount.value / physicalBranches.length) * 100))
-  const overallPct    = computed(() => Math.round(((visitCount.value + completedChallengesCount.value) / (physicalBranches.length * 4)) * 100))
+  const visitCount = computed(() => visitedBranchCodes.value.size)
 
-  function hasCompletedChallenge(branchCode, idx) {
-    return completedChallenges.value.includes(`${branchCode}:${idx}`)
-  }
+  // Unique branches where any check-in has a note or photo — used for overallPct
+  const documentedBranchCount = computed(() =>
+    new Set(
+      checkIns.value
+        .filter(c => c.note?.trim() || c.hasPhoto)
+        .map(c => c.branchCode)
+    ).size
+  )
 
-  function toggleChallenge(branchCode, idx) {
-    const key = `${branchCode}:${idx}`
-    const i = completedChallenges.value.indexOf(key)
-    if (i >= 0) completedChallenges.value.splice(i, 1)
-    else completedChallenges.value.push(key)
-  }
+  const progressPct = computed(() => Math.round((visitCount.value / physicalBranches.length) * 100))
+
+  // 75% from visiting branches, 25% from documenting them (note or photo).
+  // Will expand to include challenges when FEATURES.challenges is re-enabled.
+  const overallPct = computed(() =>
+    Math.round(
+      (visitCount.value / physicalBranches.length * 75) +
+      (documentedBranchCount.value / physicalBranches.length * 25)
+    )
+  )
 
   // --- Actions ---
 
@@ -72,6 +78,29 @@ export const usePassportStore = defineStore('passport', () => {
     checkIns.value.unshift({ branchCode, timestamp, note })
     return timestamp
   }
+
+  // Sets hasPhoto: true on the check-in matching the given timestamp.
+  // Called after a photo is successfully saved to IndexedDB.
+  function markCheckInHasPhoto(timestamp) {
+    const ci = checkIns.value.find(c => c.timestamp === timestamp)
+    if (ci) ci.hasPhoto = true
+  }
+
+  // STASHED: challenges — restore when FEATURES.challenges = true
+  // These functions and state are kept intact so re-enabling requires only a flag flip.
+  const completedChallengesCount = computed(() => completedChallenges.value.length)
+
+  function hasCompletedChallenge(branchCode, idx) {
+    return completedChallenges.value.includes(`${branchCode}:${idx}`)
+  }
+
+  function toggleChallenge(branchCode, idx) {
+    const key = `${branchCode}:${idx}`
+    const i = completedChallenges.value.indexOf(key)
+    if (i >= 0) completedChallenges.value.splice(i, 1)
+    else completedChallenges.value.push(key)
+  }
+  // END STASHED: challenges
 
   // Resets the passport to a preset demo state.
   // 'empty'     → no visits
@@ -106,6 +135,19 @@ export const usePassportStore = defineStore('passport', () => {
       return d.toISOString()
     }
 
+    const DEMO_NOTES = [
+      'Great kids section — found a perfect series to start',
+      'Quiet and spacious, came back for study time',
+      'Staff recommended an amazing read',
+      'Attended a Saturday storytime — the kids loved it',
+      'Picked up three holds, all ready the same week',
+      'Discovered a local history display near the entrance',
+      'Best natural light for reading in the whole system',
+      'Met a librarian who helped us find a niche topic book',
+      'Cozy nook in the corner, perfect for rainy days',
+      'The teen section had some surprisingly good graphic novels',
+    ]
+
     if (mode === 'mid') {
       // First 28 physical branches (~28%), visited over the past 4 months
       checkIns.value = makeCheckIns(allCodes.slice(0, 28), 120)
@@ -118,11 +160,19 @@ export const usePassportStore = defineStore('passport', () => {
       checkIns.value.push(
         { branchCode: allCodes[1], timestamp: utcDaysAgo(29), note: '' },
       )
-      // Quest Master: all 3 challenges completed at allCodes[0]
-      completedChallenges.value = [
-        `${allCodes[0]}:0`, `${allCodes[0]}:1`, `${allCodes[0]}:2`,
-      ]
-      // Set home branch (2 visits so far — Homebody requires 5, not yet earned)
+      // Archivist: 2 fully documented check-ins (note + photo), 2 notes-only for documentedBranchCount
+      checkIns.value[0] = { ...checkIns.value[0], note: DEMO_NOTES[0], hasPhoto: true }
+      checkIns.value[1] = { ...checkIns.value[1], note: DEMO_NOTES[1], hasPhoto: true }
+      checkIns.value[2] = { ...checkIns.value[2], note: DEMO_NOTES[2] }
+      checkIns.value[3] = { ...checkIns.value[3], note: DEMO_NOTES[3] }
+
+      // STASHED: quest_master demo data — uncomment when FEATURES.challenges = true
+      // completedChallenges.value = [
+      //   `${allCodes[0]}:0`, `${allCodes[0]}:1`, `${allCodes[0]}:2`,
+      // ]
+      completedChallenges.value = []
+
+      // Set home branch (2 visits so far — Familiar Face requires 5, not yet earned)
       profile.value = { ...profile.value, homeBranch: allCodes[0] }
     } else if (mode === 'completed') {
       // All physical branches, visited over the past 2 years
@@ -132,7 +182,7 @@ export const usePassportStore = defineStore('passport', () => {
         { branchCode: allCodes[0], timestamp: utcDaysAgo(10, 11), note: '' },
         { branchCode: allCodes[1], timestamp: utcDaysAgo(10, 15), note: '' },
       )
-      // Homebody: allCodes[0] now has 5 total visits (1 from makeCheckIns + 1 day-trip above + 3 here)
+      // Familiar Face: allCodes[0] now has 5 total visits (1 from makeCheckIns + 1 day-trip above + 3 here)
       checkIns.value.push(
         { branchCode: allCodes[0], timestamp: utcDaysAgo(9), note: '' },
         { branchCode: allCodes[0], timestamp: utcDaysAgo(8), note: '' },
@@ -142,11 +192,21 @@ export const usePassportStore = defineStore('passport', () => {
       checkIns.value.push(
         { branchCode: allCodes[1], timestamp: utcDaysAgo(6), note: '' },
       )
-      // Quest Master: all 3 challenges completed at allCodes[0]
-      completedChallenges.value = [
-        `${allCodes[0]}:0`, `${allCodes[0]}:1`, `${allCodes[0]}:2`,
-      ]
-      // Set home branch for Homebody achievement
+      // Archivist: 10 fully documented (note + photo), 15 notes-only for documentedBranchCount
+      for (let i = 0; i < 10; i++) {
+        checkIns.value[i] = { ...checkIns.value[i], note: DEMO_NOTES[i % DEMO_NOTES.length], hasPhoto: true }
+      }
+      for (let i = 10; i < 25; i++) {
+        checkIns.value[i] = { ...checkIns.value[i], note: DEMO_NOTES[i % DEMO_NOTES.length] }
+      }
+
+      // STASHED: quest_master demo data — uncomment when FEATURES.challenges = true
+      // completedChallenges.value = [
+      //   `${allCodes[0]}:0`, `${allCodes[0]}:1`, `${allCodes[0]}:2`,
+      // ]
+      completedChallenges.value = []
+
+      // Set home branch for Familiar Face achievement
       profile.value = { ...profile.value, homeBranch: allCodes[0] }
     }
   }
@@ -158,6 +218,7 @@ export const usePassportStore = defineStore('passport', () => {
     hasVisited,
     hasVisitedToday,
     visitCount,
+    documentedBranchCount,
     progressPct,
     overallPct,
     completedChallenges,
@@ -165,6 +226,7 @@ export const usePassportStore = defineStore('passport', () => {
     hasCompletedChallenge,
     toggleChallenge,
     checkIn,
+    markCheckInHasPhoto,
     loadDemoState,
   }
 })

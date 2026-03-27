@@ -85,38 +85,117 @@ describe('progressPct', () => {
 })
 
 describe('overallPct', () => {
-  it('is 0 with no visits and no challenges', () => {
+  it('is 0 with no visits', () => {
     const passport = usePassportStore()
     expect(passport.overallPct).toBe(0)
   })
 
-  it('counts stamps and challenges — visiting 1 branch with no challenges is 1/400 = 0%', () => {
+  it('is 1% with 1 visit and no documentation — Math.round(1/100*75) = 1', () => {
     const passport = usePassportStore()
     passport.checkIn('BL')
-    expect(passport.overallPct).toBe(0) // Math.round(1/400*100) = 0
+    expect(passport.overallPct).toBe(1)
   })
 
-  it('counts stamps and challenges — visiting 2 branches is 2/400 = 1%', () => {
+  it('documented branches add 25% weight — 4 visits + 4 documented = 4%, vs 3% without docs', () => {
     const passport = usePassportStore()
     passport.checkIn('BL')
     passport.checkIn('AG')
-    expect(passport.overallPct).toBe(1) // Math.round(2/400*100) = 1
+    passport.checkIn('HP')
+    passport.checkIn('WH')
+    // Without docs: Math.round(4/100*75 + 0) = 3
+    expect(passport.overallPct).toBe(3)
+    passport.checkIns[0] = { ...passport.checkIns[0], note: 'Note 1' }
+    passport.checkIns[1] = { ...passport.checkIns[1], note: 'Note 2' }
+    passport.checkIns[2] = { ...passport.checkIns[2], note: 'Note 3' }
+    passport.checkIns[3] = { ...passport.checkIns[3], note: 'Note 4' }
+    // With 4 documented: Math.round(4/100*75 + 4/100*25) = 4
+    expect(passport.overallPct).toBe(4)
   })
 
-  it('includes completed challenges in the numerator', () => {
+  it('mid demo is 22% — Math.round(28/100*75 + 4/100*25) = 22', () => {
     const passport = usePassportStore()
-    passport.checkIn('BL')
-    passport.toggleChallenge('BL', 0)
-    passport.toggleChallenge('BL', 1)
-    // 1 stamp + 2 challenges = 3/400
-    expect(passport.overallPct).toBe(1) // Math.round(3/400*100) = 1
+    passport.loadDemoState('mid')
+    expect(passport.overallPct).toBe(22)
   })
 
-  it('counts both stamps and challenges — completed demo is 100 branches + 3 challenges = 26%', () => {
+  it('completed demo is 81% — Math.round(100/100*75 + 25/100*25) = 81', () => {
     const passport = usePassportStore()
     passport.loadDemoState('completed')
-    // Math.round(103/400 * 100) = 26
-    expect(passport.overallPct).toBe(26)
+    expect(passport.overallPct).toBe(81)
+  })
+})
+
+describe('documentedBranchCount', () => {
+  it('is 0 with no check-ins', () => {
+    const passport = usePassportStore()
+    expect(passport.documentedBranchCount).toBe(0)
+  })
+
+  it('is 0 for a check-in with no note or photo', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    expect(passport.documentedBranchCount).toBe(0)
+  })
+
+  it('counts a branch with a note', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    passport.checkIns[0] = { ...passport.checkIns[0], note: 'Great visit' }
+    expect(passport.documentedBranchCount).toBe(1)
+  })
+
+  it('counts a branch with a photo', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    passport.checkIns[0] = { ...passport.checkIns[0], hasPhoto: true }
+    expect(passport.documentedBranchCount).toBe(1)
+  })
+
+  it('does not count a note with only whitespace', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    passport.checkIns[0] = { ...passport.checkIns[0], note: '   ' }
+    expect(passport.documentedBranchCount).toBe(0)
+  })
+
+  it('deduplicates: two visits to the same branch both with notes counts as 1', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    passport.checkIns.push({ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'Second visit' })
+    expect(passport.documentedBranchCount).toBe(1)
+  })
+
+  it('counts two different documented branches as 2', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    passport.checkIn('HP')
+    passport.checkIns[0] = { ...passport.checkIns[0], note: 'Great' }
+    passport.checkIns[1] = { ...passport.checkIns[1], note: 'Nice' }
+    expect(passport.documentedBranchCount).toBe(2)
+  })
+})
+
+describe('markCheckInHasPhoto', () => {
+  it('sets hasPhoto on the matching check-in', () => {
+    const passport = usePassportStore()
+    const ts = passport.checkIn('AG')
+    passport.markCheckInHasPhoto(ts)
+    expect(passport.checkIns[0].hasPhoto).toBe(true)
+  })
+
+  it('does nothing for an unknown timestamp', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    passport.markCheckInHasPhoto('2000-01-01T00:00:00.000Z')
+    expect(passport.checkIns[0].hasPhoto).toBeUndefined()
+  })
+
+  it('increases documentedBranchCount when set', () => {
+    const passport = usePassportStore()
+    const ts = passport.checkIn('AG')
+    expect(passport.documentedBranchCount).toBe(0)
+    passport.markCheckInHasPhoto(ts)
+    expect(passport.documentedBranchCount).toBe(1)
   })
 })
 

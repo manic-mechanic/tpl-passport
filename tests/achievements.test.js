@@ -5,6 +5,7 @@ import {
   buildAchievementCtx,
   compassBranches,
   districtBranchCounts,
+  fullyDocumentedCount,
   maxBranchesInOneDay,
   visitedDistricts,
   branchVisitCounts,
@@ -133,6 +134,32 @@ describe('maxNonHomeVisitCount', () => {
   })
 })
 
+describe('fullyDocumentedCount', () => {
+  it('returns 0 for empty check-ins', () => {
+    expect(fullyDocumentedCount([])).toBe(0)
+  })
+
+  it('returns 0 when note is present but no photo', () => {
+    expect(fullyDocumentedCount([{ note: 'Great', hasPhoto: false }])).toBe(0)
+  })
+
+  it('returns 0 when photo is present but note is empty', () => {
+    expect(fullyDocumentedCount([{ note: '', hasPhoto: true }])).toBe(0)
+  })
+
+  it('returns 0 when photo is present but note is whitespace', () => {
+    expect(fullyDocumentedCount([{ note: '   ', hasPhoto: true }])).toBe(0)
+  })
+
+  it('counts check-ins with both a non-empty note and a photo', () => {
+    expect(fullyDocumentedCount([
+      { note: 'Good', hasPhoto: true },
+      { note: 'Also good', hasPhoto: true },
+      { note: 'No photo', hasPhoto: false },
+    ])).toBe(2)
+  })
+})
+
 // --- Achievement badge tests ---
 
 describe('achievement: first stamp', () => {
@@ -207,24 +234,66 @@ describe('achievement: navigator', () => {
   })
 })
 
-describe('achievement: quest_master', () => {
-  it('not earned with no challenges completed', () => {
-    expect(badge('quest_master').earned(ctx())).toBe(false)
+// STASHED: quest_master tests — restore when FEATURES.challenges = true
+// describe('achievement: quest_master', () => {
+//   it('not earned with no challenges completed', () => {
+//     expect(badge('quest_master').earned(ctx())).toBe(false)
+//   })
+//   it('not earned with only 2 of 3 challenges at one branch', () => {
+//     const code = physicalBranches[0].BranchCode
+//     expect(badge('quest_master').earned(ctx({ completedChallenges: [`${code}:0`, `${code}:1`] }))).toBe(false)
+//   })
+//   it('earned when all 3 challenges at one branch are completed', () => {
+//     const code = physicalBranches[0].BranchCode
+//     expect(badge('quest_master').earned(ctx({ completedChallenges: [`${code}:0`, `${code}:1`, `${code}:2`] }))).toBe(true)
+//   })
+//   it('not earned when challenges are spread across branches with none having all 3', () => {
+//     const [c0, c1, c2] = physicalBranches.slice(0, 3).map(b => b.BranchCode)
+//     expect(badge('quest_master').earned(ctx({ completedChallenges: [`${c0}:0`, `${c1}:1`, `${c2}:2`] }))).toBe(false)
+//   })
+// })
+// END STASHED: quest_master
+
+describe('achievement: archivist', () => {
+  it('not earned with no check-ins', () => {
+    expect(badge('archivist').earned(ctx())).toBe(false)
   })
 
-  it('not earned with only 2 of 3 challenges at one branch', () => {
-    const code = physicalBranches[0].BranchCode
-    expect(badge('quest_master').earned(ctx({ completedChallenges: [`${code}:0`, `${code}:1`] }))).toBe(false)
+  it('not earned with a note but no photo', () => {
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'Great visit' }]
+    expect(badge('archivist').earned(ctx({ checkIns }))).toBe(false)
   })
 
-  it('earned when all 3 challenges at one branch are completed', () => {
-    const code = physicalBranches[0].BranchCode
-    expect(badge('quest_master').earned(ctx({ completedChallenges: [`${code}:0`, `${code}:1`, `${code}:2`] }))).toBe(true)
+  it('not earned with a photo but no note', () => {
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: '', hasPhoto: true }]
+    expect(badge('archivist').earned(ctx({ checkIns }))).toBe(false)
   })
 
-  it('not earned when challenges are spread across branches with none having all 3', () => {
-    const [c0, c1, c2] = physicalBranches.slice(0, 3).map(b => b.BranchCode)
-    expect(badge('quest_master').earned(ctx({ completedChallenges: [`${c0}:0`, `${c1}:1`, `${c2}:2`] }))).toBe(false)
+  it('not earned with a whitespace-only note and photo', () => {
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: '   ', hasPhoto: true }]
+    expect(badge('archivist').earned(ctx({ checkIns }))).toBe(false)
+  })
+
+  it('earned when a check-in has both a note and a photo', () => {
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'Great', hasPhoto: true }]
+    expect(badge('archivist').earned(ctx({ checkIns }))).toBe(true)
+  })
+
+  it('stat counts revisits to the same branch', () => {
+    const checkIns = [
+      { branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'First', hasPhoto: true },
+      { branchCode: 'AG', timestamp: '2024-01-02T10:00:00.000Z', note: 'Second', hasPhoto: true },
+    ]
+    expect(badge('archivist').stat(ctx({ checkIns }))).toBe(2)
+  })
+
+  it('progress is 0/1 before earning', () => {
+    expect(badge('archivist').progress(ctx())).toEqual({ current: 0, total: 1 })
+  })
+
+  it('progress is 1/1 after earning', () => {
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'Great', hasPhoto: true }]
+    expect(badge('archivist').progress(ctx({ checkIns }))).toEqual({ current: 1, total: 1 })
   })
 })
 
