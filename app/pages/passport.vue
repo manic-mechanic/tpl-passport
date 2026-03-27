@@ -129,19 +129,28 @@ const activeStamp = ref(null)
 const activePage  = ref(0)
 const sectionEls  = []
 
+// Suppress scroll-spy during programmatic scroll so pill tap doesn't get overridden
+let suppressSpy = false
+let suppressTimer = null
+
 // Scroll-spy: update active pill as sections cross the sticky header threshold
 function onScroll() {
+  if (suppressSpy) return
   let active = 0
   for (let i = 0; i < sectionEls.length; i++) {
     if (!sectionEls[i]) continue
-    if (sectionEls[i].getBoundingClientRect().top <= 112) active = i
+    if (sectionEls[i].getBoundingClientRect().top <= 122) active = i
   }
   activePage.value = active
 }
 
-// Pill tap: smooth-scroll to that section (scroll-margin-top handles sticky offset)
+// Pill tap: set pill immediately, then smooth-scroll (spy suppressed during scroll)
 function scrollToPage(i) {
+  activePage.value = i
+  suppressSpy = true
+  clearTimeout(suppressTimer)
   sectionEls[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  suppressTimer = setTimeout(() => { suppressSpy = false }, 900)
 }
 
 let fadeObserver
@@ -192,6 +201,7 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
   fadeObserver?.disconnect()
   document.body.style.overflow = ''
+  clearTimeout(suppressTimer)
 })
 
 function isPageComplete(page) {
@@ -221,6 +231,11 @@ function formatVisitDate(ts) {
   z-index: 10;
   background: var(--color-bg);
   padding-bottom: 2px;
+  /* Bleed to screen edges, matching full-bleed sections below */
+  margin-left: -18px;
+  margin-right: -18px;
+  padding-left: 18px;
+  padding-right: 18px;
 }
 
 .page-header {
@@ -244,6 +259,7 @@ function formatVisitDate(ts) {
 }
 
 /* ── Page navigation pills ── */
+/* 5 pills × ~48px + 4 gaps × 6px = ~264px — fits 360px min viewport (324px usable) */
 .page-nav {
   display: flex;
   gap: 6px;
@@ -251,8 +267,8 @@ function formatVisitDate(ts) {
 }
 
 .page-pill {
-  flex: 1;
-  padding: 7px 0;
+  flex-shrink: 0;
+  padding: 6px 8px;
   border-radius: 20px;
   border: 1.5px solid var(--color-border);
   background: none;
@@ -278,22 +294,21 @@ function formatVisitDate(ts) {
   color: var(--tpl-blue);
 }
 
-/* ── Book container ── */
+/* ── Book container — bleed to screen edges ── */
 .passport-book {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 8px;
   padding-bottom: 24px;
+  margin-left: -18px;
+  margin-right: -18px;
 }
 
-/* ── Each alpha "page" is a card ── */
+/* ── Each alpha "page" — full-bleed section ── */
 .passport-page {
-  scroll-margin-top: 112px; /* clears sticky-top on pill tap */
+  scroll-margin-top: 122px; /* clears sticky-top on pill tap */
   background: rgba(255, 255, 255, 0.72);
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  /* clip-path instead of overflow:hidden — clips corners without breaking sticky children */
-  clip-path: inset(0 round 6px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.04);
   /* Fade in as section enters viewport */
   opacity: 0;
   transition: opacity 0.4s ease;
@@ -306,20 +321,20 @@ function formatVisitDate(ts) {
 }
 
 @media (prefers-color-scheme: dark) {
-  .passport-page { background: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.07); }
+  .passport-page { background: rgba(255, 255, 255, 0.04); box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 -1px 0 rgba(0,0,0,0.2); }
 }
-:global([data-theme="dark"]) .passport-page { background: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.07); }
+:global([data-theme="dark"]) .passport-page { background: rgba(255, 255, 255, 0.04); box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 -1px 0 rgba(0,0,0,0.2); }
 
 /* ── Page header row — sticky within its card ── */
 .page-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 16px;
+  padding: 11px 18px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   transition: background 0.2s ease;
   position: sticky;
-  top: 108px; /* sits just below .sticky-top */
+  top: 122px; /* sits just below .sticky-top */
   z-index: 5;
   background: color-mix(in srgb, var(--color-bg) 28%, white);
 }
