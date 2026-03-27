@@ -35,7 +35,7 @@
       </nav>
     </div>
 
-    <div v-show="activePage !== BADGES_IDX" class="passport-book">
+    <div class="passport-book">
       <section
         v-for="(page, i) in branchesByAlphaPage"
         :key="page.label"
@@ -83,10 +83,9 @@
           <div v-if="page.branches.length % 2 !== 0" class="stamp-slot stamp-slot--phantom" aria-hidden="true" />
         </div>
       </section>
-    </div>
-
-    <div v-show="activePage === BADGES_IDX" class="badges-tab">
-      <AchievementsSection />
+      <div :ref="el => { if (el) sectionEls[BADGES_IDX] = el }" class="badges-section">
+        <AchievementsSection />
+      </div>
     </div>
   </main>
 
@@ -165,10 +164,9 @@ function onScroll() {
   activePage.value = active
 }
 
-// Pill tap: set pill immediately; Badges pill just swaps content, alpha pills smooth-scroll
+// Pill tap: set pill immediately, then smooth-scroll (spy suppressed during scroll)
 function scrollToPage(i) {
   activePage.value = i
-  if (i === BADGES_IDX) return
   suppressSpy = true
   clearTimeout(suppressTimer)
   sectionEls[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -204,9 +202,12 @@ function onKeydown(e) {
   if (e.key === 'Escape') closeSheet()
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (!import.meta.client) return
-  if (route.query.tab === 'badges') activePage.value = BADGES_IDX
+  if (route.query.tab === 'badges') {
+    await nextTick()
+    sectionEls[BADGES_IDX]?.scrollIntoView({ block: 'start' })
+  }
   remeasureStickyHeight()
   window.addEventListener('scroll', onScroll, { passive: true })
   document.addEventListener('keydown', onKeydown)
@@ -486,9 +487,10 @@ function formatVisitDate(ts) {
   font-weight: 500;
 }
 
-/* Badges tab content — small top gap from sticky header */
-.badges-tab {
-  padding-top: 4px;
+/* Badges section — same scroll-margin as stamp pages so the pill lands correctly */
+.badges-section {
+  scroll-margin-top: v-bind('(stickyHeight + 4) + "px"');
+  padding-top: 8px;
 }
 
 /* ── Bottom sheet backdrop ── */
