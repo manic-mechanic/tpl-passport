@@ -84,6 +84,12 @@
         </div>
       </section>
       <div :ref="el => { if (el) sectionEls[BADGES_IDX] = el }" class="badges-section">
+        <div class="page-header-row">
+          <span class="page-range">Endorsements</span>
+          <div class="page-header-right">
+            <span class="page-count">{{ endorsementsEarned }}/{{ ACHIEVEMENTS.length }}</span>
+          </div>
+        </div>
         <AchievementsSection />
       </div>
     </div>
@@ -134,6 +140,7 @@
 <script setup>
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
+import { ACHIEVEMENTS, buildAchievementCtx } from '~/composables/useAchievements'
 
 const passport = usePassportStore()
 const route = useRoute()
@@ -149,13 +156,29 @@ function remeasureStickyHeight() {
   if (stickyTopRef.value) stickyHeight.value = stickyTopRef.value.offsetHeight
 }
 
+const endorsementsEarned = computed(() => {
+  const ctx = buildAchievementCtx({
+    checkIns:            passport.checkIns,
+    visitedBranchCodes:  passport.visitedBranchCodes,
+    completedChallenges: passport.completedChallenges,
+    homeBranch:          passport.profile.homeBranch,
+  })
+  return ACHIEVEMENTS.filter(a => a.earned(ctx)).length
+})
+
 // Suppress scroll-spy during programmatic scroll so pill tap doesn't get overridden
 let suppressSpy = false
 let suppressTimer = null
 
-// Scroll-spy: update active pill as sections cross the sticky header threshold
+// Scroll-spy: update active pill as sections cross the sticky header threshold.
+// At the bottom of the page, always activate the last section (Endorsements may be
+// too short to reach the threshold via normal scrolling).
 function onScroll() {
   if (suppressSpy) return
+  if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 8) {
+    activePage.value = sectionEls.length - 1
+    return
+  }
   let active = 0
   for (let i = 0; i < sectionEls.length; i++) {
     if (!sectionEls[i]) continue
@@ -487,11 +510,9 @@ function formatVisitDate(ts) {
   font-weight: 500;
 }
 
-/* Endorsements section — tall enough that scroll-spy can register it as active */
+/* Endorsements section — scroll-spy handled by bottom-of-page check in onScroll */
 .badges-section {
   scroll-margin-top: v-bind('(stickyHeight + 4) + "px"');
-  padding-top: 8px;
-  min-height: calc(100dvh - var(--nav-height));
 }
 
 /* ── Bottom sheet backdrop ── */
