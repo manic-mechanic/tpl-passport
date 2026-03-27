@@ -54,6 +54,14 @@ onMounted(() => {
   max-width: 480px;
   z-index: 999;
   background: var(--tpl-navy);
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 18px,
+      rgba(255,255,255,0.018) 18px,
+      rgba(255,255,255,0.018) 19px
+    );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -63,18 +71,17 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   position: relative;
   z-index: 1;
 }
 
 .cover-logo {
-  width: 72px;
-  height: 72px;
+  width: 88px;
+  height: 88px;
   object-fit: contain;
-  border-radius: 14px;
-  filter: brightness(10);
-  opacity: 0.9;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 16px rgba(0, 95, 192, 0.5));
 }
 
 .cover-title {
@@ -90,25 +97,26 @@ onMounted(() => {
 .cover-colon { color: var(--tpl-blue); }
 
 .cover-sub {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.4);
 }
 
-/* Decorative passport bands */
+/* Decorative passport bands — gold like a real passport cover */
 .cover-band {
   position: absolute;
   left: 0;
   right: 0;
-  height: 6px;
+  height: 5px;
   background: linear-gradient(90deg,
-    var(--tpl-blue) 0%,
-    var(--tpl-teal) 50%,
-    var(--tpl-blue) 100%
+    transparent 0%,
+    rgba(184, 152, 90, 0.5) 20%,
+    rgba(220, 190, 120, 0.7) 50%,
+    rgba(184, 152, 90, 0.5) 80%,
+    transparent 100%
   );
-  opacity: 0.6;
 }
 
 .cover-band--top    { top: 0; }
