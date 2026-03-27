@@ -1,15 +1,16 @@
 <template>
   <main class="page-content">
-    <header class="page-header">
-      <div>
-        <h1>Your Passport</h1>
-        <p class="sub">{{ passport.visitCount }} of {{ physicalBranches.length }} stamps collected</p>
-      </div>
-      <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
-    </header>
+    <div class="sticky-top">
+      <header class="page-header">
+        <div>
+          <h1>Your Passport</h1>
+          <p class="sub">{{ passport.visitCount }} of {{ physicalBranches.length }} stamps collected</p>
+        </div>
+        <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
+      </header>
 
-    <!-- Page navigation pills -->
-    <nav class="page-nav" aria-label="Passport pages">
+      <!-- Page navigation pills -->
+      <nav class="page-nav" aria-label="Passport pages">
       <button
         v-for="(page, i) in branchesByAlphaPage"
         :key="page.label"
@@ -23,7 +24,8 @@
       >
         {{ page.label }}
       </button>
-    </nav>
+      </nav>
+    </div>
 
     <div class="passport-book">
       <section
@@ -127,23 +129,22 @@ const activeStamp = ref(null)
 const activePage  = ref(0)
 const sectionEls  = []
 
-// Scroll-spy: update active pill as sections cross the sticky nav threshold
+// Scroll-spy: update active pill as sections cross the sticky header threshold
 function onScroll() {
   let active = 0
   for (let i = 0; i < sectionEls.length; i++) {
     if (!sectionEls[i]) continue
-    if (sectionEls[i].getBoundingClientRect().top <= 64) active = i
+    if (sectionEls[i].getBoundingClientRect().top <= 112) active = i
   }
   activePage.value = active
 }
 
-// Pill tap: smooth-scroll to that section (scroll-margin-top handles nav offset)
+// Pill tap: smooth-scroll to that section (scroll-margin-top handles sticky offset)
 function scrollToPage(i) {
   sectionEls[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-onMounted(() => { if (import.meta.client) window.addEventListener('scroll', onScroll, { passive: true }) })
-onUnmounted(() => { if (import.meta.client) window.removeEventListener('scroll', onScroll) })
+let fadeObserver
 
 const branchVisits = computed(() => {
   if (!activeStamp.value) return []
@@ -167,16 +168,30 @@ watch(activeStamp, (val) => {
   }
 })
 
-// Close on Escape
+// Close sheet on Escape
 function onKeydown(e) {
   if (e.key === 'Escape') closeSheet()
 }
-onMounted(() => { if (import.meta.client) document.addEventListener('keydown', onKeydown) })
+
+onMounted(() => {
+  if (!import.meta.client) return
+  window.addEventListener('scroll', onScroll, { passive: true })
+  document.addEventListener('keydown', onKeydown)
+  // Fade-in: sections become visible as they enter the viewport
+  fadeObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('section-visible')
+    })
+  }, { threshold: 0.05 })
+  sectionEls.forEach(el => el && fadeObserver.observe(el))
+})
+
 onUnmounted(() => {
-  if (import.meta.client) {
-    document.removeEventListener('keydown', onKeydown)
-    document.body.style.overflow = ''
-  }
+  if (!import.meta.client) return
+  window.removeEventListener('scroll', onScroll)
+  document.removeEventListener('keydown', onKeydown)
+  fadeObserver?.disconnect()
+  document.body.style.overflow = ''
 })
 
 function isPageComplete(page) {
@@ -199,8 +214,17 @@ function formatVisitDate(ts) {
 </script>
 
 <style scoped>
+/* ── Sticky header block (title + pills) ── */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+  padding-bottom: 2px;
+}
+
 .page-header {
-  padding: 20px 0 18px;
+  padding: 16px 0 6px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -223,16 +247,12 @@ function formatVisitDate(ts) {
 .page-nav {
   display: flex;
   gap: 6px;
-  padding: 2px 0 14px;
-  position: sticky;
-  top: 0;
-  background: var(--color-bg);
-  z-index: 10;
+  padding: 0 0 10px;
 }
 
 .page-pill {
   flex: 1;
-  padding: 8px 4px;
+  padding: 7px 0;
   border-radius: 20px;
   border: 1.5px solid var(--color-border);
   background: none;
@@ -268,11 +288,21 @@ function formatVisitDate(ts) {
 
 /* ── Each alpha "page" is a card ── */
 .passport-page {
-  scroll-margin-top: 56px; /* clears sticky pill nav on tap-to-scroll */
+  scroll-margin-top: 112px; /* clears sticky-top on pill tap */
   background: rgba(255, 255, 255, 0.72);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  /* clip-path instead of overflow:hidden — clips corners without breaking sticky children */
+  clip-path: inset(0 round 6px);
+  /* Fade in as section enters viewport */
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* Visible once intersected, or always for the first section */
+.passport-page.section-visible,
+.passport-page:first-child {
+  opacity: 1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -280,7 +310,7 @@ function formatVisitDate(ts) {
 }
 :global([data-theme="dark"]) .passport-page { background: rgba(255, 255, 255, 0.05); box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.07); }
 
-/* ── Page header row ── */
+/* ── Page header row — sticky within its card ── */
 .page-header-row {
   display: flex;
   align-items: center;
@@ -288,6 +318,10 @@ function formatVisitDate(ts) {
   padding: 11px 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   transition: background 0.2s ease;
+  position: sticky;
+  top: 108px; /* sits just below .sticky-top */
+  z-index: 5;
+  background: color-mix(in srgb, var(--color-bg) 28%, white);
 }
 
 .passport-page--complete .page-header-row {
