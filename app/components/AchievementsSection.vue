@@ -1,7 +1,7 @@
 <template>
   <section class="achievements">
     <div class="section-header">
-      <h2>Achievements</h2>
+      <h2>Endorsements</h2>
     </div>
 
     <div class="badge-grid">
@@ -128,7 +128,7 @@ function getBadgeInlineStyle(badge) {
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .section-header h2 { font-size: 1.05rem; }
 
-.badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; }
+.badge-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 8px; }
 .badge-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 
 .badge-shape { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; position: relative; }

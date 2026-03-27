@@ -30,7 +30,7 @@
           @click="scrollToPage(BADGES_IDX)"
           :aria-current="activePage === BADGES_IDX ? 'true' : undefined"
         >
-          Badges
+          Endorsements
         </button>
       </nav>
     </div>
@@ -361,7 +361,7 @@ function formatVisitDate(ts) {
   position: sticky;
   top: v-bind('stickyHeight + "px"');
   z-index: 5;
-  background: color-mix(in srgb, var(--color-bg) 28%, white);
+  background: var(--color-bg);
 }
 
 .passport-page--complete .page-header-row {
@@ -487,10 +487,11 @@ function formatVisitDate(ts) {
   font-weight: 500;
 }
 
-/* Badges section — same scroll-margin as stamp pages so the pill lands correctly */
+/* Endorsements section — tall enough that scroll-spy can register it as active */
 .badges-section {
   scroll-margin-top: v-bind('(stickyHeight + 4) + "px"');
   padding-top: 8px;
+  min-height: calc(100dvh - var(--nav-height));
 }
 
 /* ── Bottom sheet backdrop ── */

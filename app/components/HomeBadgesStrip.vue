@@ -1,7 +1,7 @@
 <template>
   <section v-if="highlightBadges.length" class="badges-strip">
     <div class="section-header">
-      <h2>Badges</h2>
+      <h2>Endorsements</h2>
       <NuxtLink to="/passport?tab=badges" class="see-all">See all</NuxtLink>
     </div>
 
