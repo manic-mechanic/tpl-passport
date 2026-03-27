@@ -388,7 +388,7 @@ function formatVisitDate(ts) {
 }
 
 .passport-page--complete .page-header-row {
-  background: var(--color-bg);
+  background: color-mix(in srgb, #c87820 10%, var(--color-bg));
 }
 
 .page-range {
