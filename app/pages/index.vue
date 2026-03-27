@@ -1,39 +1,65 @@
 <template>
   <main class="page-content">
 
-    <!-- Header -->
-    <header class="page-header">
-      <div class="brand">
-        <img src="/tpl-meta.png" class="tpl-logo" alt="Toronto Public Library" />
-        <span class="brand-title">passport<span class="brand-colon">:</span></span>
-      </div>
-      <NuxtLink to="/settings" class="profile-btn" aria-label="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-      </NuxtLink>
-    </header>
-
     <!-- Passport document card -->
     <section class="passport-doc">
       <div class="doc-header">
-        <img src="/tpl-meta-card.png" class="doc-seal" alt="" aria-hidden="true" />
-        <div class="doc-header-text">
-          <p class="doc-country">Canada · Toronto Public Library</p>
-          <p class="doc-type">PASSPORT / PASSEPORT</p>
+        <div class="doc-header-left">
+          <img src="/tpl-meta-card.png" class="doc-seal" alt="" aria-hidden="true" />
+          <p class="doc-wordmark">passport<span class="doc-wordmark-colon">:</span></p>
         </div>
-        <span class="doc-type-code">P</span>
+        <p class="doc-library">Toronto Public Library</p>
+        <NuxtLink to="/settings" class="profile-btn profile-btn--doc" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </NuxtLink>
       </div>
       <div class="doc-body">
-        <div class="doc-name-row">
-          <div>
-            <p class="doc-field-label">Name / Nom</p>
-            <p class="doc-name">{{ passport.profile.name || 'Collector' }}</p>
+        <div class="doc-main-row">
+          <div class="doc-left">
+            <div class="doc-name-col">
+              <p class="doc-field-label">Name / Nom</p>
+              <input
+                v-model="passport.profile.name"
+                class="doc-name-input"
+                type="text"
+                placeholder="Your name"
+                maxlength="40"
+                autocomplete="given-name"
+              />
+            </div>
+            <div class="doc-fields-row">
+              <div class="doc-field-col doc-field-col--branch">
+                <p class="doc-field-label">Home Branch</p>
+                <div class="doc-combobox-wrap">
+                  <BranchCombobox
+                    v-model="passport.profile.homeBranch"
+                    variant="inline"
+                    placeholder="—"
+                  />
+                </div>
+              </div>
+              <div class="doc-field-col">
+                <p class="doc-field-label">Favourite Book</p>
+                <div class="doc-field-wrap">
+                  <input
+                    v-model="passport.profile.favouriteBook"
+                    class="doc-field-input"
+                    type="text"
+                    placeholder="—"
+                    maxlength="80"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="doc-count-badge">
-            <span class="doc-count-badge__num">{{ passport.visitCount }}</span>
-            <span class="doc-count-badge__denom">/ {{ totalBranches }}</span>
+          <div class="doc-right">
+            <div class="avatar" :style="avatarStyle">
+              <span class="avatar-letter">{{ avatarLetter }}</span>
+            </div>
           </div>
         </div>
         <div class="progress-track">
@@ -48,11 +74,21 @@
             <span class="doc-stat-num">{{ overallPct }}%</span>
             <span class="doc-stat-label">Complete</span>
           </div>
+          <div class="doc-count-chip">
+            <span class="doc-count-chip__num">{{ passport.visitCount }}</span>
+            <span class="doc-count-chip__denom">/ {{ totalBranches }}</span>
+          </div>
         </div>
       </div>
       <div class="doc-mrz">
-        <p class="doc-mrz-line">P&lt;CAN{{ mrzLine1 }}</p>
-        <p class="doc-mrz-line">{{ mrzLine2 }}</p>
+        <div class="doc-mrz-lines">
+          <p class="doc-mrz-line">P&lt;CAN{{ mrzLine1 }}</p>
+          <p class="doc-mrz-line">{{ mrzLine2 }}</p>
+        </div>
+        <div class="doc-mrz-issued">
+          <span class="doc-mrz-issued__label">Issued</span>
+          <span class="doc-mrz-issued__year">{{ issueYear }}</span>
+        </div>
       </div>
     </section>
 
@@ -185,10 +221,29 @@ const overallPct = computed(() => Math.round(((passport.visitCount + passport.co
 
 const issueYear = new Date().getFullYear()
 
+const homeBranchName = computed(() =>
+  physicalBranches.find(b => b.BranchCode === passport.profile.homeBranch)?.BranchName ?? ''
+)
+
+// Avatar — initial letter, colored by home branch stamp palette
+const avatarLetter = computed(() => {
+  const name = passport.profile.name?.trim()
+  return name ? name[0].toUpperCase() : '?'
+})
+
+const avatarStyle = computed(() => {
+  const code = passport.profile.homeBranch
+  const branch = code ? physicalBranches.find(b => b.BranchCode === code) : null
+  const { color, bg, border } = branch
+    ? useStampColor(branch.WardNo)
+    : { color: 'var(--tpl-blue)', bg: 'color-mix(in srgb, var(--tpl-blue) 12%, var(--color-paper))', border: 'color-mix(in srgb, var(--tpl-blue) 30%, transparent)' }
+  return { color, background: bg, borderColor: border }
+})
+
 const mrzLine1 = computed(() => {
-  const raw = (passport.profile.name || 'COLLECTOR').toUpperCase()
+  const raw = (passport.profile.name || 'TRAVELLER').toUpperCase()
   const parts = raw.replace(/[^A-Z ]/g, '').split(' ').filter(Boolean)
-  const surname = parts[0] ?? 'COLLECTOR'
+  const surname = parts[0] ?? 'TRAVELLER'
   const given   = parts.slice(1).join('<') || ''
   const nameStr = given ? `${surname}<<${given}` : `${surname}`
   return nameStr.padEnd(39, '<').slice(0, 39)
@@ -478,55 +533,32 @@ function formatDate(iso) {
 
 <style scoped>
 /* Header */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 0 18px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tpl-logo {
+.profile-btn {
   width: 32px;
   height: 32px;
-  object-fit: contain;
-}
-
-.brand-title {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--color-brand-text);
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
-}
-
-.brand-colon {
-  color: var(--tpl-blue);
-}
-
-.profile-btn {
-  width: 36px;
-  height: 36px;
   border-radius: 50%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-mid);
-  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
 }
 
-.profile-btn svg { width: 18px; height: 18px; }
+.profile-btn svg { width: 17px; height: 17px; }
+
+.profile-btn--doc {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+}
+
+.profile-btn--doc svg { width: 21px; height: 21px; }
 
 /* Passport document hero card */
 .passport-doc {
+  margin-top: 18px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-md);
@@ -539,19 +571,19 @@ function formatDate(iso) {
   padding: 9px 14px;
   display: flex;
   align-items: center;
+  position: relative;
   gap: 9px;
 }
 
 .doc-seal {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   flex-shrink: 0;
   object-fit: contain;
   opacity: 0.7;
+  align-self: center;
 }
-
-.doc-header-text { flex: 1; }
 
 .doc-country {
   font-size: 0.56rem;
@@ -560,20 +592,19 @@ function formatDate(iso) {
   color: rgba(255,255,255,0.42);
 }
 
-.doc-type {
-  font-size: 0.7rem;
+.doc-wordmark {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
   color: rgba(255,255,255,0.88);
+  letter-spacing: -0.02em;
+  font-optical-sizing: auto;
   margin-top: 1px;
+  line-height: 1;
 }
 
-.doc-type-code {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.14);
-  line-height: 1;
+.doc-wordmark-colon {
+  color: #6aaaf8;
 }
 
 .doc-body {
@@ -583,12 +614,64 @@ function formatDate(iso) {
   border-bottom: 1px solid rgba(100,170,248,0.45);
 }
 
-.doc-name-row {
+.doc-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.doc-library {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.42);
+  white-space: nowrap;
+}
+
+.doc-main-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 11px;
 }
+
+.doc-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.doc-right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+
+.avatar {
+  width: 72px;
+  height: 88px;
+  border-radius: 5px;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-letter {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-optical-sizing: auto;
+}
+
 
 .doc-field-label {
   font-size: 0.56rem;
@@ -608,29 +691,71 @@ function formatDate(iso) {
   font-optical-sizing: auto;
 }
 
-.doc-count-badge {
-  background: rgba(0,28,113,0.07);
-  border: 1px solid rgba(0,28,113,0.14);
-  border-radius: var(--radius-pill);
-  padding: 3px 10px;
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-  flex-shrink: 0;
-  margin-top: 2px;
+.doc-name-col {
+  min-width: 0;
 }
 
-.doc-count-badge__num {
+.doc-name-input {
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 1.35rem;
   font-weight: 700;
   color: var(--tpl-navy);
+  line-height: 1.1;
   font-optical-sizing: auto;
+  background: none;
+  border: none;
+  border-bottom: 1.5px solid rgba(0,28,113,0.2);
+  outline: none;
+  padding: 0 0 1px;
+  width: 100%;
+  min-width: 0;
 }
 
-.doc-count-badge__denom {
-  font-size: 0.75rem;
-  color: rgba(0,28,113,0.45);
+.doc-name-input::placeholder {
+  color: rgba(0,28,113,0.22);
+  font-weight: 400;
+}
+
+.doc-name-input:focus { border-bottom-color: var(--tpl-blue); }
+
+.doc-field-input {
+  font-size: 1rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--tpl-blue);
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0;
+  width: 100%;
+  min-width: 0;
+  display: block;
+}
+
+.doc-field-input::placeholder {
+  color: rgba(0,28,113,0.22);
+  font-weight: 400;
+}
+
+.doc-field-wrap {
+  border-bottom: 1px solid rgba(0,28,113,0.15);
+}
+
+.doc-field-wrap:focus-within {
+  border-bottom-color: var(--tpl-blue);
+}
+
+.doc-combobox-wrap {
+  border-bottom: 1px solid rgba(0,28,113,0.15);
+}
+
+.doc-combobox-wrap:focus-within {
+  border-bottom-color: var(--tpl-blue);
+}
+
+.doc-combobox-wrap :deep(.combo__input--inline) {
+  font-size: 0.9rem;
+  color: var(--tpl-blue);
 }
 
 .progress-track {
@@ -649,6 +774,26 @@ function formatDate(iso) {
   min-width: 2px;
 }
 
+.doc-name-col {
+  min-width: 0;
+  flex: 1;
+}
+
+.doc-fields-row {
+  display: flex;
+  gap: 16px;
+}
+
+.doc-field-col {
+  min-width: 0;
+  flex: 1;
+}
+
+.doc-field-col--branch {
+  flex: 1;
+}
+
+
 .doc-stats-line {
   display: flex;
   align-items: center;
@@ -657,9 +802,9 @@ function formatDate(iso) {
 .doc-stat-inline {
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  padding-right: 14px;
-  margin-right: 14px;
+  gap: 3px;
+  padding-right: 9px;
+  margin-right: 9px;
   border-right: 1px solid rgba(0,28,113,0.12);
 }
 
@@ -667,6 +812,34 @@ function formatDate(iso) {
   border-right: none;
   padding-right: 0;
   margin-right: 0;
+}
+
+.doc-count-chip {
+  margin-left: auto;
+  background: rgba(0,28,113,0.07);
+  border: 1px solid rgba(0,28,113,0.14);
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.doc-count-chip__num {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--tpl-navy);
+  font-optical-sizing: auto;
+}
+
+.doc-count-chip__denom {
+  font-size: 0.68rem;
+  color: rgba(0,28,113,0.45);
+}
+
+.doc-stat-inline:nth-last-child(2) {
+  border-right: none;
 }
 
 .doc-stat-num {
@@ -689,8 +862,40 @@ function formatDate(iso) {
   background: var(--tpl-navy);
   padding: 8px 14px 10px;
   display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doc-mrz-lines {
+  flex: 1;
+  display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+.doc-mrz-issued {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.doc-mrz-issued__label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.28);
+}
+
+.doc-mrz-issued__year {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.58);
+  font-optical-sizing: auto;
+  line-height: 1;
 }
 
 .doc-mrz-line {

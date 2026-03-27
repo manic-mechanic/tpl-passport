@@ -4,9 +4,6 @@
     <NuxtPage />
     <BottomNav />
 
-    <!-- First-launch onboarding (shown after cover fades) -->
-    <OnboardingScreen :show="showOnboarding" @done="showOnboarding = false" />
-
     <!-- Passport cover loading screen -->
     <Transition name="cover">
       <div v-if="showCover" class="passport-cover" aria-hidden="true">
@@ -39,17 +36,9 @@ watchEffect(() => {
 
 // Show passport cover until app is mounted and ready
 const showCover = ref(true)
-const showOnboarding = ref(false)
 
 onMounted(() => {
-  // Small delay so the cover is visible even on fast loads
-  setTimeout(() => {
-    showCover.value = false
-    // Show onboarding for first-time users only (no name set, no check-ins)
-    if (!passport.profile.hasSeenOnboarding && !passport.profile.name && !passport.checkIns.length) {
-      showOnboarding.value = true
-    }
-  }, 900)
+  setTimeout(() => { showCover.value = false }, 900)
 })
 </script>
 
