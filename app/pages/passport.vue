@@ -5,6 +5,7 @@
         <h1>Your Passport</h1>
         <p class="sub">{{ passport.visitCount }} of {{ physicalBranches.length }} stamps collected</p>
       </div>
+      <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
     </header>
 
     <div class="passport-book">
@@ -162,11 +163,22 @@ function formatVisitDate(ts) {
 <style scoped>
 .page-header {
   padding: 20px 0 18px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
 }
 .page-header h1 { margin-bottom: 4px; }
 .sub {
   font-size: 0.875rem;
   color: var(--color-text-muted);
+}
+.all-visits-link {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--tpl-blue);
+  text-decoration: none;
+  white-space: nowrap;
+  padding-bottom: 2px;
 }
 
 /* ── Book container ── */

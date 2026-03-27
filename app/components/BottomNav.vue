@@ -37,13 +37,6 @@
       <span class="nav-label">Passport</span>
     </NuxtLink>
 
-    <NuxtLink to="/history" class="nav-item" active-class="nav-item--active">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-      </svg>
-      <span class="nav-label">History</span>
-    </NuxtLink>
   </nav>
 </template>
 
