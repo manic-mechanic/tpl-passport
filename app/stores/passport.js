@@ -45,10 +45,10 @@ export const usePassportStore = defineStore('passport', () => {
     )
   }
 
-  const visitCount    = computed(() => visitedBranchCodes.value.size)
-  const progressPct   = computed(() => Math.round((visitCount.value / physicalBranches.length) * 100))
-
+  const visitCount             = computed(() => visitedBranchCodes.value.size)
   const completedChallengesCount = computed(() => completedChallenges.value.length)
+  const progressPct   = computed(() => Math.round((visitCount.value / physicalBranches.length) * 100))
+  const overallPct    = computed(() => Math.round(((visitCount.value + completedChallengesCount.value) / (physicalBranches.length * 4)) * 100))
 
   function hasCompletedChallenge(branchCode, idx) {
     return completedChallenges.value.includes(`${branchCode}:${idx}`)
@@ -159,6 +159,7 @@ export const usePassportStore = defineStore('passport', () => {
     hasVisitedToday,
     visitCount,
     progressPct,
+    overallPct,
     completedChallenges,
     completedChallengesCount,
     hasCompletedChallenge,

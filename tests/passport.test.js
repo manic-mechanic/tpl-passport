@@ -84,6 +84,42 @@ describe('progressPct', () => {
   })
 })
 
+describe('overallPct', () => {
+  it('is 0 with no visits and no challenges', () => {
+    const passport = usePassportStore()
+    expect(passport.overallPct).toBe(0)
+  })
+
+  it('counts stamps and challenges — visiting 1 branch with no challenges is 1/400 = 0%', () => {
+    const passport = usePassportStore()
+    passport.checkIn('BL')
+    expect(passport.overallPct).toBe(0) // Math.round(1/400*100) = 0
+  })
+
+  it('counts stamps and challenges — visiting 2 branches is 2/400 = 1%', () => {
+    const passport = usePassportStore()
+    passport.checkIn('BL')
+    passport.checkIn('AG')
+    expect(passport.overallPct).toBe(1) // Math.round(2/400*100) = 1
+  })
+
+  it('includes completed challenges in the numerator', () => {
+    const passport = usePassportStore()
+    passport.checkIn('BL')
+    passport.toggleChallenge('BL', 0)
+    passport.toggleChallenge('BL', 1)
+    // 1 stamp + 2 challenges = 3/400
+    expect(passport.overallPct).toBe(1) // Math.round(3/400*100) = 1
+  })
+
+  it('counts both stamps and challenges — completed demo is 100 branches + 3 challenges = 26%', () => {
+    const passport = usePassportStore()
+    passport.loadDemoState('completed')
+    // Math.round(103/400 * 100) = 26
+    expect(passport.overallPct).toBe(26)
+  })
+})
+
 describe('loadDemoState', () => {
   it('empty clears checkIns', () => {
     const passport = usePassportStore()
