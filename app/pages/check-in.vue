@@ -51,6 +51,8 @@
         <p class="sub">
           <template v-if="scanned">Scanned — <strong>{{ selectedBranch?.BranchName }}</strong></template>
           <template v-else-if="prefilled">Scanning at <strong>{{ selectedBranch?.BranchName }}</strong></template>
+          <template v-else-if="detecting">Detecting your location…</template>
+          <template v-else-if="autoDetected && selectedBranch">Nearest branch — <strong>{{ selectedBranch.BranchName }}</strong></template>
           <template v-else>Select the branch you're visiting</template>
         </p>
       </header>
@@ -67,9 +69,8 @@
         <p class="or-divider">or</p>
       </div>
 
-      <div v-if="!prefilled && !scanned" class="field-group">
-        <label class="field-label" for="branch-search">Branch</label>
-        <BranchCombobox id="branch-search" v-model="selectedCode" />
+      <div v-if="!prefilled && !scanned && !detecting" class="not-here">
+        Not at this branch? <NuxtLink to="/explore" class="not-here-link">Find a branch →</NuxtLink>
       </div>
 
       <div v-if="selectedBranch" class="stamp-area">
@@ -199,9 +200,32 @@ import { FEATURES } from '~/composables/useFeatureFlags'
 const route   = useRoute()
 const passport = usePassportStore()
 
+const FALLBACK_BRANCH = 'TRL'
+
 const selectedCode = ref(route.query.branch ?? '')
 const prefilled    = !!route.query.branch  // static — query string doesn't change after load
 const scanned      = ref(false)
+const autoDetected = ref(false)
+const detecting    = ref(false)
+
+onMounted(async () => {
+  if (prefilled) return
+  detecting.value = true
+  try {
+    const pos = await new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
+    )
+    const nearest = sortedBranches
+      .map(b => ({ ...b, distKm: haversineKm(pos.coords.latitude, pos.coords.longitude, b.Lat, b.Long) }))
+      .sort((a, b) => a.distKm - b.distKm)[0]
+    selectedCode.value = nearest.BranchCode
+  } catch {
+    selectedCode.value = FALLBACK_BRANCH
+  } finally {
+    detecting.value = false
+    autoDetected.value = true
+  }
+})
 
 
 
@@ -448,6 +472,20 @@ onUnmounted(() => {
   letter-spacing: 0;
   color: var(--color-text-muted);
 }
+
+.not-here {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-bottom: 20px;
+}
+
+.not-here-link {
+  color: var(--tpl-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.not-here-link:hover { text-decoration: underline; }
 
 /* QR primary area */
 .qr-primary-area {
