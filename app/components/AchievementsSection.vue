@@ -7,7 +7,7 @@
     <div class="badge-grid">
       <div v-for="badge in ACHIEVEMENTS" :key="badge.id" class="badge-item" :title="badge.desc">
         <div class="badge-shape" :class="[`badge-shape--${badge.shape}`, getBadgeColorClass(badge)]" :style="getBadgeInlineStyle(badge)">
-          <template v-if="badge.id === 'compass'">
+          <template v-if="badge.id === 'navigator'">
             <svg class="compass-rose" viewBox="0 0 64 64" aria-hidden="true">
               <defs>
                 <linearGradient id="compass-border-grad" x1="0" y1="0" x2="1" y2="1">
@@ -113,12 +113,12 @@ function compassLineColor(dir) {
 
 // world_tour and compass use inline gradients; everything else uses a color class
 function getBadgeColorClass(badge) {
-  if (badge.id === 'world_tour' || badge.id === 'compass') return null
+  if (badge.id === 'world_tour' || badge.id === 'navigator') return null
   return badge.earned(achievementCtx.value) ? `badge-shape--${badge.id}` : 'badge-shape--locked'
 }
 function getBadgeInlineStyle(badge) {
   if (badge.id === 'world_tour') return { background: worldTourGradient() }
-  if (badge.id === 'compass')    return { background: compassGradient() }
+  if (badge.id === 'navigator')  return { background: compassGradient() }
   return {}
 }
 </script>

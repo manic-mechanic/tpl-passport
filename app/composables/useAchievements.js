@@ -98,7 +98,7 @@ export const ACHIEVEMENTS = [
 
   { id: 'adventurer',    shape: 'octagon', title: 'Adventurer',     label: '25',  desc: 'Visit 25 branches',
     earned: ctx => ctx.visitCount >= 25,  progress: ctx => ({ current: ctx.visitCount, total: 25 }) },
-  { id: 'compass',       shape: 'circle',  title: 'Compass',                      desc: 'Visit the furthest branch in each direction: Goldhawk Park (N), Port Union (E), Long Branch (S), Humberwood (W)',
+  { id: 'navigator',     shape: 'circle',  title: 'Navigator',                    desc: 'Visit the furthest branch in each direction: Goldhawk Park (N), Port Union (E), Long Branch (S), Humberwood (W)',
     earned: ctx => [...compassBranches].every(code => ctx.visitedBranchCodes.has(code)) },
   { id: 'familiar_face', shape: 'star',    title: 'Familiar Face',                desc: 'Check in at your home branch 5 times',
     earned: ctx => ctx.homeVisitCount >= 5, stat: ctx => ctx.homeVisitCount,

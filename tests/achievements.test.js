@@ -192,18 +192,18 @@ describe('achievement: district_champ', () => {
   })
 })
 
-describe('achievement: compass', () => {
+describe('achievement: navigator', () => {
   it('correctly identifies 1–4 extreme branches', () => {
     expect(compassBranches.size).toBeGreaterThanOrEqual(1)
     expect(compassBranches.size).toBeLessThanOrEqual(4)
   })
 
   it('not earned when extreme branches are not all visited', () => {
-    expect(badge('compass').earned(ctx())).toBe(false)
+    expect(badge('navigator').earned(ctx())).toBe(false)
   })
 
   it('earned when all extreme branches are visited', () => {
-    expect(badge('compass').earned(ctx({ visitedBranchCodes: new Set(compassBranches) }))).toBe(true)
+    expect(badge('navigator').earned(ctx({ visitedBranchCodes: new Set(compassBranches) }))).toBe(true)
   })
 })
 
