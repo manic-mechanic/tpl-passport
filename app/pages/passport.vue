@@ -1,6 +1,6 @@
 <template>
   <main class="page-content">
-    <div class="sticky-top">
+    <div class="sticky-top" ref="stickyTopRef">
       <header class="page-header">
         <div>
           <h1>Your Passport</h1>
@@ -9,8 +9,13 @@
         <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
       </header>
 
-      <!-- Page navigation pills -->
-      <nav class="page-nav" aria-label="Passport pages">
+      <div class="tab-strip" role="tablist">
+        <button class="tab" :class="{ 'tab--active': activeTab === 'stamps' }" role="tab" :aria-selected="activeTab === 'stamps'" @click="activeTab = 'stamps'">Stamps</button>
+        <button class="tab" :class="{ 'tab--active': activeTab === 'badges' }" role="tab" :aria-selected="activeTab === 'badges'" @click="activeTab = 'badges'">Badges</button>
+      </div>
+
+      <!-- Page navigation pills — stamps tab only -->
+      <nav v-show="activeTab === 'stamps'" class="page-nav" aria-label="Passport pages">
       <button
         v-for="(page, i) in branchesByAlphaPage"
         :key="page.label"
@@ -27,7 +32,7 @@
       </nav>
     </div>
 
-    <div class="passport-book">
+    <div v-show="activeTab === 'stamps'" class="passport-book">
       <section
         v-for="(page, i) in branchesByAlphaPage"
         :key="page.label"
@@ -75,6 +80,10 @@
           <div v-if="page.branches.length % 2 !== 0" class="stamp-slot stamp-slot--phantom" aria-hidden="true" />
         </div>
       </section>
+    </div>
+
+    <div v-show="activeTab === 'badges'" class="badges-tab">
+      <AchievementsSection />
     </div>
   </main>
 
@@ -125,9 +134,23 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 
 const passport = usePassportStore()
-const activeStamp = ref(null)
-const activePage  = ref(0)
-const sectionEls  = []
+const route = useRoute()
+
+const activeTab     = ref('stamps')
+const activeStamp   = ref(null)
+const activePage    = ref(0)
+const sectionEls    = []
+const stickyTopRef  = ref(null)
+const stickyHeight  = ref(156) // measured on mount; drives section header top + scroll-spy threshold
+
+function remeasureStickyHeight() {
+  if (stickyTopRef.value) stickyHeight.value = stickyTopRef.value.offsetHeight
+}
+
+watch(activeTab, async () => {
+  await nextTick()
+  remeasureStickyHeight()
+})
 
 // Suppress scroll-spy during programmatic scroll so pill tap doesn't get overridden
 let suppressSpy = false
@@ -139,7 +162,7 @@ function onScroll() {
   let active = 0
   for (let i = 0; i < sectionEls.length; i++) {
     if (!sectionEls[i]) continue
-    if (sectionEls[i].getBoundingClientRect().top <= 122) active = i
+    if (sectionEls[i].getBoundingClientRect().top <= stickyHeight.value) active = i
   }
   activePage.value = active
 }
@@ -184,6 +207,8 @@ function onKeydown(e) {
 
 onMounted(() => {
   if (!import.meta.client) return
+  if (route.query.tab === 'badges') activeTab.value = 'badges'
+  remeasureStickyHeight()
   window.addEventListener('scroll', onScroll, { passive: true })
   document.addEventListener('keydown', onKeydown)
   // Fade-in: sections become visible as they enter the viewport
@@ -306,7 +331,7 @@ function formatVisitDate(ts) {
 
 /* ── Each alpha "page" — full-bleed section ── */
 .passport-page {
-  scroll-margin-top: 122px; /* clears sticky-top on pill tap */
+  scroll-margin-top: v-bind('(stickyHeight + 4) + "px"');
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.04);
   /* Fade in as section enters viewport */
@@ -334,7 +359,7 @@ function formatVisitDate(ts) {
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   transition: background 0.2s ease;
   position: sticky;
-  top: 122px; /* sits just below .sticky-top */
+  top: v-bind('stickyHeight + "px"');
   z-index: 5;
   background: color-mix(in srgb, var(--color-bg) 28%, white);
 }
@@ -460,6 +485,38 @@ function formatVisitDate(ts) {
   font-size: 0.62rem;
   color: var(--color-text-muted);
   font-weight: 500;
+}
+
+/* ── Stamps / Badges tab strip ── */
+.tab-strip {
+  display: flex;
+  border-bottom: 1.5px solid var(--color-border);
+}
+
+.tab {
+  padding: 9px 4px 10px;
+  margin-right: 22px;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.tab--active {
+  color: var(--color-brand-text);
+  border-bottom-color: var(--tpl-navy);
+}
+
+/* Badges tab content — small top gap from sticky header */
+.badges-tab {
+  padding-top: 4px;
 }
 
 /* ── Bottom sheet backdrop ── */
