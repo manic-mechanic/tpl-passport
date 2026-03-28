@@ -1,7 +1,7 @@
 <template>
   <main class="page-content">
     <div class="sticky-top" ref="stickyTopRef">
-      <header class="page-header">
+      <header class="page-header" ref="pageHeaderRef">
         <div>
           <h1>Your Passport</h1>
           <p class="sub">{{ passport.visitCount }} of {{ physicalBranches.length }} stamps collected</p>
@@ -26,7 +26,10 @@
         </button>
         <button
           class="page-pill"
-          :class="{ 'page-pill--active': activePage === BADGES_IDX }"
+          :class="{
+            'page-pill--active':   activePage === BADGES_IDX,
+            'page-pill--complete': endorsementsEarned === ACHIEVEMENTS.length,
+          }"
           @click="scrollToPage(BADGES_IDX)"
           :aria-current="activePage === BADGES_IDX ? 'true' : undefined"
         >
@@ -57,87 +60,70 @@
 
         <div class="stamp-grid">
           <template v-for="branch in page.branches" :key="branch.BranchCode">
-            <!-- Visited: button opens detail sheet -->
             <button
-              v-if="passport.hasVisited(branch.BranchCode)"
-              class="stamp-slot stamp-slot--collected"
+              class="stamp-slot"
+              :class="{ 'stamp-slot--collected': passport.hasVisited(branch.BranchCode) }"
               @click="openSheet(branch)"
             >
-              <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" />
-              <span class="stamp-name">{{ branch.BranchName }}</span>
-              <span class="stamp-date">{{ visitDate(branch.BranchCode) }}</span>
-            </button>
-            <!-- Unvisited: ghosted stamp links to branch page -->
-            <NuxtLink
-              v-else
-              :to="`/branch/${branch.BranchCode}`"
-              class="stamp-slot"
-            >
-              <div class="stamp-ghost">
+              <div v-if="!passport.hasVisited(branch.BranchCode)" class="stamp-ghost">
                 <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" />
               </div>
-              <span class="stamp-name stamp-name--unseen">{{ branch.BranchName }}</span>
-            </NuxtLink>
+              <StampShape v-else :branchCode="branch.BranchCode" :wardNo="branch.WardNo" />
+              <span class="stamp-name" :class="{ 'stamp-name--unseen': !passport.hasVisited(branch.BranchCode) }">{{ branch.BranchName }}</span>
+              <span v-if="passport.hasVisited(branch.BranchCode)" class="stamp-date">{{ visitDate(branch.BranchCode) }}</span>
+            </button>
           </template>
           <!-- phantom cell keeps the grid even when a page has an odd branch count -->
           <div v-if="page.branches.length % 2 !== 0" class="stamp-slot stamp-slot--phantom" aria-hidden="true" />
         </div>
       </section>
-      <div :ref="el => { if (el) sectionEls[BADGES_IDX] = el }" class="badges-section">
+      <div
+        :ref="el => { if (el) sectionEls[BADGES_IDX] = el }"
+        class="badges-section"
+        :class="{ 'badges-section--complete': endorsementsEarned === ACHIEVEMENTS.length }"
+      >
         <div class="page-header-row">
           <span class="page-range">Endorsements</span>
           <div class="page-header-right">
+            <svg v-if="endorsementsEarned === ACHIEVEMENTS.length" class="page-seal" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
+              <circle cx="10" cy="10" r="8.5" stroke-width="1.5"/>
+              <circle cx="10" cy="10" r="5.5" stroke-width="1" opacity="0.35"/>
+              <polyline points="6.5 10 9 12.5 13.5 7.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <span class="page-count">{{ endorsementsEarned }}/{{ ACHIEVEMENTS.length }}</span>
           </div>
         </div>
-        <AchievementsSection />
+        <AchievementsSection :sheet-height="sheetHeight" />
       </div>
     </div>
   </main>
 
-  <!-- Stamp detail bottom sheet -->
-  <Teleport to="body">
-    <div v-if="activeStamp" class="sheet-backdrop" @click="closeSheet">
-      <div class="stamp-sheet" @click.stop role="dialog" :aria-label="`${activeStamp.BranchName} stamp detail`">
-        <div class="sheet-top-row">
-          <div class="sheet-handle" />
-          <button class="sheet-close" @click="closeSheet" aria-label="Close">
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-              <line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="sheet-stamp">
-          <StampShape :branchCode="activeStamp.BranchCode" :wardNo="activeStamp.WardNo" :size="72" />
-        </div>
-
-        <h2 class="sheet-name">{{ activeStamp.BranchName }}</h2>
-
-        <div class="sheet-visits">
-          <div v-for="ci in branchVisits" :key="ci.timestamp" class="visit-row">
-            <span class="visit-date">{{ formatVisitDate(ci.timestamp) }}</span>
-            <p v-if="ci.note" class="visit-note">{{ ci.note }}</p>
-            <span v-if="ci.hasPhoto" class="visit-photo">Photo saved</span>
-          </div>
-        </div>
-
-        <NuxtLink
-          :to="`/branch/${activeStamp.BranchCode}`"
-          class="sheet-branch-link"
-          @click="closeSheet"
-        >
-          Branch info
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="link-arrow" aria-hidden="true">
-            <line x1="4" y1="10" x2="16" y2="10"/><polyline points="11 5 16 10 11 15"/>
+  <!-- Stamp detail sheet (vaul-vue) -->
+  <DrawerRoot v-model:open="sheetOpen" :noBodyStyles="true">
+    <DrawerPortal>
+      <DrawerOverlay class="sheet-overlay" />
+      <DrawerContent
+        class="stamp-sheet"
+        :style="{ height: sheetHeight }"
+        :aria-label="activeStamp?.BranchName + ' stamp detail'"
+      >
+        <div class="sheet-handle-row"><div class="sheet-handle-bar" /></div>
+        <button class="sheet-close" @click="sheetOpen = false" aria-label="Close">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="6" y1="6" x2="14" y2="14"/><line x1="14" y1="6" x2="6" y2="14"/>
           </svg>
-        </NuxtLink>
-      </div>
-    </div>
-  </Teleport>
+        </button>
+
+        <div v-if="activeStamp" class="sheet-scroll">
+          <BranchDetail :branch="activeStamp" />
+        </div>
+      </DrawerContent>
+    </DrawerPortal>
+  </DrawerRoot>
 </template>
 
 <script setup>
+import { DrawerRoot, DrawerPortal, DrawerOverlay, DrawerContent } from 'vaul-vue'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { ACHIEVEMENTS, buildAchievementCtx } from '~/composables/useAchievements'
@@ -147,13 +133,21 @@ const route = useRoute()
 
 const BADGES_IDX  = branchesByAlphaPage.length  // index of the Badges pill (= 5)
 const activeStamp  = ref(null)
+const sheetOpen    = ref(false)
 const activePage   = ref(0)
 const sectionEls   = []
-const stickyTopRef = ref(null)
-const stickyHeight = ref(156) // measured on mount; drives section header top + scroll-spy threshold
+const stickyTopRef   = ref(null)
+const pageHeaderRef  = ref(null)
+const stickyHeight   = ref(156) // full sticky block height — drives section header top + scroll-spy
+const pageHeaderHeight = ref(68) // just the h1 row — drives sheet top edge
+
+const sheetHeight = computed(() =>
+  `calc(100dvh - var(--nav-height) - ${pageHeaderHeight.value}px)`
+)
 
 function remeasureStickyHeight() {
-  if (stickyTopRef.value) stickyHeight.value = stickyTopRef.value.offsetHeight
+  if (stickyTopRef.value)  stickyHeight.value   = stickyTopRef.value.offsetHeight
+  if (pageHeaderRef.value) pageHeaderHeight.value = pageHeaderRef.value.offsetHeight
 }
 
 const endorsementsEarned = computed(() => {
@@ -198,42 +192,22 @@ function scrollToPage(i) {
 
 let fadeObserver
 
-const branchVisits = computed(() => {
-  if (!activeStamp.value) return []
-  return passport.checkIns
-    .filter(c => c.branchCode === activeStamp.value.BranchCode)
-    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-})
-
 function openSheet(branch) {
   activeStamp.value = branch
-}
-
-function closeSheet() {
-  activeStamp.value = null
-}
-
-// Lock body scroll while sheet is open
-watch(activeStamp, (val) => {
-  if (import.meta.client) {
-    document.body.style.overflow = val ? 'hidden' : ''
-  }
-})
-
-// Close sheet on Escape
-function onKeydown(e) {
-  if (e.key === 'Escape') closeSheet()
+  sheetOpen.value = true
 }
 
 onMounted(async () => {
   if (!import.meta.client) return
-  if (route.query.tab === 'badges') {
+  if (route.hash === '#endorsements') {
     await nextTick()
+    activePage.value = BADGES_IDX
+    suppressSpy = true
     sectionEls[BADGES_IDX]?.scrollIntoView({ block: 'start' })
+    suppressTimer = setTimeout(() => { suppressSpy = false }, 900)
   }
   remeasureStickyHeight()
   window.addEventListener('scroll', onScroll, { passive: true })
-  document.addEventListener('keydown', onKeydown)
   // Fade-in: sections become visible as they enter the viewport
   fadeObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -246,9 +220,7 @@ onMounted(async () => {
 onUnmounted(() => {
   if (!import.meta.client) return
   window.removeEventListener('scroll', onScroll)
-  document.removeEventListener('keydown', onKeydown)
   fadeObserver?.disconnect()
-  document.body.style.overflow = ''
   clearTimeout(suppressTimer)
 })
 
@@ -264,10 +236,6 @@ function visitDate(branchCode) {
   const c = passport.checkIns.find(x => x.branchCode === branchCode)
   if (!c) return ''
   return new Date(c.timestamp).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
-}
-
-function formatVisitDate(ts) {
-  return new Date(ts).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 </script>
 
@@ -298,7 +266,7 @@ function formatVisitDate(ts) {
   color: var(--color-text-muted);
 }
 .all-visits-link {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--tpl-blue);
   text-decoration: none;
@@ -321,7 +289,7 @@ function formatVisitDate(ts) {
   border: 1.5px solid var(--color-border);
   background: none;
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--color-text-muted);
   cursor: pointer;
@@ -387,13 +355,14 @@ function formatVisitDate(ts) {
   background: var(--color-bg);
 }
 
-.passport-page--complete .page-header-row {
+.passport-page--complete .page-header-row,
+.badges-section--complete .page-header-row {
   background: color-mix(in srgb, #c87820 10%, var(--color-bg));
 }
 
 .page-range {
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-brand-text);
   letter-spacing: 0.04em;
@@ -413,7 +382,7 @@ function formatVisitDate(ts) {
 }
 
 .page-count {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   color: var(--color-text-muted);
   font-weight: 500;
 }
@@ -450,8 +419,7 @@ function formatVisitDate(ts) {
   padding: 20px 12px;
   min-height: 140px;
   border-bottom: 1.5px dashed var(--color-border);
-  /* Reset for both <button> and <a> */
-  text-decoration: none;
+  /* Reset <button> */
   color: var(--color-text);
   background: none;
   border-top: none;
@@ -460,19 +428,15 @@ function formatVisitDate(ts) {
   font: inherit;
   width: 100%;
   box-sizing: border-box;
-  cursor: default;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* border-bottom uses var(--color-border) which already adapts in dark mode */
 
 .stamp-slot--collected {
   cursor: pointer;
-}
-.stamp-slot--collected:hover {
-  background: rgba(0, 0, 0, 0.02);
-}
-.stamp-slot--collected:active :deep(.stamp-shape) {
-  transform: scale(0.94) rotate(calc(var(--stamp-rotate, 0deg) - 2deg));
+  -webkit-tap-highlight-color: transparent;
 }
 
 .stamp-slot--phantom {
@@ -486,7 +450,7 @@ function formatVisitDate(ts) {
 }
 
 .stamp-name {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   text-align: center;
   color: var(--color-text-mid);
@@ -500,7 +464,7 @@ function formatVisitDate(ts) {
 }
 
 .stamp-date {
-  font-size: 0.62rem;
+  font-size: 0.625rem;
   color: var(--color-text-muted);
   font-weight: 500;
 }
@@ -510,154 +474,83 @@ function formatVisitDate(ts) {
   scroll-margin-top: v-bind('(stickyHeight + 4) + "px"');
 }
 
-/* ── Bottom sheet backdrop ── */
-.sheet-backdrop {
+/* ── vaul-vue sheet overlay — stops at nav top, sits behind nav ── */
+:global(.sheet-overlay) {
   position: fixed;
-  inset: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
+  bottom: var(--nav-height);
   background: rgba(0, 0, 0, 0.42);
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
+  z-index: 90;
 }
 
-/* ── Bottom sheet ── */
-.stamp-sheet {
-  width: 100%;
+
+/* ── vaul-vue sheet content ── */
+:global(.stamp-sheet) {
+  position: fixed;
+  bottom: var(--nav-height) !important;
+  left: 0; right: 0;
+  margin: 0 auto;
   max-width: 480px;
-  background: var(--color-bg);
+  background: var(--color-bg) !important;
   border-radius: 20px 20px 0 0;
-  padding: 0 20px 40px;
-  max-height: 78vh;
-  overflow-y: auto;
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  z-index: 90;
+  overflow: hidden;
+  outline: none;
 }
 
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
-}
-
-.sheet-top-row {
+/* Handle row */
+.sheet-handle-row {
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 12px 0 8px;
-  position: relative;
+  padding: 14px 0 8px;
 }
 
-.sheet-handle {
+.sheet-handle-bar {
   width: 36px;
   height: 4px;
   background: rgba(0, 0, 0, 0.18);
   border-radius: 2px;
 }
 
-:global([data-theme="dark"]) .sheet-handle { background: rgba(255, 255, 255, 0.2); }
 @media (prefers-color-scheme: dark) {
-  .sheet-handle { background: rgba(255, 255, 255, 0.2); }
+  .sheet-handle-bar { background: rgba(255, 255, 255, 0.2); }
 }
+:global([data-theme="dark"]) .sheet-handle-bar { background: rgba(255, 255, 255, 0.2); }
 
+/* Close button */
 .sheet-close {
   position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+  top: 10px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
   border: none;
-  padding: 6px;
   cursor: pointer;
-  color: var(--color-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.sheet-close svg {
-  width: 18px;
-  height: 18px;
-}
-
-.sheet-stamp {
-  display: flex;
-  justify-content: center;
-  padding: 16px 0 12px;
-}
-
-.sheet-name {
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 700;
-  text-align: center;
-  color: var(--color-brand-text);
-  margin-bottom: 20px;
-  line-height: 1.25;
-}
-
-/* ── Visit list ── */
-.sheet-visits {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.visit-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
-}
-
-:global([data-theme="dark"]) .visit-row { background: rgba(255, 255, 255, 0.05); }
-@media (prefers-color-scheme: dark) {
-  .visit-row { background: rgba(255, 255, 255, 0.05); }
-}
-
-.visit-date {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text-mid);
-}
-
-.visit-note {
-  font-size: 0.82rem;
   color: var(--color-text);
-  line-height: 1.45;
-  margin: 2px 0 0;
-}
-
-.visit-photo {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  margin-top: 2px;
-}
-
-/* ── Branch info link ── */
-.sheet-branch-link {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 13px;
-  border-radius: 10px;
-  background: var(--tpl-blue);
-  color: #fff;
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+  z-index: 1;
+}
+.sheet-close:active { background: rgba(0, 0, 0, 0.2); }
+.sheet-close svg { width: 16px; height: 16px; }
+
+@media (prefers-color-scheme: dark) {
+  .sheet-close { background: rgba(255, 255, 255, 0.14); }
+  .sheet-close:active { background: rgba(255, 255, 255, 0.24); }
+}
+:global([data-theme="dark"]) .sheet-close { background: rgba(255, 255, 255, 0.14); }
+:global([data-theme="dark"]) .sheet-close:active { background: rgba(255, 255, 255, 0.24); }
+
+/* Scrollable content */
+.sheet-scroll {
+  height: calc(100% - 48px);
+  overflow-y: auto;
+  padding: 0 20px 32px;
 }
 
-.link-arrow {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
 </style>

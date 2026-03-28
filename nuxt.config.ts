@@ -16,8 +16,9 @@ export default defineNuxtConfig({
     head: {
       title: 'TPL Passport',
       meta: [
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         // PWA + iOS installability
-        { name: 'theme-color', content: '#001c71', media: '(prefers-color-scheme: light)' },
+        { name: 'theme-color', content: '#000e50', media: '(prefers-color-scheme: light)' },
         { name: 'theme-color', content: '#0e1236', media: '(prefers-color-scheme: dark)' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-title', content: 'TPL Passport' },
