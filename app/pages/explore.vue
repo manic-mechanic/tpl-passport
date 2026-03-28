@@ -75,22 +75,31 @@
     <section v-show="activeTab === 'working-toward'" class="explore-section">
       <div class="badge-suggestions">
         <div v-for="s in badgeSuggestions" :key="s.id" class="suggestion-card">
-          <div class="suggestion-header">
-            <span class="suggestion-title">{{ s.title }}</span>
-            <div class="suggestion-bar">
-              <div class="suggestion-fill" :style="{ width: (s.pct * 100) + '%' }" />
-            </div>
+          <div
+            class="suggestion-badge"
+            :class="`suggestion-badge--${s.shape}`"
+            :style="{ background: badgeBg(s.id) }"
+          >
+            <span v-if="s.label" class="suggestion-badge-label">{{ s.label }}</span>
           </div>
-          <p class="suggestion-message">{{ s.message }}</p>
-          <div v-if="s.branches.length" class="suggestion-chips">
-            <button
-              v-for="b in s.branches"
-              :key="b.BranchCode"
-              class="branch-chip"
-              @click.stop="openBranchSheet(b)"
-            >
-              {{ b.BranchName }}
-            </button>
+          <div class="suggestion-body">
+            <div class="suggestion-header">
+              <span class="suggestion-title">{{ s.title }}</span>
+              <div class="suggestion-bar">
+                <div class="suggestion-fill" :style="{ width: (s.pct * 100) + '%' }" />
+              </div>
+            </div>
+            <p class="suggestion-message">{{ s.message }}</p>
+            <div v-if="s.branches.length" class="suggestion-chips">
+              <button
+                v-for="b in s.branches"
+                :key="b.BranchCode"
+                class="branch-chip"
+                @click.stop="openBranchSheet(b)"
+              >
+                {{ b.BranchName }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -424,11 +433,28 @@ const badgeSuggestions = computed(() => {
       }
     }
 
-    if (message) suggestions.push({ id: a.id, title: a.title, pct, message, branches })
+    if (message) suggestions.push({ id: a.id, title: a.title, shape: a.shape, label: a.label ?? null, pct, message, branches })
   }
 
   return suggestions.sort((a, b) => b.pct - a.pct).slice(0, 3)
 })
+
+const BADGE_BG = {
+  first:         'radial-gradient(circle, #7ab4ec 0%, #3878c4 100%)',
+  explorer:      'radial-gradient(circle, #4a90d9 0%, #0048a8 100%)',
+  adventurer:    'radial-gradient(circle, #2e74c8 0%, #0030a0 100%)',
+  globetrotter:  'radial-gradient(circle, #1e60b4 0%, #001e78 100%)',
+  complete:      'radial-gradient(circle, #001c70 0%, #000640 100%)',
+  page_filler:   'radial-gradient(circle, #52cc84 0%, #1a6640 100%)',
+  page_turner:   'radial-gradient(circle, #52cc84 0%, #1a6640 100%)',
+  day_tripper:   'radial-gradient(circle, #eaa040 0%, #9e3c14 100%)',
+  archivist:     'radial-gradient(circle, #eaa040 0%, #9e3c14 100%)',
+  familiar_face: 'radial-gradient(circle, #eaa040 0%, #9e3c14 100%)',
+  return_visitor:'radial-gradient(circle, #eaa040 0%, #9e3c14 100%)',
+  navigator:     'radial-gradient(circle, #5a8fd8 0%, #1a4490 100%)',
+}
+
+function badgeBg(id) { return BADGE_BG[id] ?? 'var(--color-border)' }
 
 // ── Suggested Routes ─────────────────────────────────────────────────
 const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
@@ -684,12 +710,38 @@ const visibleDistricts = computed(() =>
 }
 
 .suggestion-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
   padding: 14px 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
 }
+
+.suggestion-badge {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suggestion-badge--octagon { clip-path: polygon(29% 0%, 71% 0%, 100% 29%, 100% 71%, 71% 100%, 29% 100%, 0% 71%, 0% 29%); }
+.suggestion-badge--circle  { border-radius: 50%; }
+.suggestion-badge--star    { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+
+.suggestion-badge-label {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.suggestion-body { flex: 1; min-width: 0; }
 
 .suggestion-header {
   display: flex;
