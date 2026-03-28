@@ -38,14 +38,14 @@
         <p class="section-label">{{ district }}</p>
         <ul class="branch-list">
           <li v-for="branch in byRegion[district]" :key="branch.BranchCode">
-            <BranchRow :branch="branch" as-button @select="openSheet" />
+            <BranchRow :branch="branch" as-button no-meta @select="openSheet" />
           </li>
         </ul>
       </div>
     </template>
     <ul v-else class="branch-list">
       <li v-for="branch in filteredBranches" :key="branch.BranchCode">
-        <BranchRow :branch="branch" as-button @select="openSheet" />
+        <BranchRow :branch="branch" as-button no-meta @select="openSheet" />
       </li>
     </ul>
 

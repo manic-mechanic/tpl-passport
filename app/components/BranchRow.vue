@@ -3,7 +3,7 @@
     <div class="branch-dot" :style="dotStyle" />
     <div class="branch-info">
       <span class="branch-name">{{ branch.BranchName }}</span>
-      <span class="branch-meta">{{ region }}</span>
+      <span v-if="!noMeta" class="branch-meta">{{ region }}</span>
     </div>
     <div class="branch-right">
       <svg v-if="visited" class="visited-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -18,7 +18,7 @@
     <div class="branch-dot" :style="dotStyle" />
     <div class="branch-info">
       <span class="branch-name">{{ branch.BranchName }}</span>
-      <span class="branch-meta">{{ region }}</span>
+      <span v-if="!noMeta" class="branch-meta">{{ region }}</span>
     </div>
     <div class="branch-right">
       <svg v-if="visited" class="visited-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -39,6 +39,7 @@ const props = defineProps({
   branch:   { type: Object, required: true },
   distance: { type: String, default: null },
   asButton: { type: Boolean, default: false },
+  noMeta:   { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['select'])
@@ -60,6 +61,7 @@ const dotStyle = computed(() => ({
   align-items: center;
   gap: 12px;
   padding: 13px 14px;
+  width: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius);
@@ -85,9 +87,6 @@ const dotStyle = computed(() => ({
 .branch-info {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
 .branch-name {

@@ -163,7 +163,7 @@ const ALL_PAGES = [...branchesByAlphaPage.map(p => p.label), 'Extra Credit']
 const activeStamp    = ref(null)
 const sheetOpen      = ref(false)
 watch(sheetOpen, open => { if (!open) activeStamp.value = null })
-const activePage     = ref(0)
+const activePage     = ref(route.query.page !== undefined ? Number(route.query.page) : 0)
 const stickyTopRef   = ref(null)
 const pageHeaderRef  = ref(null)
 const stickyHeight   = ref(156)  // sticky block height — drives page-header-row top
@@ -261,18 +261,15 @@ function visitDate(branchCode) {
   display: flex;
   margin: 0 -18px;
   padding: 0 18px;
-  overflow-x: auto;
-  scrollbar-width: none;
   border-bottom: 1.5px solid var(--color-border-soft);
 }
 
-.page-nav::-webkit-scrollbar { display: none; }
-
 .page-tab {
-  flex-shrink: 0;
-  padding: 10px 10px;
+  flex: 1;
+  padding: 10px 6px;
   border: none;
-  border-bottom: 2.5px solid transparent;
+  border-right: 1px solid var(--color-border-soft);
+  border-bottom: 2.5px solid var(--color-bg);
   margin-bottom: -1.5px;
   background: none;
   font-size: 0.8125rem;
@@ -289,6 +286,8 @@ function visitDate(branchCode) {
   color: var(--tpl-navy);
   border-bottom-color: var(--tpl-navy);
 }
+
+.page-tab:last-child { border-right: none; }
 
 /* Completed — light blue background signals progress without conflicting with active underline */
 .page-tab--complete {

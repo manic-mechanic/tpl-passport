@@ -8,20 +8,20 @@
       <span class="nav-label">Home</span>
     </NuxtLink>
 
-    <NuxtLink to="/passport" class="nav-item" active-class="nav-item--active">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-      </svg>
-      <span class="nav-label">Passport</span>
-    </NuxtLink>
-
     <NuxtLink to="/explore" class="nav-item" active-class="nav-item--active">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
         <circle cx="12" cy="12" r="10"/>
         <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
       </svg>
       <span class="nav-label">Explore</span>
+    </NuxtLink>
+
+    <NuxtLink to="/passport" class="nav-item" active-class="nav-item--active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+      </svg>
+      <span class="nav-label">Passport</span>
     </NuxtLink>
 
     <!-- Primary action — check-in -->

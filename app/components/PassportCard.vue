@@ -1,18 +1,7 @@
 <template>
   <section class="passport-card">
-    <div class="card-header">
-      <img src="/tpl-meta-card.png" class="seal" alt="" aria-hidden="true" />
-      <div class="header-text">
-        <p class="wordmark">passport<span class="wordmark-colon">:</span></p>
-        <p class="library-name">Toronto Public Library</p>
-      </div>
-      <NuxtLink to="/settings" class="settings-btn" aria-label="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-          <path
-            d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-        </svg>
-      </NuxtLink>
+    <div class="card-top">
+      <p class="library-name">Toronto Public Library</p>
     </div>
 
     <div class="card-body">
@@ -121,80 +110,28 @@ const mrzLine2 = computed(() => {
 
 <style scoped>
 .passport-card {
-  margin: 12px -18px 12px;
-  width: calc(100% + 36px);
+  margin: 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-md);
 }
 
-.card-header {
+.card-top {
   background: var(--tpl-navy);
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.header-text {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex: 1;
-}
-
-.seal {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  object-fit: contain;
-  opacity: 0.7;
-}
-
-.wordmark {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.88);
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
-  line-height: 1;
-}
-
-.wordmark-colon {
-  color: #6aaaf8;
+  padding: 10px 16px 8px;
 }
 
 .library-name {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.42);
-  white-space: nowrap;
-  line-height: 1;
-  align-self: auto;
-}
-
-.settings-btn {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.settings-btn svg {
-  width: 24px;
-  height: 24px;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .card-body {
   background: var(--color-bg);
   padding: 10px 16px 10px;
-  border-top: 1px solid rgba(100, 170, 248, 0.45);
   border-bottom: 1px solid rgba(100, 170, 248, 0.45);
 }
 

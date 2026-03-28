@@ -9,7 +9,7 @@
       <NuxtLink
         v-for="branch in recentBranches"
         :key="branch.BranchCode"
-        :to="`/branch/${branch.BranchCode}`"
+        :to="`/passport?page=${passportPageIndex(branch.BranchName)}`"
         class="stamp-slot"
       >
         <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="44" />
@@ -28,7 +28,12 @@
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches } from '~/composables/useRegion'
+import { physicalBranches, ALPHA_PAGES } from '~/composables/useRegion'
+
+function passportPageIndex(branchName) {
+  const c = branchName[0].toUpperCase()
+  return ALPHA_PAGES.findIndex(p => c >= p.from && c <= p.to)
+}
 
 const passport = usePassportStore()
 
