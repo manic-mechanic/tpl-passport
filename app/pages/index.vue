@@ -10,7 +10,7 @@
       </NuxtLink>
       <NuxtLink to="/check-in" class="cta-card cta-card--primary">
         <span class="cta-title">Check In</span>
-        <span class="cta-desc">Stamp the moment <ArrowIcon class="cta-arrow" /></span>
+        <span class="cta-desc">Record your visit <ArrowIcon class="cta-arrow" /></span>
       </NuxtLink>
     </div>
 

@@ -5,7 +5,7 @@
       <NuxtLink v-if="recentBranches.length" to="/passport" class="see-all">See all</NuxtLink>
     </div>
 
-    <div class="stamp-strip" :class="{ 'stamp-strip--single': rowLimit === 3 }">
+    <div class="stamp-strip">
       <NuxtLink
         v-for="branch in recentBranches"
         :key="branch.BranchCode"
@@ -42,13 +42,12 @@ const recentBranches = computed(() => {
     seen.add(ci.branchCode)
     const branch = physicalBranches.find(b => b.BranchCode === ci.branchCode)
     if (branch) result.push(branch)
-    if (result.length >= 6) break
+    if (result.length >= 3) break
   }
   return result
 })
 
-const rowLimit = computed(() => recentBranches.value.length > 3 ? 6 : 3)
-const placeholderCount = computed(() => Math.max(0, rowLimit.value - recentBranches.value.length))
+const placeholderCount = computed(() => Math.max(0, 3 - recentBranches.value.length))
 
 // Fake codes that hash to shape indices 0/1/2 — square, soft-square, circle
 const GHOST_CODES = ['GH4', 'GH5', 'GH1']
@@ -93,13 +92,8 @@ const GHOST_WARDS = [5, 9, 3]
   border-bottom: 1.5px dashed var(--color-border);
 }
 
-/* No bottom border on the last row (2-row layout) */
-.stamp-slot:nth-child(n+4) {
-  border-bottom: none;
-}
-
-/* Single row — no bottom border on any cell */
-.stamp-strip--single .stamp-slot {
+/* Single row — no bottom border */
+.stamp-slot {
   border-bottom: none;
 }
 

@@ -135,12 +135,12 @@ function compassLabelColor(dir, isNorth = false) {
 }
 
 .badge-row {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 4px;
 }
 
 .badge-tile {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
