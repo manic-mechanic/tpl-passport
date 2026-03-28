@@ -1,15 +1,15 @@
 <template>
   <section v-if="highlightBadges.length" class="badges-strip">
     <div class="section-header">
-      <h2>Endorsements</h2>
-      <NuxtLink to="/passport#endorsements" class="see-all">See all</NuxtLink>
+      <h2>Extra Credit</h2>
+      <NuxtLink to="/passport#extra-credit" class="see-all">See all</NuxtLink>
     </div>
 
     <div class="badge-row">
       <NuxtLink
         v-for="badge in highlightBadges"
         :key="badge.id"
-        to="/passport#endorsements"
+        to="/passport#extra-credit"
         class="badge-tile"
         :title="badge.desc"
       >
