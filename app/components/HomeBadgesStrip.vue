@@ -171,8 +171,10 @@ function compassLabelColor(dir, isNorth = false) {
 .badge-shape--adventurer   { background: radial-gradient(circle, #1e60b4 0%, #001e78 100%); }
 .badge-shape--globetrotter { background: radial-gradient(circle, #002880 0%, #000e50 100%); }
 .badge-shape--complete     { background: radial-gradient(circle, #001c70 0%, #000640 100%); }
-/* Geography */
+/* Geography / completion */
 .badge-shape--district_champ { background: radial-gradient(circle, #52cc84 0%, #1a6640 100%); }
+.badge-shape--page_filler,
+.badge-shape--page_turner    { background: radial-gradient(circle, #52cc84 0%, #1a6640 100%); }
 /* World tour + navigator earned — simplified solid color on home strip */
 .badge-shape--world_tour   { background: radial-gradient(circle, #e07832 0%, #9e3c14 100%); }
 .badge-shape--navigator    { background: radial-gradient(circle, #b8986e 0%, #7a5830 100%); }

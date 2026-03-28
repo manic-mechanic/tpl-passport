@@ -1,13 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { physicalBranches } from '../app/composables/useRegion.js'
+import { physicalBranches, branchesByAlphaPage } from '../app/composables/useRegion.js'
 import {
   ACHIEVEMENTS,
   buildAchievementCtx,
   compassBranches,
-  districtBranchCounts,
   fullyDocumentedCount,
   maxBranchesInOneDay,
-  visitedDistricts,
   branchVisitCounts,
   homeVisitCount,
   maxNonHomeVisitCount,
@@ -66,30 +64,6 @@ describe('maxBranchesInOneDay', () => {
   })
 })
 
-describe('visitedDistricts', () => {
-  it('returns empty for no visits', () => {
-    expect(visitedDistricts(new Set())).toHaveLength(0)
-  })
-
-  it('returns the correct district for a single branch', () => {
-    const branch = physicalBranches[0]
-    const result = visitedDistricts(new Set([branch.BranchCode]))
-    expect(result).toHaveLength(1)
-    expect(result[0]).toBe(branch.District)
-  })
-
-  it('deduplicates districts across multiple branches in the same district', () => {
-    const district = physicalBranches[0].District
-    const sameDistrict = physicalBranches.filter(b => b.District === district).slice(0, 3)
-    expect(visitedDistricts(new Set(sameDistrict.map(b => b.BranchCode)))).toHaveLength(1)
-  })
-
-  it('returns 4 districts when branches from all districts are visited', () => {
-    const onePerDistrict = ['Etobicoke-York', 'North York', 'Toronto-East York', 'Scarborough']
-      .map(d => physicalBranches.find(b => b.District === d).BranchCode)
-    expect(visitedDistricts(new Set(onePerDistrict))).toHaveLength(4)
-  })
-})
 
 describe('branchVisitCounts', () => {
   it('returns empty object for no check-ins', () => {
@@ -171,16 +145,20 @@ describe('achievement: first stamp', () => {
   })
 })
 
-describe('achievement: world_tour', () => {
-  it('not earned with branches in only 3 districts', () => {
-    const codes = ['Etobicoke-York', 'North York', 'Toronto-East York']
-      .map(d => physicalBranches.find(b => b.District === d).BranchCode)
-    expect(badge('world_tour').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(false)
+describe('achievement: page_turner', () => {
+  it('not earned with no visits', () => {
+    expect(badge('page_turner').earned(ctx())).toBe(false)
   })
-  it('earned with at least one branch in all 4 districts', () => {
-    const codes = ['Etobicoke-York', 'North York', 'Toronto-East York', 'Scarborough']
-      .map(d => physicalBranches.find(b => b.District === d).BranchCode)
-    expect(badge('world_tour').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(true)
+
+  it('not earned with one branch per page except one page', () => {
+    // Visit one branch from all pages except the last
+    const codes = branchesByAlphaPage.slice(0, -1).map(page => page.branches[0].BranchCode)
+    expect(badge('page_turner').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(false)
+  })
+
+  it('earned when at least one branch on every alpha page is visited', () => {
+    const codes = branchesByAlphaPage.map(page => page.branches[0].BranchCode)
+    expect(badge('page_turner').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(true)
   })
 })
 
@@ -201,21 +179,22 @@ describe('achievement: day_tripper', () => {
   })
 })
 
-describe('achievement: district_champ', () => {
+describe('achievement: page_filler', () => {
   it('not earned with no visits', () => {
-    expect(badge('district_champ').earned(ctx())).toBe(false)
+    expect(badge('page_filler').earned(ctx())).toBe(false)
   })
 
-  it('not earned with only partial coverage of every district', () => {
-    const onePerDistrict = ['Etobicoke-York', 'North York', 'Toronto-East York', 'Scarborough']
-      .map(d => physicalBranches.find(b => b.District === d).BranchCode)
-    expect(badge('district_champ').earned(ctx({ visitedBranchCodes: new Set(onePerDistrict) }))).toBe(false)
+  it('not earned when no page is fully complete', () => {
+    // Visit all but one branch on the smallest page
+    const smallestPage = branchesByAlphaPage.slice().sort((a, b) => a.branches.length - b.branches.length)[0]
+    const codes = smallestPage.branches.slice(0, -1).map(b => b.BranchCode)
+    expect(badge('page_filler').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(false)
   })
 
-  it('earned when all branches in the smallest district are visited', () => {
-    const smallestDistrict = Object.entries(districtBranchCounts).sort((a, b) => a[1] - b[1])[0][0]
-    const codes = physicalBranches.filter(b => b.District === smallestDistrict).map(b => b.BranchCode)
-    expect(badge('district_champ').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(true)
+  it('earned when all branches on any single page are visited', () => {
+    const smallestPage = branchesByAlphaPage.slice().sort((a, b) => a.branches.length - b.branches.length)[0]
+    const codes = smallestPage.branches.map(b => b.BranchCode)
+    expect(badge('page_filler').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(true)
   })
 })
 
