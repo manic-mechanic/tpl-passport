@@ -174,6 +174,7 @@ function openSheet(badge) {
   activeBadge.value = badge
   sheetOpen.value = true
 }
+watch(sheetOpen, open => { if (!open) activeBadge.value = null })
 
 // Column-major display order (2 cols, left col first):
 const DISPLAY_ORDER = [
@@ -206,21 +207,9 @@ function badgeProgressLabel(badge) {
   return `${current}/${total}`
 }
 
-// For count-based badges, find the date the Nth unique branch was visited
 function earnedDate(badge) {
-  if (!badge.earned(achievementCtx.value) || !badge.progress) return null
-  const threshold = badge.progress(achievementCtx.value).total
-  const sorted = [...passport.checkIns].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
-  const seen = new Set()
-  for (const ci of sorted) {
-    if (!seen.has(ci.branchCode)) {
-      seen.add(ci.branchCode)
-      if (seen.size === threshold) {
-        return new Date(ci.timestamp).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
-      }
-    }
-  }
-  return null
+  if (!badge.earnedAt || !badge.earned(achievementCtx.value)) return null
+  return badge.earnedAt(achievementCtx.value)
 }
 
 function branchName(code) {

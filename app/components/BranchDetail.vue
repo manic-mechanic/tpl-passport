@@ -115,7 +115,7 @@ import branchData from '#data/updated-branch-info.json'
 import branchHours from '#data/branch-hours.json'
 import { usePassportStore } from '~/stores/passport'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
-import { haversineKm, formatDist } from '~/composables/useRegion'
+import { haversineKm, formatDist, compassPoints } from '~/composables/useRegion'
 
 const props = defineProps({ branch: { type: Object, required: true } })
 const passport = usePassportStore()
@@ -226,8 +226,11 @@ function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-const COMPASS_DIRECTIONS = { GHP: 'North', PU: 'East', LB: 'South', HW: 'West' }
-const compassPointDirection = computed(() => COMPASS_DIRECTIONS[props.branch.BranchCode] ?? null)
+const COMPASS_DIR_LABELS = { n: 'North', e: 'East', s: 'South', w: 'West' }
+const compassPointDirection = computed(() => {
+  const entry = Object.entries(compassPoints).find(([, code]) => code === props.branch.BranchCode)
+  return entry ? COMPASS_DIR_LABELS[entry[0]] : null
+})
 
 const nearbyBranches = computed(() => {
   if (!props.branch.Lat || !props.branch.Long) return []

@@ -16,7 +16,7 @@
         <span class="stamp-label">{{ branch.BranchName }}</span>
       </NuxtLink>
       <div v-for="i in placeholderCount" :key="`empty-${i}`" class="stamp-slot stamp-slot--empty">
-        <div class="stamp-placeholder" :style="placeholderShape(i)" />
+        <StampShape :branchCode="GHOST_CODES[(i - 1) % GHOST_CODES.length]" :wardNo="GHOST_WARDS[(i - 1) % GHOST_WARDS.length]" :size="44" />
       </div>
     </div>
 
@@ -50,11 +50,9 @@ const recentBranches = computed(() => {
 const rowLimit = computed(() => recentBranches.value.length > 3 ? 6 : 3)
 const placeholderCount = computed(() => Math.max(0, rowLimit.value - recentBranches.value.length))
 
-// Cycle through stamp-like shapes so placeholders feel varied, not uniform
-const PLACEHOLDER_SHAPES = ['50%', '12px', '24px', '50%', '12px', '24px']
-function placeholderShape(i) {
-  return { borderRadius: PLACEHOLDER_SHAPES[(i - 1) % PLACEHOLDER_SHAPES.length] }
-}
+// Fake codes that hash to shape indices 0/1/2 — square, soft-square, circle
+const GHOST_CODES = ['GH4', 'GH5', 'GH1']
+const GHOST_WARDS = [5, 9, 3]
 </script>
 
 <style scoped>
@@ -109,12 +107,14 @@ function placeholderShape(i) {
   pointer-events: none;
 }
 
-.stamp-placeholder {
-  width: 44px;
-  height: 44px;
-  background: var(--color-text);
-  opacity: 0.13;
+.stamp-slot--empty :deep(.stamp-shape) {
+  opacity: 0.15;
   filter: grayscale(1);
+  box-shadow: none;
+}
+
+.stamp-slot--empty :deep(.stamp-code) {
+  display: none;
 }
 
 .stamp-label {

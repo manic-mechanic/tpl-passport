@@ -134,6 +134,7 @@ const route = useRoute()
 const BADGES_IDX  = branchesByAlphaPage.length  // index of the Badges pill (= 5)
 const activeStamp  = ref(null)
 const sheetOpen    = ref(false)
+watch(sheetOpen, open => { if (!open) activeStamp.value = null })
 const activePage   = ref(0)
 const sectionEls   = []
 const stickyTopRef   = ref(null)

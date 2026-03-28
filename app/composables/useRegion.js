@@ -51,3 +51,16 @@ export function haversineKm(lat1, lng1, lat2, lng2) {
 export function formatDist(km) {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
 }
+
+export const compassPoints = (() => {
+  let n = physicalBranches[0], s = physicalBranches[0], e = physicalBranches[0], w = physicalBranches[0]
+  for (const b of physicalBranches) {
+    if (parseFloat(b.Lat)  > parseFloat(n.Lat))  n = b
+    if (parseFloat(b.Lat)  < parseFloat(s.Lat))  s = b
+    if (parseFloat(b.Long) > parseFloat(e.Long)) e = b
+    if (parseFloat(b.Long) < parseFloat(w.Long)) w = b
+  }
+  return { n: n.BranchCode, s: s.BranchCode, e: e.BranchCode, w: w.BranchCode }
+})()
+
+export const compassBranches = new Set(Object.values(compassPoints))

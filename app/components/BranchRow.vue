@@ -1,5 +1,5 @@
 <template>
-  <NuxtLink :to="`/branch/${branch.BranchCode}`" class="branch-row">
+  <NuxtLink v-if="!asButton" :to="`/branch/${branch.BranchCode}`" class="branch-row">
     <div class="branch-dot" :style="dotStyle" />
     <div class="branch-info">
       <span class="branch-name">{{ branch.BranchName }}</span>
@@ -14,6 +14,21 @@
       </svg>
     </div>
   </NuxtLink>
+  <button v-else type="button" class="branch-row" @click="$emit('select', branch)">
+    <div class="branch-dot" :style="dotStyle" />
+    <div class="branch-info">
+      <span class="branch-name">{{ branch.BranchName }}</span>
+      <span class="branch-meta">{{ region }}</span>
+    </div>
+    <div class="branch-right">
+      <svg v-if="visited" class="visited-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      <svg v-else class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </div>
+  </button>
 </template>
 
 <script setup>
@@ -23,7 +38,10 @@ import { getDistrictColor } from '~/composables/useRegion'
 const props = defineProps({
   branch:   { type: Object, required: true },
   distance: { type: String, default: null },
+  asButton: { type: Boolean, default: false },
 })
+
+const emit = defineEmits(['select'])
 
 const passport = usePassportStore()
 
