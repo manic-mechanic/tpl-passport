@@ -7,7 +7,7 @@
         <h1>Explore</h1>
         <p class="sub">{{ passport.visitCount }} of {{ physicalBranches.length }} visited</p>
       </div>
-      <button class="search-btn" @click="directoryOpen = true" aria-label="Browse all branches">
+      <button class="search-btn" @click="navigateTo('/branches')" aria-label="Browse all branches">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
@@ -159,62 +159,12 @@
 
     <!-- Browse All CTA -->
     <div class="browse-cta">
-      <button class="browse-btn" @click="directoryOpen = true">
-        Browse all {{ physicalBranches.length }} branches
+      <button class="browse-btn" @click="navigateTo('/branches')">
+        Browse all Branches
       </button>
     </div>
 
   </main>
-
-  <!-- Directory sheet -->
-  <DrawerRoot v-model:open="directoryOpen" :noBodyStyles="true">
-    <DrawerPortal>
-      <DrawerOverlay class="sheet-overlay" />
-      <DrawerContent class="directory-sheet">
-        <div class="sheet-handle-row"><div class="sheet-handle-bar" /></div>
-        <div class="directory-inner">
-          <div class="directory-head">
-            <p class="directory-title">All Branches</p>
-            <p class="directory-count">{{ filteredBranches.length }} of {{ physicalBranches.length }}</p>
-          </div>
-          <div class="search-wrap">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input
-              v-model="query"
-              type="search"
-              placeholder="Search by name or neighbourhood…"
-              class="search-input"
-            />
-          </div>
-          <div class="pill-bar">
-            <button class="sort-tab" :class="{ 'sort-tab--active': visitFilter === 'unvisited' }" @click="visitFilter = visitFilter === 'unvisited' ? null : 'unvisited'">Unvisited</button>
-            <button class="sort-tab" :class="{ 'sort-tab--active': visitFilter === 'visited' }" @click="visitFilter = visitFilter === 'visited' ? null : 'visited'">Visited</button>
-            <span class="pill-divider" />
-            <button class="sort-tab" :class="{ 'sort-tab--active': byDistrict }" @click="byDistrict = !byDistrict">District</button>
-          </div>
-          <div class="directory-scroll">
-            <template v-if="byDistrict">
-              <div v-for="district in visibleDistricts" :key="district" class="region-group">
-                <p class="section-label">{{ district }}</p>
-                <ul class="branch-list">
-                  <li v-for="branch in byRegion[district]" :key="branch.BranchCode">
-                    <BranchRow :branch="branch" as-button @select="openFromDirectory" />
-                  </li>
-                </ul>
-              </div>
-            </template>
-            <ul v-else class="branch-list">
-              <li v-for="branch in filteredBranches" :key="branch.BranchCode">
-                <BranchRow :branch="branch" as-button @select="openFromDirectory" />
-              </li>
-            </ul>
-          </div>
-        </div>
-      </DrawerContent>
-    </DrawerPortal>
-  </DrawerRoot>
 
   <!-- Branch detail sheet -->
   <DrawerRoot v-model:open="branchSheetOpen" :noBodyStyles="true">
@@ -239,7 +189,7 @@
 <script setup>
 import { DrawerRoot, DrawerPortal, DrawerOverlay, DrawerContent } from 'vaul-vue'
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, DISTRICT_ORDER, haversineKm, formatDist } from '~/composables/useRegion'
+import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { branchesByAlphaPage } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
 import { ACHIEVEMENTS, buildAchievementCtx, compassPoints } from '~/composables/useAchievements'
@@ -481,55 +431,14 @@ const routesWithProgress = computed(() =>
 )
 
 // ── Sheets ────────────────────────────────────────────────────────────
-const directoryOpen   = ref(false)
-const branchSheetOpen = ref(false)
-const activeBranch    = ref(null)
+const branchSheetOpen   = ref(false)
+const activeBranch      = ref(null)
 const branchSheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
 
 function openBranchSheet(branch) {
   activeBranch.value = branch
   branchSheetOpen.value = true
 }
-
-function openFromDirectory(branch) {
-  directoryOpen.value = false
-  nextTick(() => openBranchSheet(branch))
-}
-
-// ── Directory ─────────────────────────────────────────────────────────
-const query       = ref('')
-const visitFilter = ref(null)
-const byDistrict  = ref(false)
-
-watch(directoryOpen, open => { if (!open) query.value = '' })
-
-const filteredBranches = computed(() => {
-  let list = physicalBranches
-  if (query.value) {
-    const q = query.value.toLowerCase()
-    list = list.filter(b =>
-      b.BranchName.toLowerCase().includes(q) ||
-      b.NBHDName?.toLowerCase().includes(q) ||
-      b.Address?.toLowerCase().includes(q)
-    )
-  }
-  if (visitFilter.value === 'unvisited') list = list.filter(b => !passport.hasVisited(b.BranchCode))
-  if (visitFilter.value === 'visited')   list = list.filter(b => passport.hasVisited(b.BranchCode))
-  return [...list].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
-})
-
-const byRegion = computed(() => {
-  const map = {}
-  for (const d of DISTRICT_ORDER) map[d] = []
-  for (const b of filteredBranches.value) {
-    if (b.District) map[b.District]?.push(b)
-  }
-  return map
-})
-
-const visibleDistricts = computed(() =>
-  DISTRICT_ORDER.filter(d => byRegion.value[d]?.length > 0)
-)
 </script>
 
 <style scoped>
@@ -905,137 +814,6 @@ const visibleDistricts = computed(() =>
   outline: none;
 }
 
-/* ── Directory sheet ─────────────────────────────────────────────── */
-:global(.directory-sheet) {
-  position: fixed;
-  bottom: var(--nav-height) !important;
-  left: 0; right: 0;
-  margin: 0 auto;
-  max-width: 480px;
-  height: calc(100dvh - var(--nav-height) - 20px);
-  background: var(--color-bg) !important;
-  border-radius: 20px 20px 0 0;
-  z-index: 90;
-  overflow: hidden;
-  outline: none;
-  display: flex;
-  flex-direction: column;
-}
-
-.directory-inner {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 0 18px;
-}
-
-.directory-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.directory-title {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-text);
-  line-height: 1;
-}
-
-.directory-count {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.search-wrap {
-  position: relative;
-  margin-bottom: 10px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-muted);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  padding: 11px 14px 11px 38px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  font-size: 1rem;
-  font-family: var(--font-body);
-  background: var(--color-surface);
-  color: var(--color-text);
-  outline: none;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.15s;
-}
-
-.search-input:focus { border-color: var(--tpl-blue); }
-
-.pill-bar {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 6px;
-  align-items: center;
-  margin: 0 -18px;
-  padding: 2px 18px 10px;
-  scrollbar-width: none;
-}
-
-.pill-bar::-webkit-scrollbar { display: none; }
-
-.pill-divider {
-  width: 1px;
-  height: 18px;
-  background: var(--color-border);
-  flex-shrink: 0;
-}
-
-.sort-tab {
-  flex-shrink: 0;
-  padding: 6px 13px;
-  border-radius: var(--radius-pill);
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-family: var(--font-body);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.sort-tab--active {
-  background: var(--tpl-navy);
-  border-color: var(--tpl-navy);
-  color: #fff;
-}
-
-.directory-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding-bottom: 16px;
-}
-
-.region-group { margin-bottom: 24px; }
-
-.branch-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 
 /* ── Day Trips ───────────────────────────────────────────────────── */
 .mode-bar {
