@@ -33,7 +33,7 @@ main {
   z-index: 10;
   margin: 0 -18px;
   padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
-  background: var(--tpl-blue);
+  background: var(--tpl-navy);
   display: flex;
   align-items: center;
   gap: 10px;

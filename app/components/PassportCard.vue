@@ -117,7 +117,7 @@ const mrzLine2 = computed(() => {
 }
 
 .card-top {
-  background: var(--tpl-navy);
+  background: var(--tpl-blue);
   padding: 10px 16px 8px;
 }
 
@@ -326,7 +326,7 @@ const mrzLine2 = computed(() => {
 }
 
 .mrz {
-  background: var(--tpl-navy);
+  background: var(--tpl-blue);
   padding: 8px 14px 10px;
   display: flex;
   align-items: center;
