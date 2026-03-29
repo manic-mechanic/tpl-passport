@@ -61,7 +61,7 @@ const GHOST_WARDS = [5, 9, 3]
 
 <style scoped>
 .recent-visits {
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .stamp-strip {
