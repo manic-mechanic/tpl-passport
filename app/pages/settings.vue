@@ -16,17 +16,17 @@
           <div class="theme-toggle">
             <button
               class="theme-btn"
-              :class="{ 'theme-btn--active': passport.profile.theme === 'light' }"
+              :class="{ active: passport.profile.theme === 'light' }"
               @click="passport.profile.theme = 'light'"
             >Light</button>
             <button
               class="theme-btn"
-              :class="{ 'theme-btn--active': passport.profile.theme === '' }"
+              :class="{ active: passport.profile.theme === '' }"
               @click="passport.profile.theme = ''"
             >Auto</button>
             <button
               class="theme-btn"
-              :class="{ 'theme-btn--active': passport.profile.theme === 'dark' }"
+              :class="{ active: passport.profile.theme === 'dark' }"
               @click="passport.profile.theme = 'dark'"
             >Dark</button>
           </div>
@@ -42,7 +42,7 @@
           v-for="mode in demoModes"
           :key="mode.value"
           class="demo-btn"
-          :class="{ 'demo-btn--active': activeDemoMode === mode.value }"
+          :class="{ active: activeDemoMode === mode.value }"
           @click="setDemo(mode.value)"
         >
           <span class="demo-icon">{{ mode.icon }}</span>
@@ -58,20 +58,20 @@
       <div class="settings-card card">
         <div class="setting-row">
           <div>
-            <span class="setting-label">Bypass location fence</span>
-            <p class="setting-hint">Allow check-in from anywhere, regardless of distance to branch.</p>
+            <span class="setting-label">Location check</span>
+            <p class="setting-hint">Require being near the branch to check in.</p>
           </div>
           <div class="theme-toggle">
             <button
               class="theme-btn"
-              :class="{ 'theme-btn--active': !passport.profile.bypassLocationFence }"
+              :class="{ active: !passport.profile.bypassLocationFence }"
               @click="passport.profile.bypassLocationFence = false"
-            >Off</button>
+            >On</button>
             <button
               class="theme-btn"
-              :class="{ 'theme-btn--active': passport.profile.bypassLocationFence }"
+              :class="{ active: passport.profile.bypassLocationFence }"
               @click="passport.profile.bypassLocationFence = true"
-            >On</button>
+            >Off</button>
           </div>
         </div>
       </div>
@@ -85,7 +85,7 @@
           <span class="setting-label">Version</span>
           <span class="about-val">1.0 MVP</span>
         </div>
-        <div class="about-row about-row--link">
+        <div class="about-row link">
           <a href="https://tpl.ca" target="_blank" class="about-link">Toronto Public Library ↗</a>
         </div>
       </div>
@@ -135,7 +135,7 @@ function setDemo(mode) {
 
 .brand-title {
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--tpl-navy);
   letter-spacing: -0.02em;
@@ -159,12 +159,12 @@ function setDemo(mode) {
   justify-content: space-between;
   padding: 14px 16px;
   border-bottom: 1px solid var(--color-border-soft);
+
+  &:last-child { border-bottom: none; }
 }
 
-.setting-row:last-child { border-bottom: none; }
-
 .setting-label {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text);
 }
@@ -189,7 +189,7 @@ function setDemo(mode) {
 .theme-btn {
   flex: 1;
   padding: 5px 12px;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 600;
   font-family: var(--font-body);
   color: var(--color-text-muted);
@@ -198,12 +198,12 @@ function setDemo(mode) {
   border-radius: var(--radius-pill);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
-}
 
-.theme-btn--active {
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-sm);
+  &.active {
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 /* Demo */
@@ -225,11 +225,13 @@ function setDemo(mode) {
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
   box-shadow: var(--shadow-sm);
-}
 
-.demo-btn--active {
-  border-color: var(--tpl-blue);
-  background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface));
+  &.active {
+    border-color: var(--tpl-blue);
+    background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface));
+
+    & .demo-label { color: var(--tpl-blue); }
+  }
 }
 
 .demo-icon { font-size: 1.25rem; }
@@ -240,10 +242,8 @@ function setDemo(mode) {
   color: var(--color-text);
 }
 
-.demo-btn--active .demo-label { color: var(--tpl-blue); }
-
 .demo-count {
-  font-size: 0.65rem;
+  font-size: 0.625rem;
   color: var(--color-text-muted);
 }
 
@@ -257,10 +257,10 @@ function setDemo(mode) {
   padding: 13px 16px;
   border-bottom: 1px solid var(--color-border-soft);
   font-size: 0.875rem;
-}
 
-.about-row:last-child { border-bottom: none; }
-.about-row--link { justify-content: flex-start; }
+  &:last-child { border-bottom: none; }
+  &.link { justify-content: flex-start; }
+}
 
 .about-val { color: var(--color-text-muted); }
 

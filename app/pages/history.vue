@@ -2,7 +2,8 @@
   <main class="page-content">
     <header class="page-header">
       <h1>History</h1>
-      <p class="sub" v-if="passport.checkIns.length">{{ passport.checkIns.length }} check-in{{ passport.checkIns.length !== 1 ? 's' : '' }}</p>
+      <p class="sub" v-if="passport.checkIns.length">{{ passport.checkIns.length }} check-in{{ passport.checkIns.length
+        !== 1 ? 's' : '' }}</p>
     </header>
 
     <!-- Stats summary -->
@@ -18,80 +19,79 @@
       </div>
       <div class="stat-divider" />
       <div class="stat-item">
-        <span class="stat-num">{{ weekStreak }}</span>
-        <span class="stat-lbl">Week streak</span>
+        <span class="stat-num">{{ memoryCount }}</span>
+        <span class="stat-lbl">Memories</span>
       </div>
     </div>
 
+    <div v-if="passport.checkIns.length" class="filter-bar">
+      <button class="filter-pill" :class="{ active: memoriesOnly }"
+        @click="memoriesOnly = !memoriesOnly">Memories</button>
+    </div>
+
     <template v-if="passport.checkIns.length">
-      <section v-for="[label, items] in grouped" :key="label" class="history-group">
-        <p class="section-label">{{ label }}</p>
-        <ul class="checkin-list">
-          <li v-for="visit in items" :key="visit.timestamp" class="checkin-item">
-            <NuxtLink :to="`/branch/${visit.branchCode}`" class="checkin-row">
-              <div
-                class="checkin-dot"
-                :style="{ background: getDistrictColor(regionMap[visit.branchCode]) }"
-              />
-              <div class="checkin-info">
-                <span class="checkin-name">{{ branchMap[visit.branchCode] ?? visit.branchCode }}</span>
-                <span class="checkin-meta">{{ regionMap[visit.branchCode] }}</span>
-              </div>
-              <div class="checkin-right">
-                <svg v-if="visit.note" class="row-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-label="Has note">
-                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-                <svg v-if="photoUrls[visit.timestamp]" class="row-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-label="Has photo">
-                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-                  <circle cx="12" cy="13" r="4"/>
-                </svg>
-                <span class="checkin-time">{{ formatTime(visit.timestamp) }}</span>
-              </div>
-            </NuxtLink>
-          </li>
-        </ul>
-      </section>
+      <template v-if="grouped.length">
+        <section v-for="[label, items] in grouped" :key="label" class="history-group">
+          <p class="section-label">{{ label }}</p>
+          <ul class="checkin-list">
+            <li v-for="visit in items" :key="visit.timestamp">
+              <BranchCard v-if="branchObjectMap[visit.branchCode]" :branch="branchObjectMap[visit.branchCode]"
+                :meta="formatTime(visit.timestamp)" :has-note="!!visit.note"
+                :has-photo="!!photoUrls[visit.timestamp]" />
+            </li>
+          </ul>
+        </section>
+      </template>
+      <p v-else class="empty-filtered">No memories yet. Add a note or photo when checking in.</p>
     </template>
 
     <div v-else class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:36px;height:36px;stroke:var(--color-border);margin-bottom:8px">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+        style="width:36px;height:36px;stroke:var(--color-border);margin-bottom:8px">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
       </svg>
-      <p>No check-ins yet.<br>Visit a branch to get started!</p>
+      <p>No check-ins yet.<br>Visit a branch to get started.</p>
     </div>
   </main>
 </template>
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, getDistrictColor } from '~/composables/useRegion'
-import { calcWeekStreak } from '~/composables/useStreak'
+import { physicalBranches } from '~/composables/useRegion'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
 
 const passport = usePassportStore()
 
-const branchMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.BranchName]))
-const regionMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b.District]))
+const branchObjectMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
+
+const memoriesOnly = ref(false)
+
+const memoryCount = computed(() => passport.checkIns.filter(isMemory).length)
+
+function isMemory(visit) {
+  return !!(visit.note?.trim() || visit.hasPhoto)
+}
 
 const grouped = computed(() => {
   const now = new Date()
-  const todayStr     = now.toDateString()
+  const todayStr = now.toDateString()
   const yesterdayStr = new Date(now - 86400000).toDateString()
-  const weekAgo      = new Date(now - 7 * 86400000)
+  const weekAgo = new Date(now - 7 * 86400000)
+
+  const source = memoriesOnly.value ? passport.checkIns.filter(isMemory) : passport.checkIns
 
   const buckets = { 'Today': [], 'Yesterday': [], 'This week': [], 'Older': [] }
-  for (const visit of passport.checkIns) {
-    const d = new Date(visit.timestamp), ds = d.toDateString()
-    if (ds === todayStr)          buckets['Today'].push(visit)
+  for (const visit of source) {
+    const d = new Date(visit.timestamp)
+    const ds = d.toDateString()
+    if (ds === todayStr) buckets['Today'].push(visit)
     else if (ds === yesterdayStr) buckets['Yesterday'].push(visit)
-    else if (d > weekAgo)         buckets['This week'].push(visit)
-    else                          buckets['Older'].push(visit)
+    else if (d > weekAgo) buckets['This week'].push(visit)
+    else buckets['Older'].push(visit)
   }
   return Object.entries(buckets).filter(([, items]) => items.length > 0)
 })
-
-const weekStreak = computed(() => calcWeekStreak(passport.checkIns))
 
 // Photo thumbnails — loaded on demand from IndexedDB
 const photoUrls = ref({})
@@ -101,6 +101,10 @@ async function loadPhoto(timestamp) {
 }
 onMounted(() => {
   passport.checkIns.forEach(c => loadPhoto(c.timestamp))
+})
+
+onUnmounted(() => {
+  Object.values(photoUrls.value).forEach(url => url && URL.revokeObjectURL(url))
 })
 
 function formatTime(iso) {
@@ -114,12 +118,14 @@ function formatTime(iso) {
 <style scoped>
 .page-header {
   padding: 20px 0 16px;
+
+  & h1 {
+    margin-bottom: 3px;
+  }
 }
 
-.page-header h1 { margin-bottom: 3px; }
-
 .sub {
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
 }
 
@@ -146,7 +152,7 @@ function formatTime(iso) {
 
 .stat-num {
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--tpl-blue);
   line-height: 1;
@@ -154,7 +160,7 @@ function formatTime(iso) {
 }
 
 .stat-lbl {
-  font-size: 0.65rem;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -168,6 +174,40 @@ function formatTime(iso) {
   flex-shrink: 0;
 }
 
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.filter-pill {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+
+  &.active {
+    background: var(--tpl-navy);
+    border-color: var(--tpl-navy);
+    color: #fff;
+  }
+}
+
+.empty-filtered {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 32px 0;
+  line-height: 1.6;
+}
+
 .history-group {
   margin-bottom: 24px;
 }
@@ -177,80 +217,5 @@ function formatTime(iso) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.checkin-item { }
-
-.checkin-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius);
-  color: var(--color-text);
-  text-decoration: none;
-  box-shadow: var(--shadow-sm);
-}
-
-.checkin-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.checkin-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.checkin-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.checkin-meta {
-  font-size: 0.73rem;
-  color: var(--color-text-muted);
-}
-
-.checkin-time {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.checkin-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.row-indicator {
-  width: 14px;
-  height: 14px;
-  stroke: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.checkin-note {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  padding: 8px 14px 10px;
-  background: var(--color-paper);
-  border: 1px solid var(--color-border-soft);
-  border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius);
-  margin-top: -4px;
-  line-height: 1.5;
 }
 </style>

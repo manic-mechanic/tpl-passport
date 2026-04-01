@@ -48,6 +48,18 @@
 
   /* Brand text — navy in light mode (used for the app title etc.) */
   --color-brand-text: var(--tpl-navy);
+
+  /* Semantic status */
+  --color-success: #1a7a3c;
+  --color-error:   #c0392b;
+
+  /* Reusable dashed vertical divider (pseudo-element background-image) */
+  --dashed-divider-v: repeating-linear-gradient(to bottom, var(--color-border) 0, var(--color-border) 4px, transparent 4px, transparent 8px);
+
+  /* Badge theme vars — overridden in dark mode */
+  --badge-locked-bg:       var(--color-border);
+  --badge-globetrotter-bg: radial-gradient(circle, #1e60b4 0%, #001e78 100%);
+  --badge-complete-bg:     radial-gradient(circle, #001c70 0%, #000640 100%);
 }
 
 /* ─── Reset ─────────────────────────────────── */
@@ -81,8 +93,21 @@ body {
   position: relative;
 }
 
+.status-bar-fill {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  height: env(safe-area-inset-top);
+  background: var(--tpl-navy);
+  z-index: 999;
+  pointer-events: none;
+}
+
 .page-content {
-  padding: 0 18px calc(var(--nav-height) + 16px);
+  padding: env(safe-area-inset-top) 18px calc(var(--nav-height) + 16px);
 }
 
 /* ─── Typography ─────────────────────────────── */
@@ -105,7 +130,7 @@ h2 {
 
 h3 {
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
@@ -113,8 +138,26 @@ p { line-height: 1.6; }
 a { color: var(--color-accent); text-decoration: none; }
 
 /* ─── Utility ────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.section-header h2 {
+  font-size: 1rem;
+}
+
+.see-all {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--tpl-blue);
+  text-decoration: none;
+}
+
 .section-label {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -126,7 +169,7 @@ a { color: var(--color-accent); text-decoration: none; }
   text-align: center;
   padding: 48px 0;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
@@ -179,6 +222,11 @@ a { color: var(--color-accent); text-decoration: none; }
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
     --shadow:    0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03);
     --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.35);
+    --color-success: #5ccea0;
+    --color-error:   #e06060;
+    --badge-locked-bg:       rgba(255,255,255,0.1);
+    --badge-globetrotter-bg: radial-gradient(circle, #4a90e2 0%, #1a3fa0 100%);
+    --badge-complete-bg:     radial-gradient(circle, #2868cc 0%, #0a2080 100%);
   }
 }
 
@@ -199,6 +247,11 @@ a { color: var(--color-accent); text-decoration: none; }
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
   --shadow:    0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.35);
+  --color-success: #5ccea0;
+  --color-error:   #e06060;
+  --badge-locked-bg:       rgba(255,255,255,0.1);
+  --badge-globetrotter-bg: radial-gradient(circle, #4a90e2 0%, #1a3fa0 100%);
+  --badge-complete-bg:     radial-gradient(circle, #2868cc 0%, #0a2080 100%);
 }
 
 /* ─── Page transitions ───────────────────────── */

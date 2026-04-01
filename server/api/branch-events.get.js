@@ -19,7 +19,7 @@ const CACHE_TTL = 60 * 60 * 1000
 
 const cache = new Map() // key: shortName → { data, fetchedAt }
 
-function filterToWindow(records) {
+export function filterToWindow(records) {
   const today    = new Date().toISOString().slice(0, 10)
   const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
   return records

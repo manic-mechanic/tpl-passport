@@ -71,8 +71,7 @@ const filteredBranches = computed(() => {
 
 // Check-in URL encoded into the QR code
 function checkinUrl(branchCode) {
-  // In production this would be the deployed domain; for now use a relative-friendly format
-  return `https://tpl-passport.vercel.app/check-in?branch=${branchCode}`
+  return `${window.location.origin}/check-in?branch=${branchCode}`
 }
 
 // QR image via qrserver.com — free, no API key, widely used
@@ -104,7 +103,7 @@ function qrUrl(branchCode) {
 .back-link svg { width: 16px; height: 16px; }
 
 .page-title {
-  font-size: 1.1rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--color-text);
   font-family: var(--font-body);
@@ -189,7 +188,7 @@ function qrUrl(branchCode) {
 }
 
 .qr-code {
-  font-size: 0.65rem;
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--tpl-blue);
@@ -197,7 +196,7 @@ function qrUrl(branchCode) {
 }
 
 .qr-url {
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   color: var(--color-text-muted);
   margin-top: 2px;
   font-family: 'Courier New', monospace;

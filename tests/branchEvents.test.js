@@ -1,14 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
-// Mirror of filterToWindow from server/api/branch-events.get.js
-// Kept in sync manually — if you change the window logic there, update this too.
-function filterToWindow(records) {
-  const today    = new Date().toISOString().slice(0, 10)
-  const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
-  return records
-    .filter(e => e.StartDateLocal >= today && e.StartDateLocal <= tomorrow)
-    .sort((a, b) => a.StartDateLocal < b.StartDateLocal ? -1 : 1)
-}
+// Nitro globals must be stubbed before the server module is evaluated.
+// vi.hoisted() runs synchronously before any imports are processed.
+vi.hoisted(() => {
+  globalThis.defineEventHandler = fn => fn
+  globalThis.getQuery = () => ({})
+  globalThis.$fetch = async () => ({ result: { records: [] } })
+})
+
+import { filterToWindow } from '../server/api/branch-events.get.js'
 
 describe('filterToWindow', () => {
   it('keeps a record dated today', () => {

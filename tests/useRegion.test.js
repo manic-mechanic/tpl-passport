@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { physicalBranches, sortedBranches, DISTRICT_ORDER, getDistrictColor, haversineKm } from '../app/composables/useRegion.js'
+import { physicalBranches, sortedBranches, DISTRICT_ORDER, getDistrictColor, haversineKm, branchesByAlphaPage } from '../app/composables/useRegion.js'
 
 describe('physicalBranches', () => {
   it('contains exactly 100 branches', () => {
@@ -79,5 +79,28 @@ describe('haversineKm', () => {
     const a = haversineKm(43.7, -79.4, 43.65, -79.38)
     const b = haversineKm(43.65, -79.38, 43.7, -79.4)
     expect(a).toBeCloseTo(b, 10)
+  })
+})
+
+describe('branchesByAlphaPage', () => {
+  it('covers all 100 physical branches exactly once', () => {
+    const allCodes = branchesByAlphaPage.flatMap(page => page.branches.map(b => b.BranchCode))
+    expect(allCodes).toHaveLength(physicalBranches.length)
+    expect(new Set(allCodes).size).toBe(physicalBranches.length)
+  })
+
+  it('each page has a label and a non-empty branches array', () => {
+    for (const page of branchesByAlphaPage) {
+      expect(page.label).toBeTruthy()
+      expect(page.branches.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('branches on each page are sorted alphabetically', () => {
+    for (const page of branchesByAlphaPage) {
+      for (let i = 1; i < page.branches.length; i++) {
+        expect(page.branches[i - 1].BranchName.localeCompare(page.branches[i].BranchName)).toBeLessThanOrEqual(0)
+      }
+    }
   })
 })

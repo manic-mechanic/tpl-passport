@@ -3,7 +3,7 @@
 
 const HUES = [350, 22, 43, 165, 215, 275, 130, 190, 310, 55]
 
-export function useStampColor(wardNo) {
+export function getStampColor(wardNo) {
   const idx = ((parseInt(wardNo) || 1) - 1) % HUES.length
   const h = HUES[idx]
   return {

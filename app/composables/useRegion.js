@@ -22,6 +22,23 @@ export function getDistrictColor(district) {
   return DISTRICT_COLORS[district] ?? '#8c849e'
 }
 
+// Alphabetical page groupings for /passport (A–C, D–G, H–M, N–R, S–Z)
+export const ALPHA_PAGES = [
+  { label: 'A – C', from: 'A', to: 'C' },
+  { label: 'D – G', from: 'D', to: 'G' },
+  { label: 'H – M', from: 'H', to: 'M' },
+  { label: 'N – R', from: 'N', to: 'R' },
+  { label: 'S – Z', from: 'S', to: 'Z' },
+]
+
+export const branchesByAlphaPage = ALPHA_PAGES.map(page => ({
+  ...page,
+  branches: sortedBranches.filter(b => {
+    const c = b.BranchName[0].toUpperCase()
+    return c >= page.from && c <= page.to
+  }),
+}))
+
 export function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -33,4 +50,8 @@ export function haversineKm(lat1, lng1, lat2, lng2) {
 
 export function formatDist(km) {
   return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+}
+
+export function buildMapsUrl(branches) {
+  return 'https://www.google.com/maps/dir/' + branches.map(b => `${b.Lat},${b.Long}`).join('/')
 }

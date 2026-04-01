@@ -1,51 +1,6 @@
 <template>
   <main class="page-content">
 
-    <div v-if="result" class="success-view">
-      <div class="success-hero">
-        <div class="success-stamp-wrap">
-          <StampShape class="success-stamp" :branchCode="result.branchCode" :wardNo="result.wardNo" :size="110" />
-          <div class="success-check-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="14" height="14">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-        </div>
-        <p class="success-label">Stamp collected!</p>
-        <p class="success-branch">{{ result.branchName }}</p>
-        <p class="success-region">{{ result.region }}</p>
-        <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-primary">View branch</NuxtLink>
-        <button v-if="photoBlob" class="save-photo-btn" @click="savePhotoToDevice">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="15" height="15">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Save photo
-        </button>
-      </div>
-
-      <div v-if="nearbySuccessBranches.length" class="success-nearby">
-        <p class="success-nearby-heading">Also nearby</p>
-        <div class="nearby-list">
-          <NuxtLink
-            v-for="nb in nearbySuccessBranches"
-            :key="nb.BranchCode"
-            :to="`/branch/${nb.BranchCode}`"
-            class="nearby-row"
-          >
-            <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
-            <div class="nearby-info">
-              <span class="nearby-name">{{ nb.BranchName }}</span>
-              <span class="nearby-dist">{{ formatDist(nb.distKm) }} away · {{ nb.District }}</span>
-            </div>
-            <svg class="nearby-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </NuxtLink>
-        </div>
-      </div>
-    </div>
-
-    <template v-else>
     <header class="page-header">
         <h1>Check In</h1>
         <p class="sub">
@@ -161,8 +116,38 @@
         <!-- END STASHED: QR dev tip -->
       </div>
 
-    </template>
   </main>
+
+  <!-- ── Check-in success sheet ───── -->
+  <BaseSheet v-model:open="successSheetOpen" :height="successSheetHeight">
+    <div v-if="result">
+      <div class="success-hero">
+        <div class="success-stamp-wrap">
+          <StampShape :branchCode="result.branchCode" :wardNo="result.wardNo" :size="110" />
+          <div class="success-check-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="14" height="14">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+        <p class="success-label">Stamp collected!</p>
+        <p class="success-branch">{{ result.branchName }}</p>
+        <p class="success-region">{{ result.region }}</p>
+        <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-primary">View branch</NuxtLink>
+        <button v-if="photoBlob" class="save-photo-btn" @click="savePhotoToDevice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" width="15" height="15">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Save photo
+        </button>
+      </div>
+
+      <div v-if="nearbySuccessBranches.length" class="success-nearby">
+        <p class="success-nearby-heading">Also nearby</p>
+        <NearbyBranchList :branches="nearbySuccessBranches" :showDistrict="true" />
+      </div>
+    </div>
+  </BaseSheet>
 
   <!-- ── QR Scanner overlay ────────── -->
   <Teleport to="body">
@@ -173,10 +158,10 @@
 
       <!-- Viewfinder corners (decorative) -->
       <div class="scanner-frame">
-        <div class="frame-corner frame-corner--tl" />
-        <div class="frame-corner frame-corner--tr" />
-        <div class="frame-corner frame-corner--bl" />
-        <div class="frame-corner frame-corner--br" />
+        <div class="frame-corner frame-corner-tl" />
+        <div class="frame-corner frame-corner-tr" />
+        <div class="frame-corner frame-corner-bl" />
+        <div class="frame-corner frame-corner-br" />
       </div>
 
       <p class="scanner-hint">Point at a branch QR code</p>
@@ -197,6 +182,12 @@ import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion
 import { savePhoto } from '~/composables/usePhotoStore'
 import { FEATURES } from '~/composables/useFeatureFlags'
 
+function getPosition() {
+  return new Promise((resolve, reject) =>
+    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
+  )
+}
+
 const route   = useRoute()
 const passport = usePassportStore()
 
@@ -212,9 +203,7 @@ onMounted(async () => {
   if (prefilled) return
   detecting.value = true
   try {
-    const pos = await new Promise((resolve, reject) =>
-      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
-    )
+    const pos = await getPosition()
     const nearest = sortedBranches
       .map(b => ({ ...b, distKm: haversineKm(pos.coords.latitude, pos.coords.longitude, b.Lat, b.Long) }))
       .sort((a, b) => a.distKm - b.distKm)[0]
@@ -288,7 +277,12 @@ async function savePhotoToDevice() {
   }
 }
 
+const successSheetOpen   = ref(false)
+const successSheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
+
 const result         = ref(null)
+watch(result, val => { if (val) successSheetOpen.value = true })
+watch(successSheetOpen, open => { if (!open) result.value = null })
 const locationStatus = ref('idle') // 'idle' | 'checking' | 'too-far' | 'timeout' | 'denied'
 const locationDistKm = ref(null)
 
@@ -310,9 +304,7 @@ async function doCheckIn() {
   if (!passport.profile.bypassLocationFence && !config.public.bypassGeofence) {
     locationStatus.value = 'checking'
     try {
-      const pos = await new Promise((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
-      )
+      const pos = await getPosition()
       const km = haversineKm(
         pos.coords.latitude, pos.coords.longitude,
         selectedBranch.value.Lat, selectedBranch.value.Long
@@ -439,26 +431,24 @@ onUnmounted(() => {
 <style scoped>
 .page-header {
   padding: 20px 0 24px;
-}
 
-.page-header h1 { margin-bottom: 6px; }
+  & h1 { margin-bottom: 6px; }
+}
 
 .sub {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   line-height: 1.5;
-}
 
-.sub strong { color: var(--color-text-mid); font-weight: 600; }
+  & strong { color: var(--color-text-mid); font-weight: 600; }
+}
 
 /* Fields */
-.field-group {
-  margin-bottom: 20px;
-}
+.field-group { margin-bottom: 20px; }
 
 .field-label {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-text-mid);
   text-transform: uppercase;
@@ -474,7 +464,7 @@ onUnmounted(() => {
 }
 
 .not-here {
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
   margin-bottom: 20px;
 }
@@ -483,9 +473,9 @@ onUnmounted(() => {
   color: var(--tpl-blue);
   font-weight: 600;
   text-decoration: none;
-}
 
-.not-here-link:hover { text-decoration: underline; }
+  &:hover { text-decoration: underline; }
+}
 
 /* QR primary area */
 .qr-primary-area {
@@ -510,21 +500,21 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  box-shadow: 0 4px 14px rgba(0, 95, 192, 0.32);
+  gap: 8px;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--tpl-blue) 32%, transparent);
+  @media (prefers-color-scheme: dark) { & { box-shadow: none; } }
   transition: background 0.15s, transform 0.1s;
+
+  &:active { transform: scale(0.98); }
 }
 
-.qr-btn-primary:active { transform: scale(0.98); }
-
 .or-divider {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-
 
 .note-textarea {
   width: 100%;
@@ -539,13 +529,12 @@ onUnmounted(() => {
   resize: none;
   line-height: 1.5;
   transition: border-color 0.15s;
-  box-sizing: border-box;
+
+  &:focus { border-color: var(--tpl-blue); }
 }
 
-.note-textarea:focus { border-color: var(--tpl-blue); }
-
 .char-count {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
   text-align: right;
   margin-top: 4px;
@@ -569,9 +558,9 @@ onUnmounted(() => {
 .photo-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   padding: 10px 16px;
-  border: 1.5px solid var(--color-border);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius);
   font-size: 0.875rem;
   font-weight: 600;
@@ -592,36 +581,9 @@ onUnmounted(() => {
   margin: 4px 0 28px;
 }
 
-.stamp-lg {
-  width: 100px;
-  height: 100px;
-  border: 3px solid currentColor;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stamp-lg-ring {
-  position: absolute;
-  inset: 7px;
-  border: 1.5px solid currentColor;
-  opacity: 0.35;
-}
-
-.stamp-lg-code {
-  font-family: var(--font-stamp);
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  position: relative;
-  z-index: 1;
-}
-
 .stamp-name {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
   text-align: center;
@@ -629,14 +591,14 @@ onUnmounted(() => {
 }
 
 .stamp-region {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
   font-weight: 600;
 }
 
 .change-branch-btn {
   margin-top: 4px;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--tpl-blue);
   background: transparent;
@@ -657,9 +619,9 @@ onUnmounted(() => {
   font-size: 0.875rem;
   color: var(--color-text-mid);
   margin-bottom: 20px;
-}
 
-.visited-notice svg { flex-shrink: 0; stroke: var(--tpl-blue); }
+  & svg { flex-shrink: 0; stroke: var(--tpl-blue); }
+}
 
 /* CTA */
 .cta-area {
@@ -681,17 +643,12 @@ onUnmounted(() => {
   font-family: var(--font-body);
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
-  box-shadow: 0 4px 14px rgba(0, 95, 192, 0.32);
-}
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--tpl-blue) 32%, transparent);
+  @media (prefers-color-scheme: dark) { & { box-shadow: none; } }
 
-.checkin-btn:disabled {
-  background: var(--color-text-muted);
-  box-shadow: none;
-  cursor: not-allowed;
-  opacity: 0.6;
+  &:disabled { background: var(--color-text-muted); box-shadow: none; cursor: not-allowed; opacity: 0.6; }
+  &:not(:disabled):active { transform: scale(0.98); }
 }
-
-.checkin-btn:not(:disabled):active { transform: scale(0.98); }
 
 .btn-spinner {
   display: inline-block;
@@ -708,8 +665,8 @@ onUnmounted(() => {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .location-error {
-  font-size: 0.82rem;
-  color: #c0392b;
+  font-size: 0.875rem;
+  color: var(--color-error);
   text-align: center;
   padding: 0 8px;
   line-height: 1.5;
@@ -724,14 +681,14 @@ onUnmounted(() => {
 }
 
 .scan-error {
-  font-size: 0.8rem;
-  color: #c0392b;
+  font-size: 0.875rem;
+  color: var(--color-error);
   text-align: center;
   padding: 0 8px;
 }
 
 .qr-tip {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
   text-align: center;
   padding: 0 8px;
@@ -743,15 +700,11 @@ onUnmounted(() => {
   text-decoration: none;
   font-weight: 600;
   white-space: nowrap;
+
+  &:hover { text-decoration: underline; }
 }
 
-.qr-tip-link:hover { text-decoration: underline; }
-
-/* ── Success state ─────────────────────────── */
-.success-view {
-  padding: min(120px, 18vh) 0 24px;
-}
-
+/* ── Success sheet content ── */
 .success-hero {
   display: flex;
   flex-direction: column;
@@ -767,6 +720,7 @@ onUnmounted(() => {
   animation: stamp-in 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
+/* Absolute overlay badge on top of stamp — position relative to stamp bounds */
 .success-check-badge {
   position: absolute;
   bottom: -6px;
@@ -774,7 +728,7 @@ onUnmounted(() => {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #27ae60;
+  background: var(--color-success);
   border: 2px solid var(--color-bg);
   display: flex;
   align-items: center;
@@ -784,7 +738,7 @@ onUnmounted(() => {
 
 @keyframes stamp-in {
   from { transform: scale(1.4) rotate(-8deg); opacity: 0; }
-  to   { transform: scale(1) rotate(0deg);    opacity: 1; }
+  to   { transform: scale(1)   rotate(0deg);  opacity: 1; }
 }
 
 @keyframes check-pop {
@@ -807,7 +761,7 @@ onUnmounted(() => {
 }
 
 .success-region {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
   margin-bottom: 8px;
 }
@@ -818,7 +772,7 @@ onUnmounted(() => {
   background: var(--tpl-navy);
   color: white;
   border-radius: var(--radius);
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   font-family: var(--font-body);
   text-align: center;
@@ -830,8 +784,8 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 20px;
-  border: 1.5px solid var(--color-border);
+  padding: 8px 20px;
+  border: 2px solid var(--color-border);
   border-radius: var(--radius);
   font-size: 0.875rem;
   font-weight: 600;
@@ -846,59 +800,12 @@ onUnmounted(() => {
 }
 
 .success-nearby-heading {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
   margin-bottom: 10px;
-}
-
-.nearby-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.nearby-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-  color: var(--color-text);
-  transition: background 0.12s;
-}
-
-.nearby-row:active { background: var(--color-paper); }
-
-.nearby-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nearby-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.nearby-dist {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.nearby-arrow {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  stroke: var(--color-text-muted);
 }
 
 /* ── QR Scanner overlay ─────────────────────── */
@@ -939,18 +846,17 @@ onUnmounted(() => {
   border-color: #fff;
   border-style: solid;
   border-width: 0;
+  &.frame-corner-tl { top: 0;    left: 0;  border-top-width: 3px;    border-left-width: 3px;  border-top-left-radius: 4px;     }
+  &.frame-corner-tr { top: 0;    right: 0; border-top-width: 3px;    border-right-width: 3px; border-top-right-radius: 4px;    }
+  &.frame-corner-bl { bottom: 0; left: 0;  border-bottom-width: 3px; border-left-width: 3px;  border-bottom-left-radius: 4px;  }
+  &.frame-corner-br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 4px; }
 }
-
-.frame-corner--tl { top: 0;    left: 0;  border-top-width: 3px;    border-left-width: 3px;  border-top-left-radius: 4px;     }
-.frame-corner--tr { top: 0;    right: 0; border-top-width: 3px;    border-right-width: 3px; border-top-right-radius: 4px;    }
-.frame-corner--bl { bottom: 0; left: 0;  border-bottom-width: 3px; border-left-width: 3px;  border-bottom-left-radius: 4px;  }
-.frame-corner--br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 4px; }
 
 .scanner-hint {
   position: relative;
   z-index: 1;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-family: var(--font-body);
   margin-top: 24px;
   text-align: center;
@@ -961,8 +867,8 @@ onUnmounted(() => {
   top: max(20px, env(safe-area-inset-top));
   right: 20px;
   z-index: 2;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -972,4 +878,7 @@ onUnmounted(() => {
   justify-content: center;
   cursor: pointer;
 }
+
+:global([data-theme="dark"]) .qr-btn-primary,
+:global([data-theme="dark"]) .checkin-btn { box-shadow: none; }
 </style>

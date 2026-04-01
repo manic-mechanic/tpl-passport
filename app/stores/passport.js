@@ -6,7 +6,10 @@ const STORAGE_KEY = 'tpl-passport'
 
 export const usePassportStore = defineStore('passport', () => {
   // --- State (hydrated from localStorage on first load) ---
-  const saved = import.meta.client ? JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') : {}
+  let saved = {}
+  if (import.meta.client) {
+    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { saved = {} }
+  }
 
   const checkIns = ref(saved.checkIns ?? [])             // [{ branchCode, timestamp, note, hasPhoto? }]
   const completedChallenges = ref(saved.completedChallenges ?? [])  // ["BranchCode:index", ...]
@@ -39,9 +42,10 @@ export const usePassportStore = defineStore('passport', () => {
   const hasVisited = (branchCode) => visitedBranchCodes.value.has(branchCode)
 
   const hasVisitedToday = (branchCode) => {
-    const todayPrefix = new Date().toISOString().slice(0, 10)
+    const today = new Date().toLocaleDateString('en-CA')
     return checkIns.value.some(
-      c => c.branchCode === branchCode && c.timestamp.startsWith(todayPrefix)
+      c => c.branchCode === branchCode &&
+           new Date(c.timestamp).toLocaleDateString('en-CA') === today
     )
   }
 
@@ -88,8 +92,6 @@ export const usePassportStore = defineStore('passport', () => {
 
   // STASHED: challenges — restore when FEATURES.challenges = true
   // These functions and state are kept intact so re-enabling requires only a flag flip.
-  const completedChallengesCount = computed(() => completedChallenges.value.length)
-
   function hasCompletedChallenge(branchCode, idx) {
     return completedChallenges.value.includes(`${branchCode}:${idx}`)
   }
@@ -106,108 +108,18 @@ export const usePassportStore = defineStore('passport', () => {
   // 'empty'     → no visits
   // 'mid'       → ~28 physical branches visited over the last ~4 months
   // 'completed' → all physical branches visited over the last ~2 years
-  function loadDemoState(mode) {
-    if (mode === 'empty') {
-      checkIns.value = []
-      completedChallenges.value = []
-      profile.value = { ...profile.value, homeBranch: '' }
-      return
-    }
-
-    const allCodes = physicalBranches.map(b => b.BranchCode)
-
-    // Spread visits evenly backward from today, one per branch
-    const makeCheckIns = (codes, totalDaysSpan) =>
-      codes.map((branchCode, i) => {
-        // Minimum 1 day back — demo check-ins should never land on today
-        const daysBack = Math.max(1, Math.round((i / codes.length) * totalDaysSpan))
-        const d = new Date()
-        d.setDate(d.getDate() - daysBack)
-        d.setHours(10 + (i % 8), (i * 7) % 60, 0, 0)
-        return { branchCode, timestamp: d.toISOString(), note: '' }
-      })
-
-    // Returns an ISO timestamp N days ago at a specific UTC hour
-    const utcDaysAgo = (n, utcHour = 12) => {
-      const d = new Date()
-      d.setUTCDate(d.getUTCDate() - n)
-      d.setUTCHours(utcHour, 0, 0, 0)
-      return d.toISOString()
-    }
-
-    const DEMO_NOTES = [
-      'Great kids section — found a perfect series to start',
-      'Quiet and spacious, came back for study time',
-      'Staff recommended an amazing read',
-      'Attended a Saturday storytime — the kids loved it',
-      'Picked up three holds, all ready the same week',
-      'Discovered a local history display near the entrance',
-      'Best natural light for reading in the whole system',
-      'Met a librarian who helped us find a niche topic book',
-      'Cozy nook in the corner, perfect for rainy days',
-      'The teen section had some surprisingly good graphic novels',
-    ]
-
-    if (mode === 'mid') {
-      // First 28 physical branches (~28%), visited over the past 4 months
-      checkIns.value = makeCheckIns(allCodes.slice(0, 28), 120)
-      // Day Tripper: 2 branches on the same UTC day
-      checkIns.value.push(
-        { branchCode: allCodes[0], timestamp: utcDaysAgo(30, 11), note: '' },
-        { branchCode: allCodes[1], timestamp: utcDaysAgo(30, 15), note: '' },
-      )
-      // Return Visitor: allCodes[1] gets a 3rd visit
-      checkIns.value.push(
-        { branchCode: allCodes[1], timestamp: utcDaysAgo(29), note: '' },
-      )
-      // Archivist: 2 fully documented check-ins (note + photo), 2 notes-only for documentedBranchCount
-      checkIns.value[0] = { ...checkIns.value[0], note: DEMO_NOTES[0], hasPhoto: true }
-      checkIns.value[1] = { ...checkIns.value[1], note: DEMO_NOTES[1], hasPhoto: true }
-      checkIns.value[2] = { ...checkIns.value[2], note: DEMO_NOTES[2] }
-      checkIns.value[3] = { ...checkIns.value[3], note: DEMO_NOTES[3] }
-
-      // STASHED: quest_master demo data — uncomment when FEATURES.challenges = true
-      // completedChallenges.value = [
-      //   `${allCodes[0]}:0`, `${allCodes[0]}:1`, `${allCodes[0]}:2`,
-      // ]
-      completedChallenges.value = []
-
-      // Set home branch (2 visits so far — Familiar Face requires 5, not yet earned)
-      profile.value = { ...profile.value, homeBranch: allCodes[0] }
-    } else if (mode === 'completed') {
-      // All physical branches, visited over the past 2 years
-      checkIns.value = makeCheckIns(allCodes, 730)
-      // Day Tripper: 2 branches on the same UTC day
-      checkIns.value.push(
-        { branchCode: allCodes[0], timestamp: utcDaysAgo(10, 11), note: '' },
-        { branchCode: allCodes[1], timestamp: utcDaysAgo(10, 15), note: '' },
-      )
-      // Familiar Face: allCodes[0] now has 5 total visits (1 from makeCheckIns + 1 day-trip above + 3 here)
-      checkIns.value.push(
-        { branchCode: allCodes[0], timestamp: utcDaysAgo(9), note: '' },
-        { branchCode: allCodes[0], timestamp: utcDaysAgo(8), note: '' },
-        { branchCode: allCodes[0], timestamp: utcDaysAgo(7), note: '' },
-      )
-      // Return Visitor: allCodes[1] now has 3 total visits (1 makeCheckIns + 1 day-trip + 1 here)
-      checkIns.value.push(
-        { branchCode: allCodes[1], timestamp: utcDaysAgo(6), note: '' },
-      )
-      // Archivist: 10 fully documented (note + photo), 15 notes-only for documentedBranchCount
-      for (let i = 0; i < 10; i++) {
-        checkIns.value[i] = { ...checkIns.value[i], note: DEMO_NOTES[i % DEMO_NOTES.length], hasPhoto: true }
-      }
-      for (let i = 10; i < 25; i++) {
-        checkIns.value[i] = { ...checkIns.value[i], note: DEMO_NOTES[i % DEMO_NOTES.length] }
-      }
-
-      // STASHED: quest_master demo data — uncomment when FEATURES.challenges = true
-      // completedChallenges.value = [
-      //   `${allCodes[0]}:0`, `${allCodes[0]}:1`, `${allCodes[0]}:2`,
-      // ]
-      completedChallenges.value = []
-
-      // Set home branch for Familiar Face achievement
-      profile.value = { ...profile.value, homeBranch: allCodes[0] }
+  //
+  // The implementation lives in passport.demo.js and is loaded on demand.
+  // Guarded by the runtime isDev flag so it works on preview deployments
+  // (NUXT_PUBLIC_IS_DEV=true) while remaining a no-op in production.
+  async function loadDemoState(mode) {
+    const { public: { isDev } } = useRuntimeConfig()
+    if (!isDev) return
+    try {
+      const { applyDemoState } = await import('./passport.demo.js')
+      applyDemoState(mode, { checkIns, completedChallenges, profile })
+    } catch (e) {
+      console.error('[demo] loadDemoState failed:', e)
     }
   }
 
@@ -222,7 +134,6 @@ export const usePassportStore = defineStore('passport', () => {
     progressPct,
     overallPct,
     completedChallenges,
-    completedChallengesCount,
     hasCompletedChallenge,
     toggleChallenge,
     checkIn,

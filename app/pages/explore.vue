@@ -1,298 +1,677 @@
 <template>
   <main class="page-content">
+
+    <!-- Header -->
     <header class="page-header">
-      <h1>Explore</h1>
-      <p class="sub">{{ filteredBranches.length }} {{ visitFilter ? visitFilter : '' }} branches{{ visitFilter === 'unvisited' ? ' left to go' : ' across Toronto' }}</p>
+      <div>
+        <h1>Explore</h1>
+        <p class="sub">Plan your next visit</p>
+      </div>
+      <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      </NuxtLink>
     </header>
 
-    <div class="controls">
-      <div class="search-wrap">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-          v-model="query"
-          type="search"
-          placeholder="Search by name or neighbourhood…"
-          class="search-input"
-        />
+    <!-- Tab pills -->
+    <nav class="tab-bar" role="tablist">
+      <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
+        :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'">Near Me</button>
+      <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
+        :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'">Day Trips</button>
+      <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
+        :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'">Extra Credit</button>
+    </nav>
+
+    <!-- Near Me -->
+    <section v-show="activeTab === 'near-me'" class="explore-section">
+      <div v-if="geoStatus === 'loading'" class="geo-state">
+        <span class="geo-spinner" />
+        <span>Finding branches near you…</span>
       </div>
 
-      <div class="pill-bar">
-        <button
-          class="sort-tab"
-          :class="{ 'sort-tab--active': sort === 'alpha' }"
-          @click="selectSort('alpha')"
-        >A–Z</button>
-        <button
-          class="sort-tab"
-          :class="{ 'sort-tab--active': sort === 'nearby' }"
-          @click="selectSort('nearby')"
-        >
-          <span v-if="geoStatus === 'loading'" class="geo-spinner" />
-          Nearby
+      <p v-else-if="geoStatus === 'denied'" class="geo-denied">{{ geoDeniedMessage }}</p>
+
+      <div v-else-if="geoStatus === 'ready'" class="near-me-list">
+        <BranchCard v-for="item in nearMeBranches" :key="item.branch.BranchCode" :branch="item.branch"
+          :distance="item.distanceLabel" as-button @select="openBranchSheet" />
+      </div>
+    </section>
+
+    <!-- Working Toward -->
+    <section v-show="activeTab === 'working-toward'" class="explore-section">
+      <div v-if="badgeSuggestions.length === 0" class="extra-credit-empty">
+        <p>You've earned every badge. Well done!</p>
+      </div>
+      <div v-else class="badge-suggestions">
+        <div v-for="s in badgeSuggestions" :key="s.id" class="suggestion-card">
+          <div class="suggestion-badge" :class="s.shape" :style="{ background: badgeBg(s.id) }">
+            <span v-if="s.label" class="suggestion-badge-label">{{ s.label }}</span>
+          </div>
+          <div class="suggestion-body">
+            <div class="suggestion-header">
+              <span class="suggestion-title">{{ s.title }}</span>
+              <div class="suggestion-bar">
+                <div class="suggestion-fill" :style="{ width: (s.pct * 100) + '%' }" />
+              </div>
+            </div>
+            <p class="suggestion-message">{{ s.message }}</p>
+            <div v-if="s.branches.length" class="suggestion-branches">
+              <p class="suggestion-subhead">Suggested:</p>
+              <BranchCard v-for="b in s.branches" :key="b.BranchCode" :branch="b" compact as-button
+                @select="openBranchSheet" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Day Trips -->
+    <section v-show="activeTab === 'routes'" class="explore-section">
+
+      <!-- Mode sub-tabs -->
+      <nav class="mode-bar" role="tablist">
+        <button v-for="mode in MODES" :key="mode.id" class="mode-tab" :class="{ active: activeMode === mode.id }"
+          role="tab" :aria-selected="activeMode === mode.id" @click="activeMode = mode.id">
+          <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+            stroke-linecap="round" stroke-linejoin="round" v-html="mode.icon" />
+          {{ mode.label }}
         </button>
-        <span class="pill-divider" />
-        <button
-          class="sort-tab"
-          :class="{ 'sort-tab--active': visitFilter === 'unvisited' }"
-          @click="visitFilter = visitFilter === 'unvisited' ? null : 'unvisited'"
-        >Unvisited</button>
-        <button
-          class="sort-tab"
-          :class="{ 'sort-tab--active': visitFilter === 'visited' }"
-          @click="visitFilter = visitFilter === 'visited' ? null : 'visited'"
-        >Visited</button>
-        <button
-          class="sort-tab"
-          :class="{ 'sort-tab--active': byDistrict }"
-          @click="byDistrict = !byDistrict"
-        >District</button>
+      </nav>
+
+      <!-- Walking routes -->
+      <div v-if="activeMode === 'walk'" class="routes-list">
+        <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card">
+          <div class="route-top">
+            <span class="route-name">{{ route.name }}</span>
+            <svg class="route-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
+          <p class="route-meta">{{ route.area }} · {{ route.total }} stops · {{ route.duration }}</p>
+          <div class="route-progress">
+            <div class="route-bar">
+              <div class="route-fill" :style="{ width: (route.visited / route.total * 100) + '%' }" />
+            </div>
+            <span class="route-count" :class="{ done: route.visited === route.total }">
+              {{ route.visited }}/{{ route.total }}
+            </span>
+          </div>
+        </NuxtLink>
       </div>
 
-      <p v-if="geoStatus === 'denied'" class="geo-error">
-        Location unavailable — {{ navigator?.geolocation ? 'allow location access in browser settings' : 'geolocation requires HTTPS or localhost' }}.
+      <!-- Stubbed modes -->
+      <p v-else class="coming-soon">
+        {{MODES.find(m => m.id === activeMode)?.label}} routes coming soon.
       </p>
+
+    </section>
+
+    <!-- Browse All CTA -->
+    <div class="browse-cta">
+      <NuxtLink to="/branches" class="browse-btn">Browse all Branches</NuxtLink>
     </div>
 
-    <!-- Flat list -->
-    <ul v-if="!byDistrict" class="branch-list">
-      <li v-for="branch in filteredBranches" :key="branch.BranchCode">
-        <BranchRow :branch="branch" :distance="distanceMap[branch.BranchCode] ?? null" />
-      </li>
-    </ul>
-
-    <!-- Grouped by district -->
-    <template v-else>
-      <div v-for="district in visibleDistricts" :key="district" class="region-group">
-        <p class="section-label">{{ district }}</p>
-        <ul class="branch-list">
-          <li v-for="branch in byRegion[district]" :key="branch.BranchCode">
-            <BranchRow :branch="branch" :distance="distanceMap[branch.BranchCode] ?? null" />
-          </li>
-        </ul>
-      </div>
-    </template>
-
   </main>
+
+  <!-- Branch detail sheet -->
+  <BaseSheet v-model:open="branchSheetOpen" :height="branchSheetHeight">
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" />
+  </BaseSheet>
+
 </template>
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, DISTRICT_ORDER, haversineKm } from '~/composables/useRegion'
+import { physicalBranches, haversineKm, formatDist, buildMapsUrl } from '~/composables/useRegion'
+import routesData from '#data/routes.json'
+import { BADGES, useBadgeCtx, badgeBg } from '~/composables/useBadges'
 
-const passport     = usePassportStore()
-const query        = ref('')
-const sort         = ref('alpha')
-const visitFilter  = ref(null) // null | 'unvisited' | 'visited'
-const byDistrict   = ref(false)
+const passport = usePassportStore()
 
-// Geolocation state
-const userLat   = ref(null)
-const userLng   = ref(null)
-const geoStatus = ref('idle') // 'idle' | 'loading' | 'ready' | 'denied'
+// ── Tab state ────────────────────────────────────────────────────────
+const route = useRoute()
+const activeTab = ref(route.query.tab === 'routes' ? 'routes' : 'near-me')
+const activeMode = ref('walk')    // 'walk' | 'bike' | 'transit' | 'drive'
 
-function formatDistance(km) {
-  if (km < 1) return `${Math.round(km * 1000)} m`
-  return `${km.toFixed(1)} km`
-}
+const MODES = [
+  {
+    id: 'walk', label: 'Walk',
+    icon: '<circle cx="12" cy="4.5" r="1.5"/><path d="M10 8.5l-2 7h2.5l.5 4h2l.5-4H16l-2-7"/><path d="M10 8.5l2-1.5 2 1.5"/>',
+  },
+  {
+    id: 'bike', label: 'Bike',
+    icon: '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>',
+  },
+  {
+    id: 'transit', label: 'Transit',
+    icon: '<rect x="6" y="3" width="12" height="15" rx="2"/><path d="M6 11h12"/><path d="M9 7h2M13 7h2"/><path d="M8 18l-1 3M16 18l1 3"/>',
+  },
+  {
+    id: 'drive', label: 'Drive',
+    icon: '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>',
+  },
+]
 
-function selectSort(value) {
-  if (value === 'nearby' && geoStatus.value === 'idle') {
-    if (!navigator?.geolocation) {
-      geoStatus.value = 'denied'
-      return
-    }
-    geoStatus.value = 'loading'
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        userLat.value = pos.coords.latitude
-        userLng.value = pos.coords.longitude
-        geoStatus.value = 'ready'
-        sort.value = 'nearby'
-      },
-      () => {
-        geoStatus.value = 'denied'
-        sort.value = 'alpha'
-      }
-    )
+// ── Near Me ──────────────────────────────────────────────────────────
+const userLat = ref(null)
+const userLng = ref(null)
+const geoStatus = ref('loading') // 'loading' | 'ready' | 'denied'
+const geoDeniedMessage = computed(() =>
+  navigator?.geolocation
+    ? 'Allow location access to see branches near you.'
+    : 'Geolocation not available on this device.'
+)
+
+onMounted(() => {
+  if (!navigator?.geolocation) {
+    geoStatus.value = 'denied'
     return
   }
-  sort.value = value
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      userLat.value = pos.coords.latitude
+      userLng.value = pos.coords.longitude
+      geoStatus.value = 'ready'
+    },
+    () => { geoStatus.value = 'denied' }
+  )
+})
+
+const nearMeBranches = computed(() => {
+  if (geoStatus.value !== 'ready') return []
+  const withDistance = physicalBranches
+    .map(b => ({
+      branch: b,
+      km: haversineKm(userLat.value, userLng.value, b.Lat, b.Long),
+      visited: passport.hasVisited(b.BranchCode),
+    }))
+    .sort((a, b) => a.km - b.km)
+
+  const nearest = withDistance[0]
+  const unvisited = withDistance
+    .filter(item => !item.visited && item.branch.BranchCode !== nearest.branch.BranchCode)
+    .slice(0, 4)
+
+  return [nearest, ...unvisited].map(item => ({ ...item, distanceLabel: formatDist(item.km) }))
+})
+
+// ── Badge Suggestions ─────────────────────────────────────────────────
+const badgeCtx = useBadgeCtx()
+
+const badgeSuggestions = computed(() => {
+  const ctx = badgeCtx.value
+  return BADGES
+    .filter(a => !a.earned(ctx))
+    .map(a => ({ id: a.id, title: a.title, shape: a.shape, label: a.label ?? null, ...a.suggest(ctx) }))
+    .filter(s => s.message)
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 3)
+})
+
+// ── Suggested Routes ─────────────────────────────────────────────────
+const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
+
+const routesWithProgress = computed(() =>
+  routesData
+    .filter(r => r.mode === activeMode.value)
+    .map(r => {
+      const branchObjects = r.branches.map(code => branchesByCode[code]).filter(Boolean)
+      const visited = branchObjects.filter(b => passport.hasVisited(b.BranchCode)).length
+      return { ...r, branchObjects, visited, total: branchObjects.length, mapsUrl: buildMapsUrl(branchObjects) }
+    })
+)
+
+// ── Sheets ────────────────────────────────────────────────────────────
+const branchSheetOpen = ref(false)
+const activeBranch = ref(null)
+const branchSheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
+
+function openBranchSheet(branch) {
+  activeBranch.value = branch
+  branchSheetOpen.value = true
 }
-
-function sortedList(list) {
-  if (sort.value === 'nearby' && userLat.value !== null) {
-    return [...list].sort((a, b) =>
-      haversineKm(userLat.value, userLng.value, a.Lat, a.Long) -
-      haversineKm(userLat.value, userLng.value, b.Lat, b.Long)
-    )
-  }
-  return [...list].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
-}
-
-const filteredBranches = computed(() => {
-  let list = physicalBranches
-  if (query.value) {
-    const q = query.value.toLowerCase()
-    list = list.filter(b =>
-      b.BranchName.toLowerCase().includes(q) ||
-      b.NBHDName?.toLowerCase().includes(q) ||
-      b.Address?.toLowerCase().includes(q)
-    )
-  }
-  if (visitFilter.value === 'unvisited') list = list.filter(b => !passport.hasVisited(b.BranchCode))
-  if (visitFilter.value === 'visited')   list = list.filter(b => passport.hasVisited(b.BranchCode))
-  return sortedList(list)
-})
-
-const distanceMap = computed(() => {
-  if (sort.value !== 'nearby' || userLat.value === null) return {}
-  const map = {}
-  for (const b of physicalBranches) {
-    map[b.BranchCode] = formatDistance(haversineKm(userLat.value, userLng.value, b.Lat, b.Long))
-  }
-  return map
-})
-
-const byRegion = computed(() => {
-  const map = {}
-  for (const d of DISTRICT_ORDER) map[d] = []
-  for (const b of filteredBranches.value) {
-    if (b.District) map[b.District]?.push(b)
-  }
-  // filteredBranches is already sorted — preserve that order within groups
-  return map
-})
-
-const visibleDistricts = computed(() => {
-  const districts = DISTRICT_ORDER.filter(d => byRegion.value[d]?.length > 0)
-  if (sort.value !== 'nearby' || userLat.value === null) return districts
-  return [...districts].sort((a, b) => {
-    const nearestA = haversineKm(userLat.value, userLng.value, byRegion.value[a][0].Lat, byRegion.value[a][0].Long)
-    const nearestB = haversineKm(userLat.value, userLng.value, byRegion.value[b][0].Lat, byRegion.value[b][0].Long)
-    return nearestA - nearestB
-  })
-})
 </script>
 
 <style scoped>
-.page-header {
-  padding: 20px 0 14px;
+/* Extra bottom padding so fixed browse button doesn't overlap content */
+.page-content {
+  padding-bottom: calc(var(--nav-height) + 72px);
 }
 
-.page-header h1 { margin-bottom: 3px; }
+/* ── Page header ─────────────────────────────────────────────────── */
+.page-header {
+  padding: 20px 0 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.page-header h1 {
+  margin-bottom: 3px;
+}
 
 .sub {
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
 }
 
-.controls {
-  margin-bottom: 16px;
+.search-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.search-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.search-btn:active {
+  background: var(--color-paper);
+  border-color: var(--tpl-blue);
+}
+
+/* ── Sections ────────────────────────────────────────────────────── */
+.explore-section {
+  margin-bottom: 28px;
+}
+
+
+/* ── Tab bar ─────────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  margin: 0 -18px 20px;
+  padding: 0 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1.5px solid var(--color-border-soft);
+}
+
+.tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-pill {
+  flex: 1;
+  text-align: center;
+  padding: 10px 8px;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1.5px;
+  background: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-pill {
+  &.active {
+    color: var(--tpl-navy);
+    border-bottom-color: var(--tpl-navy);
+
+    @media (prefers-color-scheme: dark) {
+      & {
+        color: var(--color-brand-text);
+        border-bottom-color: var(--color-brand-text);
+      }
+    }
+  }
+}
+
+:global([data-theme="dark"]) .tab-pill.active {
+  color: var(--color-brand-text);
+  border-bottom-color: var(--color-brand-text);
+}
+
+/* ── Near Me ─────────────────────────────────────────────────────── */
+.geo-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  padding: 14px 0;
+}
+
+.geo-denied {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+}
+
+.geo-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--tpl-blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.near-me-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Badge Suggestions ───────────────────────────────────────────── */
+.badge-suggestions {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.search-wrap {
-  position: relative;
+.suggestion-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
 
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
+.suggestion-badge {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suggestion-badge.octagon {
+  clip-path: polygon(29% 0%, 71% 0%, 100% 29%, 100% 71%, 71% 100%, 29% 100%, 0% 71%, 0% 29%);
+}
+
+.suggestion-badge.circle {
+  border-radius: 50%;
+}
+
+.suggestion-badge.star {
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.suggestion-badge-label {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.suggestion-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestion-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.suggestion-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.suggestion-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.suggestion-fill {
+  height: 100%;
+  background: var(--tpl-blue);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.suggestion-message {
+  font-size: 0.875rem;
   color: var(--color-text-muted);
+  line-height: 1.4;
+  margin: 0 0 8px;
+}
+
+.suggestion-branches {
+  margin-left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.suggestion-subhead {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+/* ── Browse CTA — fixed above nav ───────────────────────────────── */
+.browse-cta {
+  position: fixed;
+  bottom: var(--nav-height);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  max-width: 480px;
+  padding: 16px 18px 12px;
+  background: linear-gradient(to bottom, transparent, var(--color-bg) 40%);
+  z-index: 5;
   pointer-events: none;
 }
 
-.search-input {
+.browse-btn {
+  display: block;
   width: 100%;
-  padding: 11px 14px 11px 38px;
-  border: 1px solid var(--color-border);
+  padding: 12px;
   border-radius: var(--radius);
-  font-size: 1rem; /* 16px minimum prevents iOS Safari auto-zoom on focus */
-  font-family: var(--font-body);
+  border: 1.5px solid var(--color-border);
   background: var(--color-surface);
-  color: var(--color-text);
-  outline: none;
-  box-shadow: var(--shadow-sm);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: all;
+  -webkit-tap-highlight-color: transparent;
   transition: border-color 0.15s;
+  box-shadow: var(--shadow-sm);
 }
 
-.search-input:focus { border-color: var(--tpl-blue); }
+.browse-btn:active {
+  border-color: var(--tpl-blue);
+  color: var(--tpl-blue);
+}
 
-.pill-bar {
+/* ── Day Trips ───────────────────────────────────────────────────── */
+.mode-bar {
   display: flex;
-  flex-wrap: nowrap;
+  margin: 0 -18px 16px;
+  padding: 0 18px;
+  border-bottom: 1.5px solid var(--color-border-soft);
   overflow-x: auto;
-  gap: 6px;
-  align-items: center;
-  /* extend to page edges so pills scroll under the gutter */
-  margin: 0 -16px;
-  padding: 2px 16px;
   scrollbar-width: none;
 }
 
-.pill-bar::-webkit-scrollbar { display: none; }
-
-.pill-divider {
-  width: 1px;
-  height: 18px;
-  background: var(--color-border);
-  flex-shrink: 0;
+.mode-bar::-webkit-scrollbar {
+  display: none;
 }
 
-.sort-tab {
-  flex-shrink: 0;
-  padding: 6px 13px;
-  border-radius: var(--radius-pill);
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  font-size: 0.8rem;
+.mode-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1.5px;
+  background: none;
+  font-size: 0.75rem;
   font-weight: 600;
   font-family: var(--font-body);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
 }
 
-.sort-tab--active {
-  background: var(--tpl-navy);
-  border-color: var(--tpl-navy);
-  color: #fff;
+.mode-tab {
+  &.active {
+    color: var(--tpl-navy);
+    border-bottom-color: var(--tpl-navy);
+
+    @media (prefers-color-scheme: dark) {
+      & {
+        color: var(--color-brand-text);
+        border-bottom-color: var(--color-brand-text);
+      }
+    }
+  }
 }
 
-.geo-spinner {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border: 2px solid rgba(255,255,255,0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  vertical-align: middle;
-  margin-right: 2px;
+:global([data-theme="dark"]) .mode-tab.active {
+  color: var(--color-brand-text);
+  border-bottom-color: var(--color-brand-text);
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.geo-error {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-  margin: 2px 0 0;
+.mode-icon {
+  width: 20px;
+  height: 20px;
 }
 
-.region-group { margin-bottom: 24px; }
-
-.branch-list {
-  list-style: none;
+.routes-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
+}
+
+.route-card {
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.12s;
+}
+
+.route-card:active {
+  background: var(--color-paper);
+  border-color: var(--color-border);
+}
+
+.route-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.route-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.route-chevron {
+  width: 16px;
+  height: 16px;
+  stroke: var(--color-border);
+  flex-shrink: 0;
+}
+
+.route-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin: 0 0 10px;
+  line-height: 1;
+}
+
+.route-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.route-fill {
+  height: 100%;
+  background: var(--tpl-blue);
+  border-radius: 2px;
+  min-width: 2px;
+}
+
+.route-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.route-count {
+  &.done {
+    color: var(--tpl-blue);
+  }
+}
+
+.coming-soon {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  padding: 24px 0;
+  text-align: center;
 }
 </style>

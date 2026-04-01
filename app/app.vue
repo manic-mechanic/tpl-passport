@@ -1,6 +1,7 @@
 <template>
   <div class="app-shell">
     <NuxtRouteAnnouncer />
+    <div class="status-bar-fill" aria-hidden="true" />
     <NuxtPage />
     <BottomNav />
 
@@ -13,8 +14,8 @@
           <p class="cover-sub">Toronto Public Library</p>
         </div>
         <!-- Decorative horizontal rule bands like a real passport cover -->
-        <div class="cover-band cover-band--top" />
-        <div class="cover-band cover-band--bottom" />
+        <div class="cover-band cover-band-top" />
+        <div class="cover-band cover-band-bottom" />
       </div>
     </Transition>
   </div>
@@ -97,7 +98,7 @@ onMounted(() => {
 .cover-colon { color: var(--tpl-blue); }
 
 .cover-sub {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -117,10 +118,9 @@ onMounted(() => {
     rgba(184, 152, 90, 0.5) 80%,
     transparent 100%
   );
+  &.cover-band-top    { top: 0; }
+  &.cover-band-bottom { bottom: 0; }
 }
-
-.cover-band--top    { top: 0; }
-.cover-band--bottom { bottom: 0; }
 
 /* Cover fade-out transition */
 .cover-leave-active {

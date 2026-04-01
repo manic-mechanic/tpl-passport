@@ -7,8 +7,8 @@ vi.stubGlobal('localStorage', {
   setItem: () => {},
 })
 
-// Stub import.meta.client so the store skips the localStorage hydration branch
-vi.stubEnv('', '')  // ensures import.meta.client is falsy in tests
+// import.meta.client is undefined in Vitest (not a browser), so the
+// localStorage hydration branch in the store is skipped automatically.
 
 import { usePassportStore } from '../app/stores/passport.js'
 
@@ -51,6 +51,25 @@ describe('checkIn', () => {
   })
 })
 
+describe('hasVisited', () => {
+  it('returns false for an unvisited branch', () => {
+    const passport = usePassportStore()
+    expect(passport.hasVisited('AG')).toBe(false)
+  })
+
+  it('returns true after a check-in', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    expect(passport.hasVisited('AG')).toBe(true)
+  })
+
+  it('returns false for a different branch', () => {
+    const passport = usePassportStore()
+    passport.checkIn('AG')
+    expect(passport.hasVisited('HP')).toBe(false)
+  })
+})
+
 describe('hasVisitedToday', () => {
   it('returns false for an unvisited branch', () => {
     const passport = usePassportStore()
@@ -77,9 +96,9 @@ describe('progressPct', () => {
     expect(passport.progressPct).toBe(0)
   })
 
-  it('is 100 after visiting all 100 branches', () => {
+  it('is 100 after visiting all 100 branches', async () => {
     const passport = usePassportStore()
-    passport.loadDemoState('completed')
+    await passport.loadDemoState('completed')
     expect(passport.progressPct).toBe(100)
   })
 })
@@ -112,15 +131,15 @@ describe('overallPct', () => {
     expect(passport.overallPct).toBe(4)
   })
 
-  it('mid demo is 22% — Math.round(28/100*75 + 4/100*25) = 22', () => {
+  it('mid demo is 22% — Math.round(28/100*75 + 4/100*25) = 22', async () => {
     const passport = usePassportStore()
-    passport.loadDemoState('mid')
+    await passport.loadDemoState('mid')
     expect(passport.overallPct).toBe(22)
   })
 
-  it('completed demo is 81% — Math.round(100/100*75 + 25/100*25) = 81', () => {
+  it('completed demo is 81% — Math.round(100/100*75 + 25/100*25) = 81', async () => {
     const passport = usePassportStore()
-    passport.loadDemoState('completed')
+    await passport.loadDemoState('completed')
     expect(passport.overallPct).toBe(81)
   })
 })
@@ -200,38 +219,38 @@ describe('markCheckInHasPhoto', () => {
 })
 
 describe('loadDemoState', () => {
-  it('empty clears checkIns', () => {
+  it('empty clears checkIns', async () => {
     const passport = usePassportStore()
-    passport.loadDemoState('mid')
+    await passport.loadDemoState('mid')
     expect(passport.checkIns.length).toBeGreaterThan(0)
-    passport.loadDemoState('empty')
+    await passport.loadDemoState('empty')
     expect(passport.checkIns).toHaveLength(0)
   })
 
-  it('empty clears completedChallenges', () => {
+  it('empty clears completedChallenges', async () => {
     const passport = usePassportStore()
     passport.toggleChallenge('AG', 0)
     expect(passport.completedChallenges).toHaveLength(1)
-    passport.loadDemoState('empty')
+    await passport.loadDemoState('empty')
     expect(passport.completedChallenges).toHaveLength(0)
   })
 
-  it('mid loads 31 check-ins', () => {
+  it('mid loads 31 check-ins', async () => {
     const passport = usePassportStore()
-    passport.loadDemoState('mid')
+    await passport.loadDemoState('mid')
     expect(passport.checkIns).toHaveLength(31)
   })
 
-  it('completed loads 106 check-ins', () => {
+  it('completed loads 106 check-ins', async () => {
     const passport = usePassportStore()
-    passport.loadDemoState('completed')
+    await passport.loadDemoState('completed')
     expect(passport.checkIns).toHaveLength(106)
   })
 
-  it('demo check-ins never land on today', () => {
+  it('demo check-ins never land on today', async () => {
     const passport = usePassportStore()
     const todayPrefix = new Date().toISOString().slice(0, 10)
-    passport.loadDemoState('completed')
+    await passport.loadDemoState('completed')
     const todayVisits = passport.checkIns.filter(c => c.timestamp.startsWith(todayPrefix))
     expect(todayVisits).toHaveLength(0)
   })

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "junction-high-park",
+    "name": "Junction & High Park Loop",
+    "mode": "walk",
+    "area": "West End",
+    "duration": "~2–3 hrs",
+    "description": "A leisurely walk through the Junction neighbourhood, looping around High Park and connecting five branches along quiet residential streets.",
+    "branches": ["SI", "AN", "PE", "RN", "SW"]
+  },
+  {
+    "id": "old-toronto-waterfront",
+    "name": "Old Toronto & Waterfront",
+    "mode": "walk",
+    "area": "Downtown",
+    "duration": "~1.5–2 hrs",
+    "description": "A compact downtown loop from Fort York along the waterfront and east through St. Lawrence Market territory.",
+    "branches": ["FO", "CH", "SL", "QS"]
+  },
+  {
+    "id": "university-annex",
+    "name": "The University & Annex",
+    "mode": "walk",
+    "area": "Downtown",
+    "duration": "~1.5–2 hrs",
+    "description": "Five branches in the heart of the Annex and University corridor, connected by some of the city's most walkable streets.",
+    "branches": ["BL", "CS", "PM", "SP", "LS"]
+  }
+]

@@ -1,21 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { physicalBranches } from '../app/composables/useRegion.js'
+import { physicalBranches, branchesByAlphaPage } from '../app/composables/useRegion.js'
+import { compassBranches } from '../app/composables/useBadges.js'
 import {
-  ACHIEVEMENTS,
-  buildAchievementCtx,
-  compassBranches,
-  districtBranchCounts,
+  BADGES,
+  buildBadgeCtx,
   fullyDocumentedCount,
   maxBranchesInOneDay,
-  visitedDistricts,
   branchVisitCounts,
   homeVisitCount,
   maxNonHomeVisitCount,
-} from '../app/composables/useAchievements.js'
+} from '../app/composables/useBadges.js'
 
 // Helper: build a minimal ctx with sensible defaults
 function ctx(overrides = {}) {
-  return buildAchievementCtx({
+  return buildBadgeCtx({
     checkIns: [],
     visitedBranchCodes: new Set(),
     completedChallenges: [],
@@ -25,7 +23,7 @@ function ctx(overrides = {}) {
 }
 
 function badge(id) {
-  return ACHIEVEMENTS.find(a => a.id === id)
+  return BADGES.find(a => a.id === id)
 }
 
 // --- Helper function tests ---
@@ -66,30 +64,6 @@ describe('maxBranchesInOneDay', () => {
   })
 })
 
-describe('visitedDistricts', () => {
-  it('returns empty for no visits', () => {
-    expect(visitedDistricts(new Set())).toHaveLength(0)
-  })
-
-  it('returns the correct district for a single branch', () => {
-    const branch = physicalBranches[0]
-    const result = visitedDistricts(new Set([branch.BranchCode]))
-    expect(result).toHaveLength(1)
-    expect(result[0]).toBe(branch.District)
-  })
-
-  it('deduplicates districts across multiple branches in the same district', () => {
-    const district = physicalBranches[0].District
-    const sameDistrict = physicalBranches.filter(b => b.District === district).slice(0, 3)
-    expect(visitedDistricts(new Set(sameDistrict.map(b => b.BranchCode)))).toHaveLength(1)
-  })
-
-  it('returns 4 districts when branches from all districts are visited', () => {
-    const onePerDistrict = ['Etobicoke-York', 'North York', 'Toronto-East York', 'Scarborough']
-      .map(d => physicalBranches.find(b => b.District === d).BranchCode)
-    expect(visitedDistricts(new Set(onePerDistrict))).toHaveLength(4)
-  })
-})
 
 describe('branchVisitCounts', () => {
   it('returns empty object for no check-ins', () => {
@@ -160,9 +134,9 @@ describe('fullyDocumentedCount', () => {
   })
 })
 
-// --- Achievement badge tests ---
+// --- Badge tests ---
 
-describe('achievement: first stamp', () => {
+describe('badge: first stamp', () => {
   it('not earned with no visits', () => {
     expect(badge('first').earned(ctx())).toBe(false)
   })
@@ -171,20 +145,24 @@ describe('achievement: first stamp', () => {
   })
 })
 
-describe('achievement: world_tour', () => {
-  it('not earned with branches in only 3 districts', () => {
-    const codes = ['Etobicoke-York', 'North York', 'Toronto-East York']
-      .map(d => physicalBranches.find(b => b.District === d).BranchCode)
-    expect(badge('world_tour').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(false)
+describe('badge: page_turner', () => {
+  it('not earned with no visits', () => {
+    expect(badge('page_turner').earned(ctx())).toBe(false)
   })
-  it('earned with at least one branch in all 4 districts', () => {
-    const codes = ['Etobicoke-York', 'North York', 'Toronto-East York', 'Scarborough']
-      .map(d => physicalBranches.find(b => b.District === d).BranchCode)
-    expect(badge('world_tour').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(true)
+
+  it('not earned with one branch per page except one page', () => {
+    // Visit one branch from all pages except the last
+    const codes = branchesByAlphaPage.slice(0, -1).map(page => page.branches[0].BranchCode)
+    expect(badge('page_turner').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(false)
+  })
+
+  it('earned when at least one branch on every alpha page is visited', () => {
+    const codes = branchesByAlphaPage.map(page => page.branches[0].BranchCode)
+    expect(badge('page_turner').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(true)
   })
 })
 
-describe('achievement: day_tripper', () => {
+describe('badge: day_tripper', () => {
   it('not earned with only one branch per day', () => {
     const checkIns = [
       { branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z' },
@@ -201,25 +179,26 @@ describe('achievement: day_tripper', () => {
   })
 })
 
-describe('achievement: district_champ', () => {
+describe('badge: page_filler', () => {
   it('not earned with no visits', () => {
-    expect(badge('district_champ').earned(ctx())).toBe(false)
+    expect(badge('page_filler').earned(ctx())).toBe(false)
   })
 
-  it('not earned with only partial coverage of every district', () => {
-    const onePerDistrict = ['Etobicoke-York', 'North York', 'Toronto-East York', 'Scarborough']
-      .map(d => physicalBranches.find(b => b.District === d).BranchCode)
-    expect(badge('district_champ').earned(ctx({ visitedBranchCodes: new Set(onePerDistrict) }))).toBe(false)
+  it('not earned when no page is fully complete', () => {
+    // Visit all but one branch on the smallest page
+    const smallestPage = branchesByAlphaPage.slice().sort((a, b) => a.branches.length - b.branches.length)[0]
+    const codes = smallestPage.branches.slice(0, -1).map(b => b.BranchCode)
+    expect(badge('page_filler').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(false)
   })
 
-  it('earned when all branches in the smallest district are visited', () => {
-    const smallestDistrict = Object.entries(districtBranchCounts).sort((a, b) => a[1] - b[1])[0][0]
-    const codes = physicalBranches.filter(b => b.District === smallestDistrict).map(b => b.BranchCode)
-    expect(badge('district_champ').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(true)
+  it('earned when all branches on any single page are visited', () => {
+    const smallestPage = branchesByAlphaPage.slice().sort((a, b) => a.branches.length - b.branches.length)[0]
+    const codes = smallestPage.branches.map(b => b.BranchCode)
+    expect(badge('page_filler').earned(ctx({ visitedBranchCodes: new Set(codes) }))).toBe(true)
   })
 })
 
-describe('achievement: navigator', () => {
+describe('badge: navigator', () => {
   it('correctly identifies 1–4 extreme branches', () => {
     expect(compassBranches.size).toBeGreaterThanOrEqual(1)
     expect(compassBranches.size).toBeLessThanOrEqual(4)
@@ -235,7 +214,7 @@ describe('achievement: navigator', () => {
 })
 
 // STASHED: quest_master tests — restore when FEATURES.challenges = true
-// describe('achievement: quest_master', () => {
+// describe('badge: quest_master', () => {
 //   it('not earned with no challenges completed', () => {
 //     expect(badge('quest_master').earned(ctx())).toBe(false)
 //   })
@@ -254,7 +233,7 @@ describe('achievement: navigator', () => {
 // })
 // END STASHED: quest_master
 
-describe('achievement: archivist', () => {
+describe('badge: archivist', () => {
   it('not earned with no check-ins', () => {
     expect(badge('archivist').earned(ctx())).toBe(false)
   })
@@ -297,7 +276,7 @@ describe('achievement: archivist', () => {
   })
 })
 
-describe('achievement: familiar_face', () => {
+describe('badge: familiar_face', () => {
   it('not earned with only 4 home branch visits', () => {
     const checkIns = Array.from({ length: 4 }, (_, i) => ({ branchCode: 'AG', timestamp: `2024-01-0${i + 1}T10:00:00.000Z` }))
     expect(badge('familiar_face').earned(ctx({ checkIns, homeBranch: 'AG' }))).toBe(false)
@@ -308,7 +287,37 @@ describe('achievement: familiar_face', () => {
   })
 })
 
-describe('achievement: return_visitor', () => {
+describe('badge: explorer / adventurer / globetrotter / complete', () => {
+  it('explorer: not earned at 9 visits', () => {
+    expect(badge('explorer').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 9 }, (_, i) => `B${i}`) ) }))).toBe(false)
+  })
+  it('explorer: earned at 10 visits', () => {
+    expect(badge('explorer').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 10 }, (_, i) => `B${i}`)) }))).toBe(true)
+  })
+
+  it('adventurer: not earned at 24 visits', () => {
+    expect(badge('adventurer').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 24 }, (_, i) => `B${i}`)) }))).toBe(false)
+  })
+  it('adventurer: earned at 25 visits', () => {
+    expect(badge('adventurer').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 25 }, (_, i) => `B${i}`)) }))).toBe(true)
+  })
+
+  it('globetrotter: not earned at 49 visits', () => {
+    expect(badge('globetrotter').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 49 }, (_, i) => `B${i}`)) }))).toBe(false)
+  })
+  it('globetrotter: earned at 50 visits', () => {
+    expect(badge('globetrotter').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 50 }, (_, i) => `B${i}`)) }))).toBe(true)
+  })
+
+  it('complete: not earned at 99 visits', () => {
+    expect(badge('complete').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 99 }, (_, i) => `B${i}`)) }))).toBe(false)
+  })
+  it('complete: earned at 100 visits', () => {
+    expect(badge('complete').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 100 }, (_, i) => `B${i}`)) }))).toBe(true)
+  })
+})
+
+describe('badge: return_visitor', () => {
   it('not earned with only 2 visits to any non-home branch', () => {
     const checkIns = [
       { branchCode: 'HP', timestamp: '2024-01-01T10:00:00.000Z' },

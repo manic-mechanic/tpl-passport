@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { useStampColor, getStampShape, getStampFont, getStampRotation, getStampOpacity } from '~/composables/useStamp'
+import { getStampColor, getStampShape, getStampFont, getStampRotation, getStampOpacity } from '~/composables/useStamp'
 
 const props = defineProps({
   branchCode: { type: String, required: true },
@@ -35,7 +35,7 @@ const codeFontSize = computed(() => {
 })
 
 const shapeStyle = computed(() => {
-  const { color, bg, border } = useStampColor(props.wardNo)
+  const { color, bg, border } = getStampColor(props.wardNo)
   return {
     borderRadius: shape.value.borderRadius,
     width:  props.size ? `${props.size}px` : shape.value.width,

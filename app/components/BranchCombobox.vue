@@ -2,10 +2,9 @@
   <div class="combo" ref="comboRef">
     <input
       v-bind="$attrs"
-      ref="inputRef"
       type="text"
-      class="combo__input"
-      :class="{ 'combo__input--inline': variant === 'inline' }"
+      class="combo-input"
+      :class="{ 'combo-input-inline': variant === 'inline' }"
       :value="displayValue"
       :placeholder="placeholder"
       @input="onInput"
@@ -26,7 +25,7 @@
           v-for="(b, i) in filtered"
           :key="b.BranchCode"
           class="combo-item"
-          :class="{ 'combo-item--hi': i === focusedIdx }"
+          :class="{ 'combo-item-hi': i === focusedIdx }"
           @mousedown.prevent="select(b.BranchCode)"
         >{{ b.BranchName }}</li>
         <li v-if="!filtered.length" class="combo-none">No matches</li>
@@ -112,7 +111,7 @@ function select(code) {
   position: relative;
 }
 
-.combo__input {
+.combo-input {
   width: 100%;
   padding: 14px 16px;
   border: 1px solid var(--color-border);
@@ -123,24 +122,20 @@ function select(code) {
   color: var(--color-text);
   outline: none;
   box-shadow: var(--shadow-sm);
-  box-sizing: border-box;
   transition: border-color 0.15s;
-}
-
-.combo__input:focus {
-  border-color: var(--tpl-blue);
-}
-
-.combo__input--inline {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  font-weight: 600;
-}
-
-.combo__input--inline::placeholder {
-  color: var(--color-border);
+  &:focus {
+    border-color: var(--tpl-blue);
+  }
+  &.combo-input-inline {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font-weight: 600;
+    &::placeholder {
+      color: var(--color-border);
+    }
+  }
 }
 </style>
 
@@ -148,7 +143,7 @@ function select(code) {
 .combo-list {
   background: var(--color-surface);
   border: 1.5px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   list-style: none;
   max-height: 220px;
   overflow-y: auto;
@@ -159,20 +154,19 @@ function select(code) {
 
 .combo-item {
   padding: 10px 12px;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   border-radius: 8px;
   cursor: pointer;
   color: var(--color-text);
-}
-
-.combo-item:hover,
-.combo-item--hi {
-  background: color-mix(in srgb, var(--tpl-blue) 10%, var(--color-surface));
-  color: var(--tpl-blue);
+  &:hover,
+  &.combo-item-hi {
+    background: color-mix(in srgb, var(--tpl-blue) 10%, var(--color-surface));
+    color: var(--tpl-blue);
+  }
 }
 
 .combo-clear {
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border-soft);
   margin-bottom: 2px;
@@ -181,7 +175,7 @@ function select(code) {
 
 .combo-none {
   padding: 10px 12px;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
   pointer-events: none;
 }

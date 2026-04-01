@@ -8,14 +8,20 @@ const DB_NAME    = 'tpl-passport-photos'
 const STORE_NAME = 'photos'
 const DB_VERSION = 1
 
+let _db = null
+
 function openDB() {
+  if (_db) return Promise.resolve(_db)
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
     request.onupgradeneeded = (e) => {
       e.target.result.createObjectStore(STORE_NAME)
     }
-    request.onsuccess = (e) => resolve(e.target.result)
-    request.onerror   = (e) => reject(e.target.error)
+    request.onsuccess = (e) => {
+      _db = e.target.result
+      resolve(_db)
+    }
+    request.onerror = (e) => reject(e.target.error)
   })
 }
 
