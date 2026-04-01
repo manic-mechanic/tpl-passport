@@ -69,10 +69,10 @@
       </div>
 
       <!-- Familiar Face: home branch -->
-      <div v-if="activeBadge.id === 'familiar_face' && passport.profile.homeBranch" class="detail-list">
+      <div v-if="activeBadge.id === 'familiar_face' && badgeCtx.homeBranch" class="detail-list">
         <div class="detail-row" :class="{ done: activeBadge.earned(badgeCtx) }">
           <span class="detail-check">{{ activeBadge.earned(badgeCtx) ? '✓' : '·' }}</span>
-          <span class="detail-text">{{ branchName(passport.profile.homeBranch) }}</span>
+          <span class="detail-text">{{ branchName(badgeCtx.homeBranch) }}</span>
           <span class="detail-count">{{ badgeCtx.homeVisitCount }}/5 visits</span>
         </div>
       </div>
