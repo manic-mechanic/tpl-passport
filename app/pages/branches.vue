@@ -3,9 +3,7 @@
 
     <header class="page-header">
       <NuxtLink to="/explore" class="back-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
+        <IconBack />
         Explore
       </NuxtLink>
       <div>
@@ -16,21 +14,17 @@
 
     <div class="controls">
       <div class="search-wrap">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-          v-model="query"
-          type="search"
-          placeholder="Search by name or neighbourhood…"
-          class="search-input"
-        />
+        <IconSearch />
+        <input v-model="query" type="search" placeholder="Search by name or neighbourhood…" class="search-input" />
       </div>
       <div class="pill-bar">
-        <button class="sort-tab" :class="{ 'sort-tab-active': visitFilter === 'unvisited' }" @click="visitFilter = visitFilter === 'unvisited' ? null : 'unvisited'">Unvisited</button>
-        <button class="sort-tab" :class="{ 'sort-tab-active': visitFilter === 'visited' }" @click="visitFilter = visitFilter === 'visited' ? null : 'visited'">Visited</button>
+        <button class="sort-tab" :class="{ 'sort-tab-active': visitFilter === 'unvisited' }"
+          @click="visitFilter = visitFilter === 'unvisited' ? null : 'unvisited'">Unvisited</button>
+        <button class="sort-tab" :class="{ 'sort-tab-active': visitFilter === 'visited' }"
+          @click="visitFilter = visitFilter === 'visited' ? null : 'visited'">Visited</button>
         <span class="pill-divider" />
-        <button class="sort-tab" :class="{ 'sort-tab-active': byDistrict }" @click="byDistrict = !byDistrict">District</button>
+        <button class="sort-tab" :class="{ 'sort-tab-active': byDistrict }"
+          @click="byDistrict = !byDistrict">District</button>
       </div>
     </div>
 
@@ -61,12 +55,14 @@
 <script setup>
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, DISTRICT_ORDER } from '~/composables/useRegion'
+import IconSearch from '~/components/icons/IconSearch.vue'
+import IconBack from '~/components/icons/IconBack.vue'
 
 const passport = usePassportStore()
 
-const query       = ref('')
+const query = ref('')
 const visitFilter = ref(null)
-const byDistrict  = ref(false)
+const byDistrict = ref(false)
 
 const filteredBranches = computed(() => {
   let list = physicalBranches
@@ -79,7 +75,7 @@ const filteredBranches = computed(() => {
     )
   }
   if (visitFilter.value === 'unvisited') list = list.filter(b => !passport.hasVisited(b.BranchCode))
-  if (visitFilter.value === 'visited')   list = list.filter(b => passport.hasVisited(b.BranchCode))
+  if (visitFilter.value === 'visited') list = list.filter(b => passport.hasVisited(b.BranchCode))
   return [...list].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
 })
 
@@ -97,9 +93,9 @@ const visibleDistricts = computed(() =>
 )
 
 // Sheet
-const sheetOpen    = ref(false)
+const sheetOpen = ref(false)
 const activeBranch = ref(null)
-const sheetHeight  = 'calc(100dvh - var(--nav-height) - 60px)'
+const sheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
 
 function openSheet(branch) {
   activeBranch.value = branch
@@ -122,9 +118,15 @@ function openSheet(branch) {
   text-decoration: none;
   margin-bottom: 6px;
 }
-.back-link svg { width: 16px; height: 16px; }
 
-.page-header h1 { margin-bottom: 3px; }
+.back-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.page-header h1 {
+  margin-bottom: 3px;
+}
 
 .sub {
   font-size: 0.875rem;
@@ -138,9 +140,11 @@ function openSheet(branch) {
   margin-bottom: 16px;
 }
 
-.search-wrap { position: relative; }
+.search-wrap {
+  position: relative;
+}
 
-.search-icon {
+.search-wrap svg {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -164,7 +168,10 @@ function openSheet(branch) {
   box-shadow: var(--shadow-sm);
   transition: border-color 0.15s;
 }
-.search-input:focus { border-color: var(--tpl-blue); }
+
+.search-input:focus {
+  border-color: var(--tpl-blue);
+}
 
 .pill-bar {
   display: flex;
@@ -176,7 +183,10 @@ function openSheet(branch) {
   padding: 2px 18px;
   scrollbar-width: none;
 }
-.pill-bar::-webkit-scrollbar { display: none; }
+
+.pill-bar::-webkit-scrollbar {
+  display: none;
+}
 
 .pill-divider {
   width: 1px;
@@ -197,6 +207,7 @@ function openSheet(branch) {
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.15s;
+
   &.sort-tab-active {
     background: var(--tpl-navy);
     border-color: var(--tpl-navy);
@@ -204,7 +215,9 @@ function openSheet(branch) {
   }
 }
 
-.region-group { margin-bottom: 24px; }
+.region-group {
+  margin-bottom: 24px;
+}
 
 .branch-list {
   list-style: none;
@@ -213,5 +226,4 @@ function openSheet(branch) {
   gap: 6px;
   margin-bottom: 8px;
 }
-
 </style>

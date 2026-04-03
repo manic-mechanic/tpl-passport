@@ -8,10 +8,7 @@
         <p class="sub">Plan your next visit</p>
       </div>
       <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <IconSearch />
       </NuxtLink>
     </header>
 
@@ -75,8 +72,7 @@
       <nav class="mode-bar" role="tablist">
         <button v-for="mode in MODES" :key="mode.id" class="mode-tab" :class="{ active: activeMode === mode.id }"
           role="tab" :aria-selected="activeMode === mode.id" @click="activeMode = mode.id">
-          <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
-            stroke-linecap="round" stroke-linejoin="round" v-html="mode.icon" />
+          <IconMode class="mode-icon" v-html="mode.icon" />
           {{ mode.label }}
         </button>
       </nav>
@@ -86,9 +82,7 @@
         <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card">
           <div class="route-top">
             <span class="route-name">{{ route.name }}</span>
-            <svg class="route-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <IconChevron class="route-chevron" />
           </div>
           <p class="route-meta">{{ route.area }} · {{ route.total }} stops · {{ route.duration }}</p>
           <div class="route-progress">
@@ -128,6 +122,9 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, haversineKm, formatDist, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
 import { BADGES, useBadgeCtx, badgeBg } from '~/composables/useBadges'
+import IconSearch from '~/components/icons/IconSearch.vue'
+import IconMode from '~/components/icons/IconMode.vue'
+import IconChevron from '~/components/icons/IconChevron.vue'
 
 const passport = usePassportStore()
 

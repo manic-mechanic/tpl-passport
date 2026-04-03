@@ -1,38 +1,32 @@
+<script setup lang="ts">
+import IconNavCheckIn from './icons/IconNavCheckIn.vue';
+import IconNavExplore from './icons/IconNavExplore.vue';
+import IconNavHome from './icons/IconNavHome.vue';
+import IconNavPassport from './icons/IconNavPassport.vue';
+
+</script>
+
 <template>
   <nav class="bottom-nav">
     <NuxtLink to="/" class="nav-item" active-class="nav-item-active" exact>
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
+      <IconNavHome class="nav-icon" />
       <span class="nav-label">Home</span>
     </NuxtLink>
 
     <NuxtLink to="/explore" class="nav-item" active-class="nav-item-active">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-        <circle cx="12" cy="12" r="10"/>
-        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-      </svg>
+      <IconNavExplore class="nav-icon" />
       <span class="nav-label">Explore</span>
     </NuxtLink>
 
     <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-      </svg>
+      <IconNavPassport class="nav-icon" />
       <span class="nav-label">Passport</span>
     </NuxtLink>
 
     <!-- Primary action — check-in -->
     <NuxtLink to="/check-in" class="nav-item nav-item-checkin" active-class="nav-item-active">
       <div class="checkin-orb">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <!-- Stamp seal: outer ring + inner ring + check -->
-          <circle cx="12" cy="12" r="9"/>
-          <circle cx="12" cy="12" r="5.5" stroke-dasharray="2.5 2"/>
-          <polyline points="9.5 12 11 13.5 14.5 10" stroke-width="2"/>
-        </svg>
+        <IconNavCheckIn class="nav-icon" />
       </div>
       <span class="nav-label">Check In</span>
     </NuxtLink>
@@ -54,7 +48,7 @@
   display: flex;
   align-items: center;
   z-index: 100;
-  box-shadow: 0 -1px 0 rgba(255,255,255,0.08), 0 -8px 24px rgba(0,28,113,0.2);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.08), 0 -8px 24px rgba(0, 28, 113, 0.2);
 }
 
 .nav-item {
@@ -64,17 +58,26 @@
   align-items: center;
   gap: 3px;
   padding: 8px 4px;
-  color: rgba(255,255,255,0.45);
+  color: rgba(255, 255, 255, 0.45);
   text-decoration: none;
   transition: color 0.15s ease;
+
   &.nav-item-active {
     color: #ffffff;
   }
+
   /* Check-in center item — slightly elevated orb */
   &.nav-item-checkin {
     padding-top: 0;
-    &:active .checkin-orb { transform: scale(0.92); }
-    &.nav-item-active .checkin-orb { background: color-mix(in srgb, var(--tpl-blue) 70%, white); }
+
+    &:active .checkin-orb {
+      transform: scale(0.92);
+    }
+
+    &.nav-item-active .checkin-orb {
+      background: color-mix(in srgb, var(--tpl-blue) 70%, white);
+    }
+
     & .nav-icon {
       width: 18px;
       height: 18px;
@@ -96,11 +99,15 @@
   transition: transform 0.15s ease, background 0.15s;
 
   @media (prefers-color-scheme: dark) {
-    & { box-shadow: none; }
+    & {
+      box-shadow: none;
+    }
   }
 }
 
-:global([data-theme="dark"]) .checkin-orb { box-shadow: none; }
+:global([data-theme="dark"]) .checkin-orb {
+  box-shadow: none;
+}
 
 .nav-icon {
   width: 22px;

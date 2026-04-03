@@ -33,13 +33,7 @@
         <div class="page-header-row" :style="{ top: stickyHeight + 'px' }">
           <span class="page-range">{{ page.label }}</span>
           <div class="page-header-right">
-            <svg v-if="isPageComplete(page)" class="page-seal" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-              aria-hidden="true">
-              <circle cx="10" cy="10" r="8.5" stroke-width="1.5" />
-              <circle cx="10" cy="10" r="5.5" stroke-width="1" opacity="0.35" />
-              <polyline points="6.5 10 9 12.5 13.5 7.5" stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+            <IconPageSeal v-if="isPageComplete(page)" class="page-seal" aria-hidden="true" />
             <span class="page-count">{{ pageVisitCount(page) }}/{{ page.branches.length }}</span>
           </div>
         </div>
@@ -52,9 +46,9 @@
               </div>
               <StampShape v-else :branchCode="branch.BranchCode" :wardNo="branch.WardNo" />
               <span class="stamp-name" :class="{ unseen: !passport.hasVisited(branch.BranchCode) }">{{ branch.BranchName
-                }}</span>
+              }}</span>
               <span v-if="passport.hasVisited(branch.BranchCode)" class="stamp-date">{{ visitDate(branch.BranchCode)
-                }}</span>
+              }}</span>
             </button>
           </template>
           <!-- phantom cell keeps the grid even when a page has an odd branch count -->
@@ -63,19 +57,13 @@
 
         <nav class="page-turner" aria-label="Navigate pages">
           <button v-if="activePage > 0" class="turner-btn prev" @click="goToPage(activePage - 1)">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <polyline points="10 3 5 8 10 13" />
-            </svg>
+            <IconTurnerPrev aria-hidden="true" />
             {{ ALL_PAGES[activePage - 1] }}
           </button>
           <span v-else />
           <button v-if="activePage < EXTRA_CREDIT_IDX" class="turner-btn next" @click="goToPage(activePage + 1)">
             {{ ALL_PAGES[activePage + 1] }}
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 3 11 8 6 13" />
-            </svg>
+            <IconTurnerNext aria-hidden="true" />
           </button>
           <span v-else />
         </nav>
@@ -87,13 +75,7 @@
         <div class="page-header-row" :style="{ top: stickyHeight + 'px' }">
           <span class="page-range">Extra Credit</span>
           <div class="page-header-right">
-            <svg v-if="extraCreditEarned === BADGES.length" class="page-seal" viewBox="0 0 20 20" fill="none"
-              stroke="currentColor" aria-hidden="true">
-              <circle cx="10" cy="10" r="8.5" stroke-width="1.5" />
-              <circle cx="10" cy="10" r="5.5" stroke-width="1" opacity="0.35" />
-              <polyline points="6.5 10 9 12.5 13.5 7.5" stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+            <IconPageSeal v-if="extraCreditEarned === BADGES.length" class="page-seal" aria-hidden="true" />
             <span class="page-count">{{ extraCreditEarned }}/{{ BADGES.length }}</span>
           </div>
         </div>
@@ -101,10 +83,7 @@
 
         <nav class="page-turner" aria-label="Navigate pages">
           <button class="turner-btn prev" @click="goToPage(EXTRA_CREDIT_IDX - 1)">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <polyline points="10 3 5 8 10 13" />
-            </svg>
+            <IconTurnerPrev aria-hidden="true" />
             {{ ALL_PAGES[EXTRA_CREDIT_IDX - 1] }}
           </button>
           <span />
@@ -123,6 +102,9 @@
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
+import IconPageSeal from '~/components/icons/IconPageSeal.vue'
+import IconTurnerPrev from '~/components/icons/IconTurnerPrev.vue'
+import IconTurnerNext from '~/components/icons/IconTurnerNext.vue'
 
 const passport = usePassportStore()
 const route = useRoute()

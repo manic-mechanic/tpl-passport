@@ -46,11 +46,7 @@
     </template>
 
     <div v-else class="empty-state">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-        style="width:36px;height:36px;stroke:var(--color-border);margin-bottom:8px">
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
+      <IconClock />
       <p>No check-ins yet.<br>Visit a branch to get started.</p>
     </div>
   </main>
@@ -60,6 +56,7 @@
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
+import IconClock from '~/components/icons/IconClock.vue'
 
 const passport = usePassportStore()
 
@@ -206,6 +203,13 @@ function formatTime(iso) {
   text-align: center;
   padding: 32px 0;
   line-height: 1.6;
+}
+
+.empty-state svg {
+  width: 36px;
+  height: 36px;
+  stroke: var(--color-border);
+  margin-bottom: 8px
 }
 
 .history-group {

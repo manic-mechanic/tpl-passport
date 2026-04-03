@@ -1,11 +1,6 @@
 <template>
   <div class="badges-grid">
-    <button
-      v-for="badge in displayBadges"
-      :key="badge.id"
-      class="badge-item"
-      @click="openSheet(badge)"
-    >
+    <button v-for="badge in displayBadges" :key="badge.id" class="badge-item" @click="openSheet(badge)">
       <BadgeShape :badge="badge" :ctx="badgeCtx" :size="64" />
       <span class="badge-name" :class="{ earned: badge.earned(badgeCtx) }">{{ badge.title }}</span>
       <div v-if="showBadgeProgress(badge)" class="badge-progress">
@@ -28,9 +23,7 @@
       <p class="detail-desc">{{ activeBadge.desc }}</p>
 
       <div v-if="activeBadge.earned(badgeCtx)" class="detail-status earned">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 8 6.5 11.5 13 4.5"/>
-        </svg>
+        <IconCheckMark />
         Earned{{ earnedDate(activeBadge) ? ' · ' + earnedDate(activeBadge) : '' }}
       </div>
       <div v-else-if="activeBadge.progress" class="detail-progress">
@@ -42,29 +35,33 @@
 
       <!-- Navigator: compass branches -->
       <div v-if="activeBadge.id === 'navigator'" class="detail-list">
-        <div v-for="[dir, label] in [['n','North'],['e','East'],['s','South'],['w','West']]" :key="dir"
+        <div v-for="[dir, label] in [['n', 'North'], ['e', 'East'], ['s', 'South'], ['w', 'West']]" :key="dir"
           class="detail-row" :class="{ done: badgeCtx.visitedBranchCodes.has(compassPoints[dir]) }">
           <span class="detail-check">{{ badgeCtx.visitedBranchCodes.has(compassPoints[dir]) ? '✓' : '·' }}</span>
-          <span class="detail-text"><span class="detail-dir">{{ label }}</span> — {{ branchName(compassPoints[dir]) }}</span>
+          <span class="detail-text"><span class="detail-dir">{{ label }}</span> — {{ branchName(compassPoints[dir])
+            }}</span>
         </div>
       </div>
 
       <!-- Page Turner: one branch per page -->
       <div v-if="activeBadge.id === 'page_turner'" class="detail-list">
-        <div v-for="page in branchesByAlphaPage" :key="page.label"
-          class="detail-row" :class="{ done: page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }">
-          <span class="detail-check">{{ page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' : '·' }}</span>
+        <div v-for="page in branchesByAlphaPage" :key="page.label" class="detail-row"
+          :class="{ done: page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }">
+          <span class="detail-check">{{page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' :
+            '·' }}</span>
           <span class="detail-text">{{ page.label }}</span>
         </div>
       </div>
 
       <!-- Page Filler: fill one complete page -->
       <div v-if="activeBadge.id === 'page_filler'" class="detail-list">
-        <div v-for="page in branchesByAlphaPage" :key="page.label"
-          class="detail-row" :class="{ done: page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }">
-          <span class="detail-check">{{ page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' : '·' }}</span>
+        <div v-for="page in branchesByAlphaPage" :key="page.label" class="detail-row"
+          :class="{ done: page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }">
+          <span class="detail-check">{{page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' :
+            '·' }}</span>
           <span class="detail-text">{{ page.label }}</span>
-          <span class="detail-count">{{ page.branches.filter(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)).length }}/{{ page.branches.length }}</span>
+          <span class="detail-count">{{page.branches.filter(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)).length
+            }}/{{ page.branches.length }}</span>
         </div>
       </div>
 
@@ -83,13 +80,14 @@
 <script setup>
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, useBadgeCtx, compassPoints } from '~/composables/useBadges'
+import IconCheckMark from './icons/IconCheckMark.vue'
 
 const props = defineProps({ sheetHeight: { type: String, default: 'calc(100dvh - var(--nav-height) - 76px)' } })
 
 const badgeCtx = useBadgeCtx()
 
 const activeBadge = ref(null)
-const sheetOpen   = ref(false)
+const sheetOpen = ref(false)
 
 function openSheet(badge) {
   activeBadge.value = badge
@@ -99,12 +97,12 @@ watch(sheetOpen, open => { if (!open) activeBadge.value = null })
 
 // Column-major display order (2 cols, left col first):
 const DISPLAY_ORDER = [
-  'first',        'day_tripper',
-  'archivist',    'navigator',
-  'explorer',     'familiar_face',
-  'adventurer',   'page_filler',
+  'first', 'day_tripper',
+  'archivist', 'navigator',
+  'explorer', 'familiar_face',
+  'adventurer', 'page_filler',
   'globetrotter', 'page_turner',
-  'complete',     'return_visitor',
+  'complete', 'return_visitor',
 ]
 const displayBadges = DISPLAY_ORDER.map(id => BADGES.find(a => a.id === id)).filter(Boolean)
 
@@ -178,7 +176,9 @@ function branchName(code) {
   width: 100%;
 
   /* Remove bottom border from the last two items (final row) */
-  &:nth-last-child(-n+2) { border-bottom: none; }
+  &:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
 }
 
 .badge-name {
@@ -189,7 +189,9 @@ function branchName(code) {
   letter-spacing: 0.01em;
   line-height: 1.3;
 
-  &.earned { color: var(--color-text); }
+  &.earned {
+    color: var(--color-text);
+  }
 }
 
 .badge-progress {
@@ -261,7 +263,12 @@ function branchName(code) {
   &.earned {
     color: var(--color-success);
 
-    & svg { width: 14px; height: 14px; stroke: var(--color-success); flex-shrink: 0; }
+    & svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--color-success);
+      flex-shrink: 0;
+    }
   }
 }
 
@@ -279,7 +286,9 @@ function branchName(code) {
   border-radius: 2px;
   overflow: hidden;
 
-  &.wide { width: 120px; }
+  &.wide {
+    width: 120px;
+  }
 }
 
 .prog-fill {
@@ -311,12 +320,20 @@ function branchName(code) {
   border-radius: 8px;
   color: var(--color-text-muted);
 
-  &.done { color: var(--color-text); }
+  &.done {
+    color: var(--color-text);
+  }
 
-  @media (prefers-color-scheme: dark) { & { background: rgba(255, 255, 255, 0.05); } }
+  @media (prefers-color-scheme: dark) {
+    & {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
 }
 
-:global([data-theme="dark"]) .detail-row { background: rgba(255, 255, 255, 0.05); }
+:global([data-theme="dark"]) .detail-row {
+  background: rgba(255, 255, 255, 0.05);
+}
 
 .detail-check {
   font-size: 0.875rem;
@@ -337,7 +354,9 @@ function branchName(code) {
   line-height: 1.3;
 }
 
-.detail-dir { font-weight: 600; }
+.detail-dir {
+  font-weight: 600;
+}
 
 .detail-count {
   font-size: 0.75rem;

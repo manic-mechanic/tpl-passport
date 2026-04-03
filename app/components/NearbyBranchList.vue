@@ -1,11 +1,7 @@
 <template>
   <div class="nearby-list">
-    <NuxtLink
-      v-for="branch in branches"
-      :key="branch.BranchCode"
-      :to="`/branch/${branch.BranchCode}`"
-      class="nearby-row"
-    >
+    <NuxtLink v-for="branch in branches" :key="branch.BranchCode" :to="`/branch/${branch.BranchCode}`"
+      class="nearby-row">
       <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="36" />
       <div class="nearby-info">
         <span class="nearby-name">{{ branch.BranchName }}</span>
@@ -13,18 +9,17 @@
           {{ formatDist(branch.distKm) }} away<template v-if="showDistrict"> · {{ branch.District }}</template>
         </span>
       </div>
-      <svg class="nearby-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
+      <IconChevron class="nearby-arrow" />
     </NuxtLink>
   </div>
 </template>
 
 <script setup>
 import { formatDist } from '~/composables/useRegion'
+import IconChevron from './icons/IconChevron.vue';
 
 defineProps({
-  branches:     { type: Array,   required: true },
+  branches: { type: Array, required: true },
   showDistrict: { type: Boolean, default: false },
 })
 </script>
@@ -48,7 +43,9 @@ defineProps({
   color: var(--color-text);
   transition: background 0.12s;
 
-  &:active { background: var(--color-paper); }
+  &:active {
+    background: var(--color-paper);
+  }
 }
 
 .nearby-info {
