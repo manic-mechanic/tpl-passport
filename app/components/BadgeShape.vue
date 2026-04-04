@@ -2,23 +2,7 @@
   <div class="badge-shape" :class="[badge.shape, colorClass]"
     :style="{ ...inlineStyle, width: size + 'px', height: size + 'px' }">
     <template v-if="badge.id === 'navigator'">
-      <svg class="compass-rose" viewBox="0 0 64 64" aria-hidden="true">
-        <circle cx="32" cy="32" r="30" fill="none" :stroke="isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)'"
-          stroke-width="4" />
-        <polygon points="32,5 28.5,13 35.5,13" :fill="compassLabelColor('n', true)" />
-        <line x1="60" y1="32" x2="51" y2="32" stroke-width="1.5" :stroke="compassLineColor('e')" />
-        <line x1="32" y1="60" x2="32" y2="51" stroke-width="1.5" :stroke="compassLineColor('s')" />
-        <line x1="4" y1="32" x2="13" y2="32" stroke-width="1.5" :stroke="compassLineColor('w')" />
-        <text x="32" y="22" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="800"
-          :fill="compassLabelColor('n', true)">N</text>
-        <text x="45" y="33" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700"
-          :fill="compassLabelColor('e')">E</text>
-        <text x="32" y="45" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700"
-          :fill="compassLabelColor('s')">S</text>
-        <text x="19" y="33" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700"
-          :fill="compassLabelColor('w')">W</text>
-        <circle cx="32" cy="32" r="2.5" :fill="isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.22)'" />
-      </svg>
+      <IconCompassRose :ctx="ctx" />
     </template>
     <template v-else-if="badge.id === 'page_turner'" />
     <span v-else class="badge-content" :style="{ fontSize: contentFontSize }">
@@ -29,10 +13,7 @@
 
 <script setup>
 import { branchesByAlphaPage } from '~/composables/useRegion'
-import { compassPoints } from '~/composables/useBadges'
-import { useIsDark } from '~/composables/useIsDark'
-
-const isDark = useIsDark()
+import IconCompassRose from '~/components/icons/IconCompassRose.vue'
 
 const props = defineProps({
   badge: { type: Object, required: true },
@@ -77,20 +58,6 @@ function pageTurnerGradient() {
   return `conic-gradient(from -36deg, ${segs.join(', ')})`
 }
 
-function compassLabelColor(dir, isNorth = false) {
-  const visited = props.ctx.visitedBranchCodes.has(compassPoints[dir])
-  if (!visited) return isDark.value ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)'
-  // Visited quadrants always use cream bg (#f8f5f0), so always use dark text
-  if (isNorth) return '#c0201a'
-  return '#1a1510'
-}
-
-function compassLineColor(dir) {
-  const visited = props.ctx.visitedBranchCodes.has(compassPoints[dir])
-  if (!visited) return isDark.value ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)'
-  // Visited quadrants always use cream bg — always use dark stroke
-  return 'rgba(0,0,0,0.3)'
-}
 </script>
 
 <style scoped>
@@ -171,11 +138,4 @@ function compassLineColor(dir) {
   z-index: 1;
 }
 
-.compass-rose {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-}
 </style>
