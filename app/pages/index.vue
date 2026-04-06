@@ -1,6 +1,27 @@
-<script setup lang="ts">
-import IconSettingsGear from '~/components/icons/IconSettingsGear.vue';
+<script setup>
+import IconSettingsGear from '~/components/icons/IconSettingsGear.vue'
+import { authClient } from '~/lib/auth-client'
+import { usePassportStore } from '~/stores/passport'
 
+const passport = usePassportStore()
+
+const isSignedIn = ref(false)
+const bannerDismissed = ref(false)
+
+onMounted(async () => {
+  bannerDismissed.value = localStorage.getItem('signin_banner_dismissed') === '1'
+  const { data } = await authClient.getSession()
+  isSignedIn.value = !!data
+})
+
+const showBanner = computed(() =>
+  !isSignedIn.value && passport.checkIns.length > 0 && !bannerDismissed.value
+)
+
+function dismissBanner() {
+  bannerDismissed.value = true
+  localStorage.setItem('signin_banner_dismissed', '1')
+}
 </script>
 
 <template>
@@ -12,6 +33,14 @@ import IconSettingsGear from '~/components/icons/IconSettingsGear.vue';
       <NuxtLink to="/settings" class="top-bar-settings" aria-label="Settings">
         <IconSettingsGear />
       </NuxtLink>
+    </div>
+
+    <div v-if="showBanner" class="signin-banner">
+      <div class="signin-banner__body">
+        <p class="signin-banner__text">Save your progress — access your passport on any device</p>
+        <NuxtLink to="/login" class="signin-banner__link">Sign in →</NuxtLink>
+      </div>
+      <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>
     </div>
 
     <PassportCard />
@@ -75,6 +104,51 @@ main {
 .top-bar-settings svg {
   width: 22px;
   height: 22px;
+}
+
+.signin-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 22%, transparent);
+  border-radius: var(--radius);
+  margin-top: -8px;
+}
+
+.signin-banner__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.signin-banner__text {
+  font-size: 0.875rem;
+  color: var(--color-text-mid);
+  line-height: 1.4;
+}
+
+.signin-banner__link {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--tpl-blue);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.signin-banner__dismiss {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 :deep(.badges-strip) {

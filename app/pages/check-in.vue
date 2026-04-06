@@ -117,6 +117,11 @@
         </button>
       </div>
 
+      <div v-if="showSignInNudge" class="signin-nudge">
+        <p class="signin-nudge__text">Save your progress — access your passport on any device</p>
+        <NuxtLink to="/login" class="signin-nudge__link" @click="successSheetOpen = false">Sign in →</NuxtLink>
+      </div>
+
       <div v-if="nearbySuccessBranches.length" class="success-nearby">
         <p class="success-nearby-heading">Also nearby</p>
         <NearbyBranchList :branches="nearbySuccessBranches" :showDistrict="true" />
@@ -154,12 +159,15 @@ import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { savePhoto } from '~/composables/usePhotoStore'
 import { FEATURES } from '~/composables/useFeatureFlags'
+import { authClient } from '~/lib/auth-client'
 import IconPhoto from '~/components/icons/IconPhoto.vue'
 import IconVisited from '~/components/icons/IconVisited.vue'
 import IconQR from '~/components/icons/IconQR.vue'
 import IconSave from '~/components/icons/IconSave.vue'
 import IconSuccessCheck from '~/components/icons/IconSuccessCheck.vue'
 import IconClose from '~/components/icons/IconClose.vue'
+
+const isSignedIn = ref(false)
 
 function getPosition() {
   return new Promise((resolve, reject) =>
@@ -179,21 +187,31 @@ const autoDetected = ref(false)
 const detecting = ref(false)
 
 onMounted(async () => {
-  if (prefilled) return
-  detecting.value = true
-  try {
-    const pos = await getPosition()
-    const nearest = sortedBranches
-      .map(b => ({ ...b, distKm: haversineKm(pos.coords.latitude, pos.coords.longitude, b.Lat, b.Long) }))
-      .sort((a, b) => a.distKm - b.distKm)[0]
-    selectedCode.value = nearest.BranchCode
-  } catch {
-    selectedCode.value = FALLBACK_BRANCH
-  } finally {
-    detecting.value = false
-    autoDetected.value = true
-  }
+  const [{ data: session }] = await Promise.all([
+    authClient.getSession(),
+    (async () => {
+      if (prefilled) return
+      detecting.value = true
+      try {
+        const pos = await getPosition()
+        const nearest = sortedBranches
+          .map(b => ({ ...b, distKm: haversineKm(pos.coords.latitude, pos.coords.longitude, b.Lat, b.Long) }))
+          .sort((a, b) => a.distKm - b.distKm)[0]
+        selectedCode.value = nearest.BranchCode
+      } catch {
+        selectedCode.value = FALLBACK_BRANCH
+      } finally {
+        detecting.value = false
+        autoDetected.value = true
+      }
+    })(),
+  ])
+  isSignedIn.value = !!session
 })
+
+const showSignInNudge = computed(() =>
+  !isSignedIn.value && passport.checkIns.length === 1
+)
 
 
 
@@ -830,6 +848,33 @@ onUnmounted(() => {
   color: var(--color-text-mid);
   background: var(--color-surface);
   cursor: pointer;
+}
+
+.signin-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  background: color-mix(in srgb, var(--tpl-blue) 6%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 20%, transparent);
+  border-radius: var(--radius);
+  width: 100%;
+}
+
+.signin-nudge__text {
+  font-size: 0.875rem;
+  color: var(--color-text-mid);
+  line-height: 1.4;
+}
+
+.signin-nudge__link {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--tpl-blue);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .success-nearby {

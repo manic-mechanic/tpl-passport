@@ -21,7 +21,10 @@
           </div>
         </template>
         <div v-else class="setting-row">
-          <span class="setting-label">Back up your stamps</span>
+          <div>
+            <span class="setting-label">Save your progress</span>
+            <p class="setting-hint">Access your passport on any device</p>
+          </div>
           <NuxtLink to="/login" class="signin-link">Sign in →</NuxtLink>
         </div>
       </div>

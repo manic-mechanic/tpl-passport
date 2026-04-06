@@ -10,7 +10,7 @@
           <div class="name-field">
             <p class="field-label">Name / Nom</p>
             <input v-model="passport.profile.name" class="name-input" type="text" placeholder="Your name" maxlength="40"
-              autocomplete="given-name" />
+              autocomplete="given-name" :readonly="isSignedIn" />
           </div>
           <div class="fields-row">
             <div class="field-col">
@@ -71,8 +71,15 @@ import { usePassportStore } from '~/stores/passport'
 import { storeToRefs } from 'pinia'
 import { getStampColor } from '~/composables/useStamp'
 import { physicalBranches } from '~/composables/useRegion'
+import { authClient } from '~/lib/auth-client'
 
 const passport = usePassportStore()
+
+const isSignedIn = ref(false)
+onMounted(async () => {
+  const { data } = await authClient.getSession()
+  isSignedIn.value = !!data
+})
 const { progressPct, overallPct } = storeToRefs(passport)
 
 const totalBranches = physicalBranches.length
@@ -204,6 +211,11 @@ const mrzLine2 = computed(() => {
 
 .name-input:focus {
   border-bottom-color: var(--tpl-blue);
+}
+
+.name-input:read-only {
+  border-bottom-color: transparent;
+  cursor: default;
 }
 
 .fields-row {

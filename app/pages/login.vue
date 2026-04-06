@@ -6,7 +6,7 @@
         <img src="/tpl-meta.png" class="tpl-logo" alt="Toronto Public Library" />
         <span class="brand-title">passport<span class="brand-colon">:</span></span>
       </div>
-      <p class="brand-tagline">Sign in to back up your stamps</p>
+      <p class="brand-tagline">Sign in to save your progress</p>
     </header>
 
     <div class="login-card card">
