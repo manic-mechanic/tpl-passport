@@ -23,6 +23,7 @@
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
+import { authClient } from '~/lib/auth-client'
 
 const passport = usePassportStore()
 
@@ -38,8 +39,24 @@ watchEffect(() => {
 // Show passport cover until app is mounted and ready
 const showCover = ref(true)
 
-onMounted(() => {
+// Track session so the homeBranch watcher knows whether to push updates.
+const isSignedIn = ref(false)
+
+onMounted(async () => {
   setTimeout(() => { showCover.value = false }, 900)
+
+  // Sync auth → passport on every app load.
+  // Covers: returning signed-in users, Google OAuth redirects (full page reload).
+  const { data } = await authClient.getSession()
+  isSignedIn.value = !!data
+  if (data?.user?.name) passport.profile.name = data.user.name
+  if (data?.user?.homeBranch) passport.profile.homeBranch = data.user.homeBranch
+})
+
+// Sync passport → auth whenever homeBranch changes while signed in.
+watch(() => passport.profile.homeBranch, async (branch) => {
+  if (!isSignedIn.value) return
+  await authClient.updateUser({ homeBranch: branch || null })
 })
 </script>
 

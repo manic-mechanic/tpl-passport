@@ -55,9 +55,12 @@
 <script setup>
 import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { authClient } from '~/lib/auth-client'
+import { usePassportStore } from '~/stores/passport'
+
+const passport = usePassportStore()
 
 const mode = ref('signin')
-const name = ref('')
+const name = ref(passport.profile.name ?? '')
 const email = ref('')
 const password = ref('')
 const error = ref('')
@@ -68,12 +71,15 @@ async function submitEmail() {
   loading.value = true
   try {
     if (mode.value === 'signin') {
-      const { error: err } = await authClient.signIn.email({
+      const { data, error: err } = await authClient.signIn.email({
         email: email.value,
         password: password.value,
         callbackURL: '/',
       })
       if (err) { error.value = err.message; return }
+      if (data?.user?.name) {
+        passport.profile.name = data.user.name
+      }
     } else {
       const { error: err } = await authClient.signUp.email({
         name: name.value,
@@ -82,6 +88,9 @@ async function submitEmail() {
         callbackURL: '/',
       })
       if (err) { error.value = err.message; return }
+      if (!passport.profile.name && name.value) {
+        passport.profile.name = name.value
+      }
     }
     navigateTo('/')
   } finally {
