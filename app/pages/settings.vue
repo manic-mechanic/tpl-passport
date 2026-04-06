@@ -7,6 +7,26 @@
       </div>
     </header>
 
+    <!-- Account -->
+    <section class="settings-group">
+      <p class="section-label">Account</p>
+      <div class="settings-card card">
+        <template v-if="session">
+          <div class="setting-row">
+            <span class="setting-label">Signed in as</span>
+            <span class="account-email">{{ session.user.email }}</span>
+          </div>
+          <div class="setting-row">
+            <button class="signout-btn" @click="signOut">Sign out</button>
+          </div>
+        </template>
+        <div v-else class="setting-row">
+          <span class="setting-label">Back up your stamps</span>
+          <NuxtLink to="/login" class="signin-link">Sign in →</NuxtLink>
+        </div>
+      </div>
+    </section>
+
     <!-- Appearance -->
     <section class="settings-group">
       <p class="section-label">Appearance</p>
@@ -97,9 +117,22 @@
 <script setup>
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
+import { authClient } from '~/lib/auth-client'
 
 const passport = usePassportStore()
 const { public: { isDev } } = useRuntimeConfig()
+
+const session = ref(null)
+
+onMounted(async () => {
+  const { data } = await authClient.getSession()
+  session.value = data
+})
+
+async function signOut() {
+  await authClient.signOut()
+  session.value = null
+}
 
 // Demo mode
 const demoModes = [
@@ -146,6 +179,34 @@ function setDemo(mode) {
 
 .settings-group {
   margin-bottom: 24px;
+}
+
+/* ── Account ──────────────────────────────────── */
+.account-email {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+  text-align: right;
+}
+
+.signin-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tpl-blue);
+}
+
+.signout-btn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 /* ── Shared settings card ─────────────────────── */
