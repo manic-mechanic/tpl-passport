@@ -115,7 +115,7 @@
 
   <!-- Stamp detail sheet -->
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight" :aria-label="activeStamp?.BranchName + ' stamp detail'">
-    <BranchDetail v-if="activeStamp" :branch="activeStamp" />
+    <BranchDetail v-if="activeStamp" :branch="activeStamp" source="passport" />
   </BaseSheet>
 </template>
 

@@ -77,7 +77,7 @@
         </li>
       </ul>
       <p v-else-if="!eventsPending" class="events-empty">No events today or tomorrow.</p>
-      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
+      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more" @click="$posthog?.capture('tpl_link_tapped', { branch_code: props.branch.BranchCode })">All events at this branch ↗</a>
     </section>
 
     <section v-if="services.length" class="detail-section">
