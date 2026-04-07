@@ -50,7 +50,13 @@ onMounted(async () => {
   const { data } = await authClient.getSession()
   isSignedIn.value = !!data
   if (data?.user?.name) passport.profile.name = data.user.name
-  if (data?.user?.homeBranch) passport.profile.homeBranch = data.user.homeBranch
+  if (data?.user?.homeBranch) {
+    passport.profile.homeBranch = data.user.homeBranch
+  } else if (data && passport.profile.homeBranch) {
+    // Server has no homeBranch but local does — push it up.
+    // Covers Google OAuth (no sign-up form) and email sign-in when homeBranch was set before account creation.
+    await authClient.updateUser({ homeBranch: passport.profile.homeBranch })
+  }
 })
 
 // Sync passport → auth whenever homeBranch changes while signed in.

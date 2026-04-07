@@ -23,6 +23,13 @@
             required />
         </div>
 
+        <div v-if="mode === 'signup'" class="field">
+          <label class="field-label">Home Branch <span class="field-optional">optional</span></label>
+          <div class="combobox-wrap">
+            <BranchCombobox v-model="homeBranch" placeholder="Search branches…" />
+          </div>
+        </div>
+
         <div class="field">
           <label class="field-label" for="email">Email</label>
           <input id="email" v-model="email" type="email" class="field-input" placeholder="you@example.com"
@@ -61,6 +68,7 @@ const passport = usePassportStore()
 
 const mode = ref('signin')
 const name = ref(passport.profile.name ?? '')
+const homeBranch = ref(passport.profile.homeBranch ?? '')
 const email = ref('')
 const password = ref('')
 const error = ref('')
@@ -77,20 +85,19 @@ async function submitEmail() {
         callbackURL: '/',
       })
       if (err) { error.value = err.message; return }
-      if (data?.user?.name) {
-        passport.profile.name = data.user.name
-      }
+      if (data?.user?.name) passport.profile.name = data.user.name
+      if (data?.user?.homeBranch) passport.profile.homeBranch = data.user.homeBranch
     } else {
       const { error: err } = await authClient.signUp.email({
         name: name.value,
         email: email.value,
         password: password.value,
+        homeBranch: homeBranch.value || null,
         callbackURL: '/',
       })
       if (err) { error.value = err.message; return }
-      if (!passport.profile.name && name.value) {
-        passport.profile.name = name.value
-      }
+      if (!passport.profile.name && name.value) passport.profile.name = name.value
+      if (homeBranch.value) passport.profile.homeBranch = homeBranch.value
     }
     navigateTo('/')
   } finally {
@@ -227,6 +234,35 @@ async function signInWithGoogle() {
 
   &:focus {
     border-color: var(--tpl-blue);
+  }
+}
+
+.field-optional {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.combobox-wrap {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  padding: 0 12px;
+  transition: border-color 0.15s;
+
+  &:focus-within {
+    border-color: var(--tpl-blue);
+  }
+
+  :deep(.combo-input) {
+    width: 100%;
+    padding: 12px 0;
+    font-size: 1rem;
+    font-family: var(--font-body);
+    color: var(--color-text);
+    background: transparent;
+    border: none;
+    outline: none;
   }
 }
 
