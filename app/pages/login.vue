@@ -64,6 +64,7 @@ import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { authClient } from '~/lib/auth-client'
 import { usePassportStore } from '~/stores/passport'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 const mode = ref('signin')
@@ -87,6 +88,7 @@ async function submitEmail() {
       if (err) { error.value = err.message; return }
       if (data?.user?.name) passport.profile.name = data.user.name
       if (data?.user?.homeBranch) passport.profile.homeBranch = data.user.homeBranch
+      $posthog?.capture('sign_in_completed', { method: 'email' })
     } else {
       const { error: err } = await authClient.signUp.email({
         name: name.value,
@@ -98,6 +100,11 @@ async function submitEmail() {
       if (err) { error.value = err.message; return }
       if (!passport.profile.name && name.value) passport.profile.name = name.value
       if (homeBranch.value) passport.profile.homeBranch = homeBranch.value
+      $posthog?.capture('sign_up_completed', {
+        method: 'email',
+        name_set: !!name.value,
+        home_branch_set: !!homeBranch.value,
+      })
     }
     navigateTo('/')
   } finally {
@@ -108,6 +115,7 @@ async function submitEmail() {
 async function signInWithGoogle() {
   error.value = ''
   loading.value = true
+  $posthog?.capture('google_signin_attempted')
   try {
     await authClient.signIn.social({ provider: 'google', callbackURL: '/' })
   } catch (e) {

@@ -139,6 +139,7 @@ onMounted(async () => {
 
 async function signOut() {
   await authClient.signOut()
+  $posthog?.capture('signed_out')
   session.value = null
 }
 
