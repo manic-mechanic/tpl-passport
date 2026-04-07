@@ -175,6 +175,7 @@ function getPosition() {
   )
 }
 
+const { $posthog } = useNuxtApp()
 const route = useRoute()
 const passport = usePassportStore()
 
@@ -274,6 +275,8 @@ async function savePhotoToDevice() {
   }
 }
 
+const checkInCompleted = ref(false)
+
 const successSheetOpen = ref(false)
 const successSheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
 
@@ -296,6 +299,13 @@ watch(selectedCode, () => { locationStatus.value = 'idle'; locationDistKm.value 
 
 async function doCheckIn() {
   if (!selectedBranch.value || alreadyVisitedToday.value) return
+
+  $posthog?.capture('checkin_started', {
+    branch_code: selectedBranch.value.BranchCode,
+    branch_name: selectedBranch.value.BranchName,
+    district: selectedBranch.value.District ?? '',
+    source: scanned.value ? 'qr_scan' : prefilled ? 'branch_page' : 'nav_button',
+  })
 
   const config = useRuntimeConfig()
   if (!passport.profile.bypassLocationFence && !config.public.bypassGeofence) {
@@ -324,6 +334,17 @@ async function doCheckIn() {
       savePhoto(timestamp, photoBlob.value)
       passport.markCheckInHasPhoto(timestamp)
     }
+    const branchVisitCount = passport.checkIns.filter(c => c.branchCode === selectedBranch.value.BranchCode).length
+    $posthog?.capture('checkin_completed', {
+      branch_code: selectedBranch.value.BranchCode,
+      branch_name: selectedBranch.value.BranchName,
+      district: selectedBranch.value.District ?? '',
+      photo_taken: !!photoBlob.value,
+      note_added: !!noteText.value.trim(),
+      visit_number: branchVisitCount,
+      total_visits: passport.checkIns.length,
+    })
+    checkInCompleted.value = true
     result.value = {
       branchCode: selectedBranch.value.BranchCode,
       branchName: selectedBranch.value.BranchName,
@@ -353,6 +374,7 @@ let rafId = null
 let ctx = null  // canvas 2d context — hoisted so it's not re-fetched every frame
 
 async function openScanner() {
+  $posthog?.capture('qr_scan_attempted')
   scanError.value = ''
   scannerActive.value = true
   await nextTick()
@@ -422,6 +444,12 @@ function closeScanner() {
 onUnmounted(() => {
   closeScanner()
   if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
+  if (!checkInCompleted.value && selectedBranch.value) {
+    $posthog?.capture('checkin_abandoned', {
+      branch_code: selectedBranch.value.BranchCode,
+      step: 'form',
+    })
+  }
 })
 </script>
 

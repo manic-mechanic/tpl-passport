@@ -94,7 +94,7 @@
 
   <!-- Stamp detail sheet -->
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight" :aria-label="activeStamp?.BranchName + ' stamp detail'">
-    <BranchDetail v-if="activeStamp" :branch="activeStamp" />
+    <BranchDetail v-if="activeStamp" :branch="activeStamp" source="passport" />
   </BaseSheet>
 </template>
 
@@ -106,8 +106,16 @@ import IconPageSeal from '~/components/icons/IconPageSeal.vue'
 import IconTurnerPrev from '~/components/icons/IconTurnerPrev.vue'
 import IconTurnerNext from '~/components/icons/IconTurnerNext.vue'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const route = useRoute()
+
+onMounted(() => {
+  $posthog?.capture('passport_viewed', {
+    visit_count: passport.visitCount,
+    completion_pct: passport.overallPct,
+  })
+})
 
 const EXTRA_CREDIT_IDX = branchesByAlphaPage.length  // index of Extra Credit tab (= 5)
 const ALL_PAGES = [...branchesByAlphaPage.map(p => p.label), 'Extra Credit']

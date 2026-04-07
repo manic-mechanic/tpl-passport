@@ -1,7 +1,7 @@
 <template>
   <div class="nearby-list">
     <NuxtLink v-for="branch in branches" :key="branch.BranchCode" :to="`/branch/${branch.BranchCode}`"
-      class="nearby-row">
+      class="nearby-row" @click="trackTap(branch)">
       <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="36" />
       <div class="nearby-info">
         <span class="nearby-name">{{ branch.BranchName }}</span>
@@ -18,10 +18,20 @@
 import { formatDist } from '~/composables/useRegion'
 import IconChevron from './icons/IconChevron.vue';
 
-defineProps({
+const { $posthog } = useNuxtApp()
+
+const props = defineProps({
   branches: { type: Array, required: true },
   showDistrict: { type: Boolean, default: false },
+  from: { type: String, default: 'checkin_success' },
 })
+
+function trackTap(branch) {
+  $posthog?.capture('nearby_branch_tapped', {
+    from: props.from,
+    branch_code: branch.BranchCode,
+  })
+}
 </script>
 
 <style scoped>

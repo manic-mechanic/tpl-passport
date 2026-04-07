@@ -70,7 +70,7 @@
         </li>
       </ul>
       <p v-else-if="!eventsPending" class="events-empty">No events today or tomorrow.</p>
-      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more">All events at this branch ↗</a>
+      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more" @click="trackTplLinkTapped">All events at this branch ↗</a>
     </section>
 
     <section v-if="services.length" class="detail-section">
@@ -83,7 +83,7 @@
     <section v-if="nearbyBranches.length" class="detail-section">
       <h2 class="detail-heading">Nearby branches</h2>
       <div class="nearby-list">
-        <NuxtLink v-for="nb in nearbyBranches" :key="nb.BranchCode" :to="`/branch/${nb.BranchCode}`" class="nearby-row">
+        <NuxtLink v-for="nb in nearbyBranches" :key="nb.BranchCode" :to="`/branch/${nb.BranchCode}`" class="nearby-row" @click="trackNearbyTapped(nb.BranchCode)">
           <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
           <div class="nearby-info">
             <span class="nearby-name">{{ nb.BranchName }}</span>
@@ -107,8 +107,29 @@ import IconTelephone from './icons/IconTelephone.vue'
 import IconMapPin from './icons/IconMapPin.vue'
 import IconChevron from './icons/IconChevron.vue'
 
-const props = defineProps({ branch: { type: Object, required: true } })
+const props = defineProps({
+  branch: { type: Object, required: true },
+  source: { type: String, default: 'explore' },
+})
 const passport = usePassportStore()
+const { $posthog } = useNuxtApp()
+
+onMounted(() => {
+  $posthog?.capture('branch_viewed', {
+    branch_code: props.branch.BranchCode,
+    branch_name: props.branch.BranchName,
+    district: props.branch.District ?? '',
+    source: props.source,
+  })
+})
+
+function trackTplLinkTapped() {
+  $posthog?.capture('tpl_link_tapped', { branch_code: props.branch.BranchCode })
+}
+
+function trackNearbyTapped(branchCode) {
+  $posthog?.capture('nearby_branch_tapped', { from: 'branch_page', branch_code: branchCode })
+}
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const todayHours = computed(() => {

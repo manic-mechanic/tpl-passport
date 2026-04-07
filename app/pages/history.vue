@@ -58,7 +58,12 @@ import { physicalBranches } from '~/composables/useRegion'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
 import IconClock from '~/components/icons/IconClock.vue'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
+
+onMounted(() => {
+  $posthog?.capture('history_viewed')
+})
 
 const branchObjectMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
 

@@ -23,9 +23,40 @@
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
+import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 import { authClient } from '~/lib/auth-client'
 
 const passport = usePassportStore()
+const { $posthog } = useNuxtApp()
+
+// ── Achievement tracking ─────────────────────────────────────────────
+const badgeCtx = useBadgeCtx()
+let earnedOnMount = null
+
+onMounted(() => {
+  earnedOnMount = new Set(BADGES.filter(b => b.earned(badgeCtx.value)).map(b => b.id))
+})
+
+watch(badgeCtx, (ctx) => {
+  if (!earnedOnMount) return
+  for (const badge of BADGES) {
+    if (badge.earned(ctx) && !earnedOnMount.has(badge.id)) {
+      $posthog?.capture('achievement_unlocked', {
+        achievement_id: badge.id,
+        achievement_title: badge.title,
+      })
+      earnedOnMount.add(badge.id)
+    }
+  }
+}, { deep: true })
+
+// ── Home branch change tracking ──────────────────────────────────────
+const homeBranchReady = ref(false)
+
+watch(() => passport.profile.homeBranch, () => {
+  if (!homeBranchReady.value) return
+  $posthog?.capture('home_branch_changed')
+})
 
 // Theme watcher — applies data-theme to <html> for manual toggle
 watchEffect(() => {
@@ -57,6 +88,9 @@ onMounted(async () => {
     // Covers Google OAuth (no sign-up form) and email sign-in when homeBranch was set before account creation.
     await authClient.updateUser({ homeBranch: passport.profile.homeBranch })
   }
+  // Let auth-synced homeBranch watcher flush before enabling analytics
+  await nextTick()
+  homeBranchReady.value = true
 })
 
 // Sync passport → auth whenever homeBranch changes while signed in.

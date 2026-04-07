@@ -122,8 +122,13 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const { public: { isDev } } = useRuntimeConfig()
+
+watch(() => passport.profile.theme, (theme) => {
+  $posthog?.capture('theme_changed', { theme: theme || 'system' })
+})
 
 const session = ref(null)
 
@@ -149,6 +154,7 @@ const activeDemoMode = ref('empty')
 function setDemo(mode) {
   activeDemoMode.value = mode
   passport.loadDemoState(mode)
+  $posthog?.capture('demo_mode_activated', { demo_state: mode })
 }
 </script>
 

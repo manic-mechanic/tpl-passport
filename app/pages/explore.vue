@@ -79,7 +79,7 @@
 
       <!-- Walking routes -->
       <div v-if="activeMode === 'walk'" class="routes-list">
-        <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card">
+        <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: route.id, route_name: route.name, visited: route.visited, total: route.total })">
           <div class="route-top">
             <span class="route-name">{{ route.name }}</span>
             <IconChevron class="route-chevron" />
@@ -112,7 +112,7 @@
 
   <!-- Branch detail sheet -->
   <BaseSheet v-model:open="branchSheetOpen" :height="branchSheetHeight">
-    <BranchDetail v-if="activeBranch" :branch="activeBranch" />
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="explore" />
   </BaseSheet>
 
 </template>
@@ -126,12 +126,17 @@ import IconSearch from '~/components/icons/IconSearch.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 // ── Tab state ────────────────────────────────────────────────────────
 const route = useRoute()
 const activeTab = ref(route.query.tab === 'routes' ? 'routes' : 'near-me')
 const activeMode = ref('walk')    // 'walk' | 'bike' | 'transit' | 'drive'
+
+watch(activeMode, (mode) => {
+  $posthog?.capture('transport_mode_changed', { mode })
+})
 
 const MODES = [
   {

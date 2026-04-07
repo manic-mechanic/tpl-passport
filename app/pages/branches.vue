@@ -48,7 +48,7 @@
 
   <!-- Branch detail sheet -->
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight">
-    <BranchDetail v-if="activeBranch" :branch="activeBranch" />
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="explore" />
   </BaseSheet>
 </template>
 
@@ -58,11 +58,29 @@ import { physicalBranches, DISTRICT_ORDER } from '~/composables/useRegion'
 import IconSearch from '~/components/icons/IconSearch.vue'
 import IconBack from '~/components/icons/IconBack.vue'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 const query = ref('')
 const visitFilter = ref(null)
 const byDistrict = ref(false)
+
+// Debounced search tracking — fires on pause, not every keystroke
+let searchTimer = null
+watch(query, (val) => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    $posthog?.capture('explore_searched', { query_length: val.length })
+  }, 600)
+})
+
+watch(visitFilter, (val) => {
+  $posthog?.capture('explore_filter_changed', { filter: val ?? 'az' })
+})
+
+watch(byDistrict, (val) => {
+  $posthog?.capture('explore_filter_changed', { filter: val ? 'region' : 'az' })
+})
 
 const filteredBranches = computed(() => {
   let list = physicalBranches

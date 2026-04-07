@@ -7,7 +7,7 @@
           {{ backLabel }}
         </NuxtLink>
       </header>
-      <BranchDetail :branch="branch" />
+      <BranchDetail :branch="branch" :source="source" />
     </template>
     <p v-else class="empty-state">Branch not found.</p>
   </main>
@@ -33,6 +33,15 @@ const backLabel = computed(() => {
   if (backTo.value.startsWith('/history')) return 'History'
   if (backTo.value.startsWith('/passport')) return 'Passport'
   return 'Explore'
+})
+
+const source = computed(() => {
+  const back = router.options.history.state?.back ?? ''
+  if (!back) return 'direct'
+  if (back.startsWith('/history')) return 'history'
+  if (back.startsWith('/passport')) return 'passport'
+  if (back.startsWith('/branch/')) return 'nearby'
+  return 'explore'
 })
 </script>
 
