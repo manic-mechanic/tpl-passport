@@ -11,6 +11,8 @@ export const usePassportStore = defineStore('passport', () => {
     try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { saved = {} }
   }
 
+  const anonymousId = ref(saved.anonymousId ?? (import.meta.client ? crypto.randomUUID() : ''))
+
   const checkIns = ref(saved.checkIns ?? [])             // [{ branchCode, timestamp, note, hasPhoto? }]
   const completedChallenges = ref(saved.completedChallenges ?? [])  // ["BranchCode:index", ...]
   const profile = ref({
@@ -26,13 +28,14 @@ export const usePassportStore = defineStore('passport', () => {
   // Persist to localStorage whenever state changes
   function persist() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      anonymousId: anonymousId.value,
       checkIns: checkIns.value,
       profile: profile.value,
       completedChallenges: completedChallenges.value,
     }))
   }
 
-  watch([checkIns, profile, completedChallenges], persist, { deep: true })
+  watch([anonymousId, checkIns, profile, completedChallenges], persist, { deep: true })
 
   // --- Getters ---
   const visitedBranchCodes = computed(() =>
@@ -124,6 +127,7 @@ export const usePassportStore = defineStore('passport', () => {
   }
 
   return {
+    anonymousId,
     checkIns,
     profile,
     visitedBranchCodes,

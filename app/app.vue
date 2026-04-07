@@ -23,7 +23,9 @@
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
+import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 // Theme watcher — applies data-theme to <html> for manual toggle
@@ -35,10 +37,33 @@ watchEffect(() => {
   else                    document.documentElement.removeAttribute('data-theme')
 })
 
+// Achievement tracking — fire once per newly earned badge
+const badgeCtx = useBadgeCtx()
+let earnedOnMount = null
+watch(badgeCtx, (ctx) => {
+  if (!earnedOnMount) return
+  for (const badge of BADGES) {
+    if (badge.earned(ctx) && !earnedOnMount.has(badge.id)) {
+      $posthog?.capture('achievement_unlocked', { achievement_id: badge.id, achievement_title: badge.title })
+      earnedOnMount.add(badge.id)
+    }
+  }
+}, { deep: true })
+
+// home_branch_changed — skip the initial sync-from-storage fire
+const homeBranchReady = ref(false)
+watch(() => passport.profile.homeBranch, () => {
+  if (!homeBranchReady.value) return
+  $posthog?.capture('home_branch_changed')
+})
+
 // Show passport cover until app is mounted and ready
 const showCover = ref(true)
 
-onMounted(() => {
+onMounted(async () => {
+  earnedOnMount = new Set(BADGES.filter(b => b.earned(badgeCtx.value)).map(b => b.id))
+  await nextTick()
+  homeBranchReady.value = true
   setTimeout(() => { showCover.value = false }, 900)
 })
 </script>

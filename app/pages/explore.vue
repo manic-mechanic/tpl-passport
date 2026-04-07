@@ -83,7 +83,7 @@
 
       <!-- Walking routes -->
       <div v-if="activeMode === 'walk'" class="routes-list">
-        <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card">
+        <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: route.id, route_name: route.name, visited: route.visited, total: route.total })">
           <div class="route-top">
             <span class="route-name">{{ route.name }}</span>
             <svg class="route-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -129,12 +129,17 @@ import { physicalBranches, haversineKm, formatDist, buildMapsUrl } from '~/compo
 import routesData from '#data/routes.json'
 import { BADGES, useBadgeCtx, badgeBg } from '~/composables/useBadges'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 // ── Tab state ────────────────────────────────────────────────────────
 const route = useRoute()
 const activeTab = ref(route.query.tab === 'routes' ? 'routes' : 'near-me')
 const activeMode = ref('walk')    // 'walk' | 'bike' | 'transit' | 'drive'
+
+watch(activeMode, (mode) => {
+  $posthog?.capture('transport_mode_changed', { mode })
+})
 
 const MODES = [
   {

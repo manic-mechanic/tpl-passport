@@ -95,6 +95,7 @@
           :key="nb.BranchCode"
           :to="`/branch/${nb.BranchCode}`"
           class="nearby-row"
+          @click="$posthog?.capture('nearby_branch_tapped', { from: 'branch_page', branch_code: nb.BranchCode })"
         >
           <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
           <div class="nearby-info">
@@ -117,8 +118,18 @@ import { getPhotoUrl } from '~/composables/usePhotoStore'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { compassPoints } from '~/composables/useBadges'
 
-const props = defineProps({ branch: { type: Object, required: true } })
+const props = defineProps({ branch: { type: Object, required: true }, source: { type: String, default: 'explore' } })
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
+
+onMounted(() => {
+  $posthog?.capture('branch_viewed', {
+    branch_code: props.branch.BranchCode,
+    branch_name: props.branch.BranchName,
+    district:    props.branch.District ?? '',
+    source:      props.source,
+  })
+})
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const todayHours = computed(() => {

@@ -61,7 +61,12 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
+
+onMounted(() => {
+  $posthog?.capture('history_viewed')
+})
 
 const branchObjectMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
 

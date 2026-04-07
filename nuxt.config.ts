@@ -8,7 +8,7 @@ export default defineNuxtConfig({
   // SPA mode — no SSR needed for a mobile passport app
   ssr: false,
 
-  modules: ['@pinia/nuxt'],
+  modules: ['@pinia/nuxt', '@sentry/nuxt/module'],
 
   css: ['~/assets/css/main.css'],
 
@@ -52,6 +52,17 @@ export default defineNuxtConfig({
     public: {
       isDev: true,
       bypassGeofence: false,
+      posthogKey: '',
+      posthogHost: 'https://us.i.posthog.com',
+      sentryDsn: '',
+    }
+  },
+
+  sentry: {
+    sourceMapsUploadOptions: {
+      org: 'great-north-special',
+      project: 'javascript-vue',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
     }
   },
 

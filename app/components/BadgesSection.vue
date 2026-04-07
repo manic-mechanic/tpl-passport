@@ -86,6 +86,7 @@ import { BADGES, useBadgeCtx, compassPoints } from '~/composables/useBadges'
 
 const props = defineProps({ sheetHeight: { type: String, default: 'calc(100dvh - var(--nav-height) - 76px)' } })
 
+const { $posthog } = useNuxtApp()
 const badgeCtx = useBadgeCtx()
 
 const activeBadge = ref(null)
@@ -94,6 +95,11 @@ const sheetOpen   = ref(false)
 function openSheet(badge) {
   activeBadge.value = badge
   sheetOpen.value = true
+  $posthog?.capture('badge_detail_viewed', {
+    achievement_id:    badge.id,
+    achievement_title: badge.title,
+    earned:            badge.earned(badgeCtx.value),
+  })
 }
 watch(sheetOpen, open => { if (!open) activeBadge.value = null })
 

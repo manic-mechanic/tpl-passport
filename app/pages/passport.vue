@@ -124,6 +124,7 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 
+const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const route = useRoute()
 
@@ -177,6 +178,10 @@ function visitDate(branchCode) {
 
 onMounted(() => {
   if (!import.meta.client) return
+  $posthog?.capture('passport_viewed', {
+    visit_count:    passport.visitCount,
+    completion_pct: passport.progressPct,
+  })
   if (route.hash === '#extra-credit') {
     activePage.value = EXTRA_CREDIT_IDX
   }
