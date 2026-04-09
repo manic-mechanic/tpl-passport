@@ -4,27 +4,47 @@ import IconNavExplore from './icons/IconNavExplore.vue';
 import IconNavHome from './icons/IconNavHome.vue';
 import IconNavPassport from './icons/IconNavPassport.vue';
 
+const route = useRoute()
+const router = useRouter()
+
+const isBranchDetail = computed(() => route.path.startsWith('/branch/'))
+
+const contextualTab = computed(() => {
+  if (!isBranchDetail.value) return null
+  const back = router.options.history.state?.back ?? ''
+  const original = router.options.history.state?.originalSource
+  const effective = (back.startsWith('/branch/') && original) ? original : back
+  if (effective.startsWith('/passport'))  return '/passport'
+  if (effective.startsWith('/check-in'))  return '/check-in'
+  if (effective.startsWith('/explore'))   return '/explore'
+  if (effective === '/')                  return '/'
+  return '/explore'
+})
 </script>
 
 <template>
   <nav class="bottom-nav">
-    <NuxtLink to="/" class="nav-item" active-class="nav-item-active" exact>
+    <NuxtLink to="/" class="nav-item" active-class="nav-item-active"
+      :class="{ 'nav-item-active': contextualTab === '/' }" exact>
       <IconNavHome class="nav-icon" />
       <span class="nav-label">Home</span>
     </NuxtLink>
 
-    <NuxtLink to="/explore" class="nav-item" active-class="nav-item-active">
+    <NuxtLink to="/explore" class="nav-item" active-class="nav-item-active"
+      :class="{ 'nav-item-active': contextualTab === '/explore' }">
       <IconNavExplore class="nav-icon" />
       <span class="nav-label">Explore</span>
     </NuxtLink>
 
-    <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active">
+    <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active"
+      :class="{ 'nav-item-active': contextualTab === '/passport' }">
       <IconNavPassport class="nav-icon" />
       <span class="nav-label">Passport</span>
     </NuxtLink>
 
     <!-- Primary action — check-in -->
-    <NuxtLink to="/check-in" class="nav-item nav-item-checkin" active-class="nav-item-active">
+    <NuxtLink to="/check-in" class="nav-item nav-item-checkin" active-class="nav-item-active"
+      :class="{ 'nav-item-active': contextualTab === '/check-in' }">
       <div class="checkin-orb">
         <IconNavCheckIn class="nav-icon" />
       </div>

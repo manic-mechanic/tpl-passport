@@ -82,16 +82,7 @@
 
     <section v-if="nearbyBranches.length" class="detail-section">
       <h2 class="detail-heading">Nearby branches</h2>
-      <div class="nearby-list">
-        <NuxtLink v-for="nb in nearbyBranches" :key="nb.BranchCode" :to="`/branch/${nb.BranchCode}`" class="nearby-row" @click="trackNearbyTapped(nb.BranchCode)">
-          <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
-          <div class="nearby-info">
-            <span class="nearby-name">{{ nb.BranchName }}</span>
-            <span class="nearby-dist">{{ formatDist(nb.distKm) }} away</span>
-          </div>
-          <IconChevron class="nearby-arrow" />
-        </NuxtLink>
-      </div>
+      <NearbyBranchList :branches="nearbyBranches" :original-source="effectiveSource" from="branch_page" />
     </section>
   </div>
 </template>
@@ -110,6 +101,7 @@ import IconChevron from './icons/IconChevron.vue'
 const props = defineProps({
   branch: { type: Object, required: true },
   source: { type: String, default: 'explore' },
+  effectiveSource: { type: String, default: '/explore' },
 })
 const passport = usePassportStore()
 const { $posthog } = useNuxtApp()
@@ -127,9 +119,6 @@ function trackTplLinkTapped() {
   $posthog?.capture('tpl_link_tapped', { branch_code: props.branch.BranchCode })
 }
 
-function trackNearbyTapped(branchCode) {
-  $posthog?.capture('nearby_branch_tapped', { from: 'branch_page', branch_code: branchCode })
-}
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const todayHours = computed(() => {
@@ -535,52 +524,4 @@ const nearbyBranches = computed(() => {
   border-radius: var(--radius-sm);
 }
 
-.nearby-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.nearby-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-  color: var(--color-text);
-  transition: background 0.12s;
-
-  &:active {
-    background: var(--color-paper);
-  }
-}
-
-.nearby-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nearby-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.nearby-dist {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.nearby-arrow {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  stroke: var(--color-text-muted);
-}
 </style>

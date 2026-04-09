@@ -1,7 +1,8 @@
 <template>
   <div class="nearby-list">
-    <NuxtLink v-for="branch in branches" :key="branch.BranchCode" :to="`/branch/${branch.BranchCode}`"
-      class="nearby-row" @click="trackTap(branch)">
+    <div v-for="branch in branches" :key="branch.BranchCode"
+      class="nearby-row" role="link" tabindex="0"
+      @click="navigate(branch)" @keydown.enter="navigate(branch)">
       <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="36" />
       <div class="nearby-info">
         <span class="nearby-name">{{ branch.BranchName }}</span>
@@ -10,7 +11,7 @@
         </span>
       </div>
       <IconChevron class="nearby-arrow" />
-    </NuxtLink>
+    </div>
   </div>
 </template>
 
@@ -24,12 +25,19 @@ const props = defineProps({
   branches: { type: Array, required: true },
   showDistrict: { type: Boolean, default: false },
   from: { type: String, default: 'checkin_success' },
+  originalSource: { type: String, default: null },
 })
 
-function trackTap(branch) {
+const router = useRouter()
+
+function navigate(branch) {
   $posthog?.capture('nearby_branch_tapped', {
     from: props.from,
     branch_code: branch.BranchCode,
+  })
+  router.push({
+    path: `/branch/${branch.BranchCode}`,
+    state: { originalSource: props.originalSource },
   })
 }
 </script>
