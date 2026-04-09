@@ -70,7 +70,7 @@ watchEffect(() => {
 })
 
 // Show passport cover until app is mounted and ready
-const showCover = ref(true)
+const showCover = ref(false)
 
 // Track session so the homeBranch watcher knows whether to push updates.
 const isSignedIn = ref(false)

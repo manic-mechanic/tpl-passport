@@ -117,7 +117,7 @@ async function signInWithGoogle() {
   loading.value = true
   $posthog?.capture('google_signin_attempted')
   try {
-    await authClient.signIn.social({ provider: 'google', callbackURL: '/' })
+    await authClient.signIn.social({ provider: 'google', callbackURL: window.location.origin + '/' })
   } catch (e) {
     error.value = 'Google sign-in failed. Please try again.'
     loading.value = false
