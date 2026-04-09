@@ -25,6 +25,8 @@
 import { usePassportStore } from '~/stores/passport'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 import { authClient } from '~/lib/auth-client'
+import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
+import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 
 const passport = usePassportStore()
 const { $posthog } = useNuxtApp()
@@ -80,23 +82,40 @@ onMounted(async () => {
   // Covers: returning signed-in users, Google OAuth redirects (full page reload).
   const { data } = await authClient.getSession()
   isSignedIn.value = !!data
-  if (data?.user?.name) passport.profile.name = data.user.name
-  if (data?.user?.homeBranch) {
-    passport.profile.homeBranch = data.user.homeBranch
-  } else if (data && passport.profile.homeBranch) {
-    // Server has no homeBranch but local does — push it up.
-    // Covers Google OAuth (no sign-up form) and email sign-in when homeBranch was set before account creation.
-    await authClient.updateUser({ homeBranch: passport.profile.homeBranch })
+  if (data) {
+    // user_profile is the source of truth for name + homeBranch.
+    const serverProfile = await fetchProfile()
+    if (serverProfile?.name) passport.profile.name = serverProfile.name
+    if (serverProfile?.homeBranch) {
+      passport.profile.homeBranch = serverProfile.homeBranch
+    } else if (passport.profile.homeBranch) {
+      // Local has homeBranch but server doesn't — push it up.
+      await pushProfile({ name: passport.profile.name, homeBranch: passport.profile.homeBranch })
+    }
   }
+  // Sync check-ins with the server when signed in.
+  // Server wins on timestamp conflict; local-only records are pushed up.
+  if (data) {
+    try {
+      const serverCheckIns = await fetchCheckIns()
+      const serverTimestamps = new Set(serverCheckIns.map(c => c.timestamp))
+      const localOnly = passport.checkIns.filter(c => !serverTimestamps.has(c.timestamp))
+      const merged = [...serverCheckIns, ...localOnly]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      passport.setCheckIns(merged)
+      for (const ci of localOnly) pushCheckIn(ci)
+    } catch { /* sync failures are non-critical */ }
+  }
+
   // Let auth-synced homeBranch watcher flush before enabling analytics
   await nextTick()
   homeBranchReady.value = true
 })
 
-// Sync passport → auth whenever homeBranch changes while signed in.
+// Sync homeBranch → user_profile whenever it changes while signed in.
 watch(() => passport.profile.homeBranch, async (branch) => {
   if (!isSignedIn.value) return
-  await authClient.updateUser({ homeBranch: branch || null })
+  pushProfile({ name: passport.profile.name, homeBranch: branch || null })
 })
 </script>
 

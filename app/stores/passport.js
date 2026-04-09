@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
+import { pushCheckIn, patchCheckInPhoto } from '~/composables/useCheckInSync'
 
 const STORAGE_KEY = 'tpl-passport'
 
@@ -83,14 +84,27 @@ export const usePassportStore = defineStore('passport', () => {
 
     const timestamp = new Date().toISOString()
     checkIns.value.unshift({ branchCode, timestamp, note })
+    pushCheckIn({ branchCode, timestamp, note })  // fire-and-forget
     return timestamp
   }
 
   // Sets hasPhoto: true on the check-in matching the given timestamp.
   // Called after a photo is successfully saved to IndexedDB.
-  function markCheckInHasPhoto(timestamp) {
+  // Pass photoUri (a hosted URL) to also sync the photo to the server.
+  function markCheckInHasPhoto(timestamp, photoUri = null) {
     const ci = checkIns.value.find(c => c.timestamp === timestamp)
-    if (ci) ci.hasPhoto = true
+    if (ci) {
+      ci.hasPhoto = true
+      if (photoUri) {
+        ci.photoUri = photoUri
+        patchCheckInPhoto(timestamp, photoUri)  // fire-and-forget
+      }
+    }
+  }
+
+  // Bulk-replace check-ins (used after server sync on sign-in).
+  function setCheckIns(newCheckIns) {
+    checkIns.value = newCheckIns
   }
 
   // STASHED: challenges — restore when FEATURES.challenges = true
@@ -142,6 +156,7 @@ export const usePassportStore = defineStore('passport', () => {
     toggleChallenge,
     checkIn,
     markCheckInHasPhoto,
+    setCheckIns,
     loadDemoState,
   }
 })
