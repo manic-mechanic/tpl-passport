@@ -46,7 +46,7 @@ export default defineNuxtConfig({
 
   // Alias for branch data — now served from the shared package
   alias: {
-    '#data': fileURLToPath(new URL('../tpl-passport-auth/packages/shared/data', import.meta.url)),
+    '#data': fileURLToPath(new URL('./packages/shared/data', import.meta.url)),
   },
 
   // Dev-only features (demo mode, location fence bypass, QR scanner).
