@@ -6,6 +6,7 @@
         <span class="brand-title">passport<span class="brand-colon">:</span></span>
       </div>
     </header>
+    <div class="header-gap" />
 
     <!-- Account -->
     <section class="settings-group">
@@ -16,6 +17,45 @@
             <span class="setting-label">Signed in as</span>
             <span class="account-email">{{ session.user.email }}</span>
           </div>
+
+          <!-- Change email -->
+          <div class="setting-row setting-row-action" @click="toggleChangeEmail">
+            <span class="setting-label">Change email</span>
+            <span class="setting-chevron" :class="{ open: showChangeEmail }">›</span>
+          </div>
+          <div v-if="showChangeEmail" class="inline-form">
+            <input v-model="newEmail" class="inline-input" type="email" placeholder="New email address"
+              autocomplete="email" autocapitalize="none" />
+            <p v-if="emailError" class="inline-error">{{ emailError }}</p>
+            <div class="inline-actions">
+              <button class="inline-cancel" @click="cancelChangeEmail">Cancel</button>
+              <button class="inline-save" :disabled="emailSaving" @click="submitChangeEmail">
+                {{ emailSaving ? 'Saving…' : 'Update' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Change password -->
+          <div class="setting-row setting-row-action" @click="toggleChangePassword">
+            <span class="setting-label">Change password</span>
+            <span class="setting-chevron" :class="{ open: showChangePassword }">›</span>
+          </div>
+          <div v-if="showChangePassword" class="inline-form">
+            <input v-model="currentPassword" class="inline-input" type="password" placeholder="Current password"
+              autocomplete="current-password" />
+            <input v-model="newPassword" class="inline-input" type="password" placeholder="New password"
+              autocomplete="new-password" />
+            <input v-model="confirmPassword" class="inline-input" type="password" placeholder="Confirm new password"
+              autocomplete="new-password" />
+            <p v-if="passwordError" class="inline-error">{{ passwordError }}</p>
+            <div class="inline-actions">
+              <button class="inline-cancel" @click="cancelChangePassword">Cancel</button>
+              <button class="inline-save" :disabled="passwordSaving" @click="submitChangePassword">
+                {{ passwordSaving ? 'Saving…' : 'Update' }}
+              </button>
+            </div>
+          </div>
+
           <div class="setting-row">
             <button class="signout-btn" @click="signOut">Sign out</button>
           </div>
@@ -186,6 +226,105 @@ async function signOut() {
   session.value = null
 }
 
+// Change email
+const showChangeEmail = ref(false)
+const newEmail = ref('')
+const emailError = ref('')
+const emailSaving = ref(false)
+
+function toggleChangeEmail() {
+  showChangeEmail.value = !showChangeEmail.value
+  newEmail.value = ''
+  emailError.value = ''
+}
+
+function cancelChangeEmail() {
+  showChangeEmail.value = false
+  newEmail.value = ''
+  emailError.value = ''
+}
+
+async function submitChangeEmail() {
+  const trimmed = newEmail.value.trim()
+  if (!trimmed) { emailError.value = 'Enter a new email address.'; return }
+  if (trimmed === session.value?.user?.email) { emailError.value = 'That is already your current email.'; return }
+  emailError.value = ''
+  emailSaving.value = true
+  try {
+    const { error } = await authClient.changeEmail({ newEmail: trimmed })
+    if (error) {
+      emailError.value = error.message ?? 'Something went wrong.'
+    } else {
+      showChangeEmail.value = false
+      newEmail.value = ''
+    }
+  } finally {
+    emailSaving.value = false
+  }
+}
+
+// Change password
+const showChangePassword = ref(false)
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const passwordError = ref('')
+const passwordSaving = ref(false)
+
+function toggleChangePassword() {
+  showChangePassword.value = !showChangePassword.value
+  currentPassword.value = ''
+  newPassword.value = ''
+  confirmPassword.value = ''
+  passwordError.value = ''
+}
+
+function cancelChangePassword() {
+  showChangePassword.value = false
+  currentPassword.value = ''
+  newPassword.value = ''
+  confirmPassword.value = ''
+  passwordError.value = ''
+}
+
+async function submitChangePassword() {
+  if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
+    passwordError.value = 'All fields are required.'
+    return
+  }
+  if (newPassword.value !== confirmPassword.value) {
+    passwordError.value = 'New passwords do not match.'
+    return
+  }
+  if (newPassword.value.length < 8) {
+    passwordError.value = 'Password must be at least 8 characters.'
+    return
+  }
+  passwordError.value = ''
+  passwordSaving.value = true
+  try {
+    const { error } = await authClient.changePassword({
+      currentPassword: currentPassword.value,
+      newPassword: newPassword.value,
+    })
+    if (error) {
+      passwordError.value =
+        error.code === 'CREDENTIAL_ACCOUNT_NOT_FOUND'
+          ? 'No password on this account (signed in with Google).'
+          : error.code === 'INVALID_PASSWORD'
+            ? 'Current password is incorrect.'
+            : (error.message ?? 'Something went wrong.')
+    } else {
+      showChangePassword.value = false
+      currentPassword.value = ''
+      newPassword.value = ''
+      confirmPassword.value = ''
+    }
+  } finally {
+    passwordSaving.value = false
+  }
+}
+
 // Demo mode
 const demoModes = [
   { value: 'empty',     label: 'Empty',    icon: '📖', count: '0 stamps' },
@@ -204,7 +343,16 @@ function setDemo(mode) {
 
 <style scoped>
 .page-header {
-  padding: 20px 0 18px;
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 10;
+  margin: 0 -18px;
+  padding: 14px 18px 16px;
+  background: var(--tpl-navy);
+}
+
+.header-gap {
+  height: 20px;
 }
 
 .brand {
@@ -217,18 +365,19 @@ function setDemo(mode) {
   width: 32px;
   height: 32px;
   object-fit: contain;
+  opacity: 0.85;
 }
 
 .brand-title {
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--tpl-navy);
+  color: rgba(255, 255, 255, 0.9);
   letter-spacing: -0.02em;
   font-optical-sizing: auto;
 }
 
-.brand-colon { color: var(--tpl-blue); }
+.brand-colon { color: rgba(255, 255, 255, 0.55); }
 
 .settings-group {
   margin-bottom: 24px;
@@ -278,6 +427,89 @@ function setDemo(mode) {
     opacity: 0.5;
     cursor: not-allowed;
   }
+}
+
+/* ── Account — inline forms ───────────────────── */
+.setting-row-action {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active { opacity: 0.7; }
+}
+
+.setting-chevron {
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  transition: transform 0.15s;
+  display: inline-block;
+
+  &.open { transform: rotate(90deg); }
+}
+
+.inline-form {
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--color-border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-bg);
+}
+
+.inline-input {
+  width: 100%;
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  outline: none;
+  box-sizing: border-box;
+
+  &:focus { border-color: var(--tpl-blue); }
+  &::placeholder { color: var(--color-text-muted); }
+}
+
+.inline-error {
+  font-size: 0.75rem;
+  color: #c0392b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.inline-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.inline-cancel {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  cursor: pointer;
+}
+
+.inline-save {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: #fff;
+  background: var(--tpl-blue);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
 /* ── Account ──────────────────────────────────── */
