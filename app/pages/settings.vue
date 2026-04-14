@@ -30,6 +30,29 @@
       </div>
     </section>
 
+    <!-- Profile -->
+    <section class="settings-group">
+      <p class="section-label">Profile</p>
+      <div class="settings-card card">
+        <div class="setting-row">
+          <label class="setting-label" for="profile-name">Name</label>
+          <input id="profile-name" v-model="profileName" class="profile-input" type="text"
+            placeholder="Your name" maxlength="40" autocomplete="given-name" />
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Home Branch</span>
+          <div class="profile-branch-wrap">
+            <BranchCombobox v-model="profileHomeBranch" placeholder="Search branches…" />
+          </div>
+        </div>
+        <div class="setting-row">
+          <button class="profile-save-btn" :disabled="profileSaving" @click="saveProfile">
+            {{ profileSaving ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- Appearance -->
     <section class="settings-group">
       <p class="section-label">Appearance</p>
@@ -124,6 +147,7 @@
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
+import { pushProfile } from '~/composables/useProfileSync'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -139,6 +163,22 @@ onMounted(async () => {
   const { data } = await authClient.getSession()
   session.value = data
 })
+
+// Profile editing
+const profileName = ref(passport.profile.name ?? '')
+const profileHomeBranch = ref(passport.profile.homeBranch ?? '')
+const profileSaving = ref(false)
+
+async function saveProfile() {
+  profileSaving.value = true
+  try {
+    passport.profile.name = profileName.value
+    passport.profile.homeBranch = profileHomeBranch.value
+    await pushProfile({ name: profileName.value, homeBranch: profileHomeBranch.value || null })
+  } finally {
+    profileSaving.value = false
+  }
+}
 
 async function signOut() {
   await authClient.signOut()
@@ -192,6 +232,52 @@ function setDemo(mode) {
 
 .settings-group {
   margin-bottom: 24px;
+}
+
+/* ── Profile ──────────────────────────────────── */
+.profile-input {
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: none;
+  border: none;
+  outline: none;
+  text-align: right;
+  width: 55%;
+  padding: 0;
+}
+
+.profile-input::placeholder { color: var(--color-text-muted); }
+
+.profile-branch-wrap {
+  width: 55%;
+  text-align: right;
+
+  :deep(.combo-input) {
+    text-align: right;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    background: transparent;
+    border: none;
+    outline: none;
+    width: 100%;
+  }
+}
+
+.profile-save-btn {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  color: var(--tpl-blue);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 /* ── Account ──────────────────────────────────── */
