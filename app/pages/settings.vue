@@ -111,6 +111,9 @@
         <div class="about-row link">
           <a href="https://tpl.ca" target="_blank" class="about-link">Toronto Public Library ↗</a>
         </div>
+        <div class="about-row">
+          <p class="disclaimer">This is an unofficial app and is not affiliated with or endorsed by Toronto Public Library.</p>
+        </div>
       </div>
     </section>
 
@@ -339,5 +342,11 @@ function setDemo(mode) {
   color: var(--tpl-blue);
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+.disclaimer {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 </style>
