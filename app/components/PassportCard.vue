@@ -25,7 +25,7 @@
         <div class="avatar">
           <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="64" height="78">
             <mask id="avatar-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
-              <rect width="36" height="36" rx="72" fill="#FFFFFF" />
+              <rect width="36" height="36" fill="#FFFFFF" />
             </mask>
             <g mask="url(#avatar-mask)">
               <rect width="36" height="36" :fill="avatarData.backgroundColor" />
