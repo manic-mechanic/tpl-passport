@@ -3,6 +3,7 @@ import IconNavCheckIn from './icons/IconNavCheckIn.vue';
 import IconNavExplore from './icons/IconNavExplore.vue';
 import IconNavHome from './icons/IconNavHome.vue';
 import IconNavPassport from './icons/IconNavPassport.vue';
+import IconSettingsGear from './icons/IconSettingsGear.vue';
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +18,7 @@ const contextualTab = computed(() => {
   if (effective.startsWith('/passport'))  return '/passport'
   if (effective.startsWith('/check-in'))  return '/check-in'
   if (effective.startsWith('/explore'))   return '/explore'
+  if (effective.startsWith('/settings'))  return '/settings'
   if (effective === '/')                  return '/'
   return '/explore'
 })
@@ -36,19 +38,24 @@ const contextualTab = computed(() => {
       <span class="nav-label">Explore</span>
     </NuxtLink>
 
-    <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active"
-      :class="{ 'nav-item-active': contextualTab === '/passport' }">
-      <IconNavPassport class="nav-icon" />
-      <span class="nav-label">Passport</span>
-    </NuxtLink>
-
-    <!-- Primary action — check-in -->
+    <!-- Primary action — check-in (center) -->
     <NuxtLink to="/check-in" class="nav-item nav-item-checkin" active-class="nav-item-active"
       :class="{ 'nav-item-active': contextualTab === '/check-in' }">
       <div class="checkin-orb">
         <IconNavCheckIn class="nav-icon" />
       </div>
       <span class="nav-label">Check In</span>
+    </NuxtLink>
+
+    <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active"
+      :class="{ 'nav-item-active': contextualTab === '/passport' }">
+      <IconNavPassport class="nav-icon" />
+      <span class="nav-label">Passport</span>
+    </NuxtLink>
+
+    <NuxtLink to="/settings" class="nav-item" active-class="nav-item-active">
+      <IconSettingsGear class="nav-icon" />
+      <span class="nav-label">Settings</span>
     </NuxtLink>
 
   </nav>
