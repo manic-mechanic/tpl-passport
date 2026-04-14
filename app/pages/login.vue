@@ -63,6 +63,7 @@
 import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { authClient } from '~/lib/auth-client'
 import { usePassportStore } from '~/stores/passport'
+import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -86,20 +87,26 @@ async function submitEmail() {
         callbackURL: '/',
       })
       if (err) { error.value = err.message; return }
-      if (data?.user?.name) passport.profile.name = data.user.name
-      if (data?.user?.homeBranch) passport.profile.homeBranch = data.user.homeBranch
+      const serverProfile = await fetchProfile()
+      if (serverProfile?.name) passport.profile.name = serverProfile.name
+      else if (data?.user?.name) passport.profile.name = data.user.name
+      if (serverProfile?.homeBranch) {
+        passport.profile.homeBranch = serverProfile.homeBranch
+      } else if (passport.profile.homeBranch) {
+        pushProfile({ name: passport.profile.name, homeBranch: passport.profile.homeBranch })
+      }
       $posthog?.capture('sign_in_completed', { method: 'email' })
     } else {
       const { error: err } = await authClient.signUp.email({
         name: name.value,
         email: email.value,
         password: password.value,
-        homeBranch: homeBranch.value || null,
         callbackURL: '/',
       })
       if (err) { error.value = err.message; return }
       if (!passport.profile.name && name.value) passport.profile.name = name.value
       if (homeBranch.value) passport.profile.homeBranch = homeBranch.value
+      await pushProfile({ name: name.value, homeBranch: homeBranch.value || null })
       $posthog?.capture('sign_up_completed', {
         method: 'email',
         name_set: !!name.value,
