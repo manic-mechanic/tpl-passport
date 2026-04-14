@@ -5,6 +5,7 @@
       <p class="sub" v-if="passport.checkIns.length">{{ passport.checkIns.length }} check-in{{ passport.checkIns.length
         !== 1 ? 's' : '' }}</p>
     </header>
+    <div class="header-gap" />
 
     <!-- Stats summary -->
     <div v-if="passport.checkIns.length" class="stats-strip">
@@ -119,16 +120,26 @@ function formatTime(iso) {
 
 <style scoped>
 .page-header {
-  padding: 20px 0 16px;
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 10;
+  margin: 0 -18px;
+  padding: 14px 18px 16px;
+  background: var(--tpl-navy);
 
   & h1 {
     margin-bottom: 3px;
+    color: rgba(255, 255, 255, 0.92);
   }
+}
+
+.header-gap {
+  height: 20px;
 }
 
 .sub {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 /* Stats strip */

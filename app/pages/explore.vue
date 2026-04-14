@@ -1,26 +1,28 @@
 <template>
   <main class="page-content">
 
-    <!-- Header -->
-    <header class="page-header">
-      <div>
-        <h1>Explore</h1>
-        <p class="sub">Plan your next visit</p>
-      </div>
-      <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
-        <IconSearch />
-      </NuxtLink>
-    </header>
+    <!-- Sticky header + tabs -->
+    <div class="sticky-top">
+      <header class="page-header">
+        <div>
+          <h1>Explore</h1>
+          <p class="sub">Plan your next visit</p>
+        </div>
+        <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
+          <IconSearch />
+        </NuxtLink>
+      </header>
 
-    <!-- Tab pills -->
-    <nav class="tab-bar" role="tablist">
+      <!-- Tab pills -->
+      <nav class="tab-bar" role="tablist">
       <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
         :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'">Near Me</button>
       <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
         :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'">Day Trips</button>
       <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
         :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'">Extra Credit</button>
-    </nav>
+      </nav>
+    </div>
 
     <!-- Near Me -->
     <section v-show="activeTab === 'near-me'" class="explore-section">
@@ -243,9 +245,18 @@ function openBranchSheet(branch) {
   padding-bottom: calc(var(--nav-height) + 72px);
 }
 
+/* ── Sticky header block ─────────────────────────────────────────── */
+.sticky-top {
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 10;
+  margin: 0 -18px;
+  background: var(--tpl-navy);
+}
+
 /* ── Page header ─────────────────────────────────────────────────── */
 .page-header {
-  padding: 20px 0 14px;
+  padding: 14px 18px 14px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -253,20 +264,21 @@ function openBranchSheet(branch) {
 
 .page-header h1 {
   margin-bottom: 3px;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .sub {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .search-btn {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -288,6 +300,7 @@ function openBranchSheet(branch) {
 
 /* ── Sections ────────────────────────────────────────────────────── */
 .explore-section {
+  margin-top: 20px;
   margin-bottom: 28px;
 }
 
@@ -295,11 +308,11 @@ function openBranchSheet(branch) {
 /* ── Tab bar ─────────────────────────────────────────────────────── */
 .tab-bar {
   display: flex;
-  margin: 0 -18px 20px;
+  margin: 0;
   padding: 0 18px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1.5px solid var(--color-border-soft);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.15);
 }
 
 .tab-bar::-webkit-scrollbar {
@@ -317,7 +330,7 @@ function openBranchSheet(branch) {
   font-size: 0.875rem;
   font-weight: 600;
   font-family: var(--font-body);
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
@@ -325,21 +338,14 @@ function openBranchSheet(branch) {
 
 .tab-pill {
   &.active {
-    color: var(--tpl-navy);
-    border-bottom-color: var(--tpl-navy);
-
-    @media (prefers-color-scheme: dark) {
-      & {
-        color: var(--color-brand-text);
-        border-bottom-color: var(--color-brand-text);
-      }
-    }
+    color: rgba(255, 255, 255, 0.95);
+    border-bottom-color: rgba(255, 255, 255, 0.9);
   }
 }
 
 :global([data-theme="dark"]) .tab-pill.active {
-  color: var(--color-brand-text);
-  border-bottom-color: var(--color-brand-text);
+  color: rgba(255, 255, 255, 0.95);
+  border-bottom-color: rgba(255, 255, 255, 0.9);
 }
 
 /* ── Near Me ─────────────────────────────────────────────────────── */
