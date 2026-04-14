@@ -49,21 +49,6 @@
           placeholder="What did you do? What did you read?" rows="3" maxlength="500" />
         <p class="char-count">{{ noteText.length }} / 500</p>
       </div>
-
-      <div class="field-group">
-        <label class="field-label">
-          Photo <span class="optional">optional</span>
-        </label>
-        <div class="photo-area">
-          <img v-if="photoPreview" :src="photoPreview" class="photo-preview" alt="Check-in photo" />
-          <label class="photo-btn">
-
-            <IconPhoto />
-            {{ photoPreview ? 'Change photo' : 'Add photo' }}
-            <input type="file" accept="image/*" class="photo-input" @change="onPhotoCapture" />
-          </label>
-        </div>
-      </div>
     </template>
 
     <div class="cta-area">
@@ -111,10 +96,18 @@
         <p class="success-branch">{{ result.branchName }}</p>
         <p class="success-region">{{ result.region }}</p>
         <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-primary">View branch</NuxtLink>
-        <button v-if="photoBlob" class="save-photo-btn" @click="savePhotoToDevice">
-          <IconSave />
-          Save photo
-        </button>
+        <label v-if="!photoBlob" class="photo-btn">
+          <IconPhoto />
+          Add photo
+          <input type="file" accept="image/*" class="photo-input" @change="onSuccessPhotoCapture" />
+        </label>
+        <template v-if="photoBlob">
+          <img :src="photoPreview" class="success-photo-preview" alt="Check-in photo" />
+          <button class="save-photo-btn" @click="savePhotoToDevice">
+            <IconSave />
+            Save photo
+          </button>
+        </template>
       </div>
 
       <div v-if="showSignInNudge" class="signin-nudge">
@@ -244,8 +237,8 @@ const alreadyVisitedToday = computed(() =>
 
 
 const noteText = ref('')
-const photoPreview = ref(null)  // object URL — revoked on unmount / photo change
-const photoBlob = ref(null)  // compressed JPEG blob, kept for save-to-device after check-in
+const photoPreview = ref(null)  // object URL — revoked when sheet closes / photo changes
+const photoBlob = ref(null)  // compressed JPEG blob, kept for save-to-device
 
 // Resize to ≤ 1200 px wide and compress to JPEG — keeps IndexedDB small
 // and matches what we'll need for Supabase Storage uploads later.
@@ -266,13 +259,19 @@ function compressPhoto(file, maxWidth = 1200, quality = 0.82) {
   })
 }
 
-async function onPhotoCapture(event) {
+async function onSuccessPhotoCapture(event) {
   const file = event.target.files?.[0]
   if (!file) return
   if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
   const blob = await compressPhoto(file)
   photoBlob.value = blob
   photoPreview.value = URL.createObjectURL(blob)
+  const ts = result.value?.timestamp
+  if (ts) {
+    savePhoto(ts, blob)
+    passport.markCheckInHasPhoto(ts)
+    if (isSignedIn.value) uploadPhoto(ts, blob)
+  }
 }
 
 // Triggers native share sheet (iOS/Android) so user can "Save Image",
@@ -298,7 +297,14 @@ const successSheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
 
 const result = ref(null)
 watch(result, val => { if (val) successSheetOpen.value = true })
-watch(successSheetOpen, open => { if (!open) result.value = null })
+watch(successSheetOpen, open => {
+  if (!open) {
+    result.value = null
+    if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
+    photoBlob.value = null
+    photoPreview.value = null
+  }
+})
 const locationStatus = ref('idle') // 'idle' | 'checking' | 'too-far' | 'timeout' | 'denied'
 const locationDistKm = ref(null)
 
@@ -346,23 +352,18 @@ async function doCheckIn() {
   locationStatus.value = 'idle'
   const timestamp = passport.checkIn(selectedBranch.value.BranchCode, noteText.value.trim())
   if (timestamp) {
-    if (photoBlob.value) {
-      savePhoto(timestamp, photoBlob.value)
-      passport.markCheckInHasPhoto(timestamp)
-      if (isSignedIn.value) uploadPhoto(timestamp, photoBlob.value)
-    }
     const branchVisitCount = passport.checkIns.filter(c => c.branchCode === selectedBranch.value.BranchCode).length
     $posthog?.capture('checkin_completed', {
       branch_code: selectedBranch.value.BranchCode,
       branch_name: selectedBranch.value.BranchName,
       district: selectedBranch.value.District ?? '',
-      photo_taken: !!photoBlob.value,
       note_added: !!noteText.value.trim(),
       visit_number: branchVisitCount,
       total_visits: passport.checkIns.length,
     })
     checkInCompleted.value = true
     result.value = {
+      timestamp,
       branchCode: selectedBranch.value.BranchCode,
       branchName: selectedBranch.value.BranchName,
       region: selectedBranch.value.District ?? '',
@@ -460,7 +461,7 @@ function closeScanner() {
 
 onUnmounted(() => {
   closeScanner()
-  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
+  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)  // safety net if unmounted while sheet open
   if (!checkInCompleted.value && selectedBranch.value) {
     $posthog?.capture('checkin_abandoned', {
       branch_code: selectedBranch.value.BranchCode,
@@ -602,21 +603,7 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 
-/* Photo */
-.photo-area {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.photo-preview {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-}
-
+/* Photo — used in success sheet */
 .photo-btn {
   display: inline-flex;
   align-items: center;
@@ -878,6 +865,14 @@ onUnmounted(() => {
   text-align: center;
   text-decoration: none;
   min-width: 200px;
+}
+
+.success-photo-preview {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
 }
 
 .save-photo-btn {
