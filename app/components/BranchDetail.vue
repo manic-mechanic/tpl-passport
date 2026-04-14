@@ -41,12 +41,31 @@
       <h2 class="detail-heading">Your visits here</h2>
       <ul class="visit-list">
         <li v-for="visit in pastVisitsHere" :key="visit.timestamp" class="visit-row-small">
-          <span class="visit-date">{{ formatVisitDate(visit.timestamp) }}</span>
+          <div class="visit-row-header">
+            <span class="visit-date">{{ formatVisitDate(visit.timestamp) }}</span>
+            <div class="visit-actions">
+              <label class="visit-action-btn" :title="visit.hasPhoto ? 'Change photo' : 'Add photo'">
+                <IconPhoto class="visit-action-icon" />
+                <input type="file" accept="image/*" class="visit-file-input" @change="onVisitPhotoCapture($event, visit.timestamp)" />
+              </label>
+              <button class="visit-action-btn" :title="editingNote === visit.timestamp ? 'Cancel' : 'Edit note'"
+                @click="toggleNoteEdit(visit.timestamp)">
+                <IconNote class="visit-action-icon" />
+              </button>
+            </div>
+          </div>
           <button v-if="photoUrls[visit.timestamp]" class="visit-photo-btn"
             @click="lightboxSrc = photoUrls[visit.timestamp]">
             <img :src="photoUrls[visit.timestamp]" class="visit-photo-thumb" alt="Check-in photo" />
           </button>
-          <span v-if="visit.note" class="visit-note">{{ visit.note }}</span>
+          <template v-if="editingNote === visit.timestamp">
+            <textarea class="visit-note-input" v-model="noteInputs[visit.timestamp]" placeholder="Add a note…" rows="3" />
+            <div class="visit-note-actions">
+              <button class="note-save-btn" @click="saveNote(visit.timestamp)">Save</button>
+              <button class="note-cancel-btn" @click="editingNote = null">Cancel</button>
+            </div>
+          </template>
+          <span v-else-if="visit.note" class="visit-note">{{ visit.note }}</span>
         </li>
       </ul>
     </section>
@@ -80,6 +99,22 @@
       </div>
     </section>
 
+    <section v-if="branchHistoryEntries.length" class="detail-section">
+      <h2 class="detail-heading">Branch History</h2>
+      <template v-if="pastVisitsHere.length === 0">
+        <p class="history-locked">Check in here to start reading this branch's history.</p>
+      </template>
+      <template v-else>
+        <div class="history-row">
+          <div class="history-year-badge">
+            <span class="history-year">{{ branchHistoryEntries[0].year }}</span>
+          </div>
+          <p class="history-detail">{{ branchHistoryEntries[0].detail }}</p>
+        </div>
+        <p class="history-locked">Come back to unlock more history.</p>
+      </template>
+    </section>
+
     <section v-if="nearbyBranches.length" class="detail-section">
       <h2 class="detail-heading">Nearby branches</h2>
       <NearbyBranchList :branches="nearbyBranches" :original-source="effectiveSource" from="branch_page" />
@@ -89,14 +124,17 @@
 
 <script setup>
 import branchHours from '#data/branch-hours.json'
+import branchHistoryData from '#data/branch-history.json'
 import { usePassportStore } from '~/stores/passport'
-import { getPhotoUrl } from '~/composables/usePhotoStore'
+import { getPhotoUrl, savePhoto } from '~/composables/usePhotoStore'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { compassPoints } from '~/composables/useBadges'
 import IconParking from './icons/IconParking.vue'
 import IconTelephone from './icons/IconTelephone.vue'
 import IconMapPin from './icons/IconMapPin.vue'
 import IconChevron from './icons/IconChevron.vue'
+import IconNote from './icons/IconNote.vue'
+import IconPhoto from './icons/IconPhoto.vue'
 
 const props = defineProps({
   branch: { type: Object, required: true },
@@ -229,6 +267,74 @@ onUnmounted(() => {
 function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+// Note editing
+const editingNote = ref(null)
+const noteInputs = ref({})
+
+function toggleNoteEdit(timestamp) {
+  if (editingNote.value === timestamp) {
+    editingNote.value = null
+  } else {
+    noteInputs.value[timestamp] = pastVisitsHere.value.find(v => v.timestamp === timestamp)?.note ?? ''
+    editingNote.value = timestamp
+  }
+}
+
+function saveNote(timestamp) {
+  passport.updateNote(timestamp, noteInputs.value[timestamp] ?? '')
+  editingNote.value = null
+}
+
+// Photo adding on existing visits
+const AUTH_BASE = 'https://auth.librarypassport.ca'
+
+function compressPhoto(file, maxWidth = 1200, quality = 0.82) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxWidth / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(resolve, 'image/jpeg', quality)
+    }
+    img.src = url
+  })
+}
+
+async function onVisitPhotoCapture(event, timestamp) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  const blob = await compressPhoto(file)
+  await savePhoto(timestamp, blob)
+  const oldUrl = photoUrls.value[timestamp]
+  if (oldUrl) URL.revokeObjectURL(oldUrl)
+  photoUrls.value[timestamp] = URL.createObjectURL(blob)
+  try {
+    const res = await fetch(`${AUTH_BASE}/api/upload/photo?ext=jpg`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob,
+    })
+    if (res.ok) {
+      const { publicUrl } = await res.json()
+      if (publicUrl) passport.markCheckInHasPhoto(timestamp, publicUrl)
+    } else {
+      passport.markCheckInHasPhoto(timestamp)
+    }
+  } catch {
+    passport.markCheckInHasPhoto(timestamp)
+  }
+}
+
+// Branch history
+const branchHistoryEntries = computed(() =>
+  branchHistoryData[props.branch.BranchCode] ?? []
+)
 
 const COMPASS_DIR_LABELS = { n: 'North', e: 'East', s: 'South', w: 'West' }
 const compassPointDirection = computed(() => {
@@ -504,6 +610,135 @@ const nearbyBranches = computed(() => {
   object-fit: cover;
   border-radius: var(--radius-sm);
   display: block;
+}
+
+.visit-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.visit-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.visit-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+
+  &:hover { background: var(--color-border-soft); }
+}
+
+.visit-action-icon {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.visit-file-input {
+  display: none;
+}
+
+.visit-note-input {
+  width: 100%;
+  padding: 8px 10px;
+  margin-top: 8px;
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  box-sizing: border-box;
+
+  &:focus { border-color: var(--tpl-blue); }
+}
+
+.visit-note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.note-save-btn {
+  padding: 5px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  background: var(--tpl-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.note-cancel-btn {
+  padding: 5px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  background: none;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.history-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.history-year-badge {
+  flex-shrink: 0;
+  width: 44px;
+  background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-paper));
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 20%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 6px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-year {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--tpl-blue);
+}
+
+.history-detail {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  padding-top: 2px;
+}
+
+.history-locked {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .lightbox {

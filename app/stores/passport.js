@@ -88,6 +88,13 @@ export const usePassportStore = defineStore('passport', () => {
     return timestamp
   }
 
+  function updateNote(timestamp, note) {
+    const ci = checkIns.value.find(c => c.timestamp === timestamp)
+    if (!ci) return
+    ci.note = note
+    pushCheckIn({ ...ci })  // re-push full check-in so server note is updated
+  }
+
   // Sets hasPhoto: true on the check-in matching the given timestamp.
   // Called after a photo is successfully saved to IndexedDB.
   // Pass photoUri (a hosted URL) to also sync the photo to the server.
@@ -155,6 +162,7 @@ export const usePassportStore = defineStore('passport', () => {
     hasCompletedChallenge,
     toggleChallenge,
     checkIn,
+    updateNote,
     markCheckInHasPhoto,
     setCheckIns,
     loadDemoState,
