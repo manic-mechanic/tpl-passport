@@ -12,14 +12,15 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@tpl-passport/shared": "file:./packages/shared",
     "@better-auth/expo": "^1.6.0",
     "@libsql/client": "^0.17.2",
     "@nuxtjs/supabase": "^1.4.6",
     "@opentelemetry/api": "^1.9.1",
     "@pinia/nuxt": "^0.11.3",
     "@sentry/nuxt": "^10.47.0",
+    "@tpl-passport/shared": "file:./packages/shared",
     "better-auth": "^1.6.0",
+    "boring-avatars": "^2.0.4",
     "drizzle-orm": "^0.45.2",
     "jsqr": "^1.4.0",
     "nuxt": "^4.3.1",

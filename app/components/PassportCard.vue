@@ -23,7 +23,28 @@
           </div>
         </div>
         <div class="avatar">
-          <span class="avatar-letter">{{ avatarLetter }}</span>
+          <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="64" height="78">
+            <mask id="avatar-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
+              <rect width="36" height="36" rx="72" fill="#FFFFFF" />
+            </mask>
+            <g mask="url(#avatar-mask)">
+              <rect width="36" height="36" :fill="avatarData.backgroundColor" />
+              <rect x="0" y="0" width="36" height="36"
+                :transform="`translate(${avatarData.wrapperTranslateX} ${avatarData.wrapperTranslateY}) rotate(${avatarData.wrapperRotate} 18 18) scale(${avatarData.wrapperScale})`"
+                :fill="avatarData.wrapperColor"
+                :rx="avatarData.isCircle ? 36 : 6" />
+              <g :transform="`translate(${avatarData.faceTranslateX} ${avatarData.faceTranslateY}) rotate(${avatarData.faceRotate} 18 18)`">
+                <path v-if="avatarData.isMouthOpen"
+                  :d="`M15 ${19 + avatarData.mouthSpread}c2 1 4 1 6 0`"
+                  :stroke="avatarData.faceColor" fill="none" stroke-linecap="round" />
+                <path v-else
+                  :d="`M13,${19 + avatarData.mouthSpread} a1,0.75 0 0,0 10,0`"
+                  :fill="avatarData.faceColor" />
+                <rect :x="14 - avatarData.eyeSpread" y="14" width="1.5" height="2" rx="1" :fill="avatarData.faceColor" />
+                <rect :x="20 + avatarData.eyeSpread" y="14" width="1.5" height="2" rx="1" :fill="avatarData.faceColor" />
+              </g>
+            </g>
+          </svg>
         </div>
       </div>
 
@@ -66,8 +87,64 @@ import { storeToRefs } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
 
+// boring-avatars beam algorithm (inlined — package utilities not exported at runtime)
+function _hash(name) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) { h = Math.imul(h, 31) + name.charCodeAt(i) | 0 }
+  return Math.abs(h)
+}
+function _unit(n, range, idx) {
+  const v = n % range
+  return idx !== undefined && Math.floor(n / 10 ** idx) % 10 % 2 === 0 ? -v : v
+}
+function _color(n, colors) { return colors[n % colors.length] }
+function _bool(n, idx) { return Math.floor(n / 10 ** idx) % 10 % 2 === 0 }
+function _contrast(hex) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000000' : '#ffffff'
+}
+
 function branchNameForCode(code) {
   return physicalBranches.find(b => b.BranchCode === code)?.BranchName ?? code
+}
+
+const AVATAR_COLORS = [
+  '#005fc0', // TPL blue
+  '#001c71', // TPL navy
+  '#1a6b4a', // forest green
+  '#6b3fa0', // purple
+  '#0d7a8a', // teal
+  '#c45520', // burnt orange
+  '#8b4513', // terracotta
+  '#f5d6db', // light rose   (stamp hue 350, 90% l)
+  '#d6f5ed', // light mint   (stamp hue 165, 90% l)
+  '#e8d8f5', // light lavender (stamp hue 275, 90% l)
+]
+const S = 36
+
+function getBeamData(name) {
+  const n = _hash(name || 'TPL Passport')
+  const wrapperColor = _color(n, AVATAR_COLORS)
+  const wx = _unit(n, 10, 1)
+  const wy = _unit(n, 10, 2)
+  const wrapperTranslateX = wx < 5 ? wx + S / 9 : wx
+  const wrapperTranslateY = wy < 5 ? wy + S / 9 : wy
+  return {
+    backgroundColor: _color(n + 13, AVATAR_COLORS),
+    wrapperColor,
+    faceColor: _contrast(wrapperColor),
+    wrapperTranslateX,
+    wrapperTranslateY,
+    wrapperRotate: _unit(n, 360),
+    wrapperScale: 1 + _unit(n, S / 12) / 10,
+    isMouthOpen: _bool(n, 2),
+    isCircle: _bool(n, 1),
+    eyeSpread: _unit(n, 5),
+    mouthSpread: _unit(n, 3),
+    faceRotate: _unit(n, 10, 3),
+    faceTranslateX: wrapperTranslateX > S / 6 ? wrapperTranslateX / 2 : _unit(n, 8, 1),
+    faceTranslateY: wrapperTranslateY > S / 6 ? wrapperTranslateY / 2 : _unit(n, 7, 2),
+  }
 }
 
 const passport = usePassportStore()
@@ -82,9 +159,9 @@ const { progressPct, overallPct } = storeToRefs(passport)
 const totalBranches = physicalBranches.length
 const issueYear = new Date().getFullYear()
 
-const avatarLetter = computed(() => {
-  const name = passport.profile.name?.trim()
-  return name ? name[0].toUpperCase() : '?'
+const avatarData = computed(() => {
+  const seed = [passport.profile.name?.trim(), passport.profile.homeBranch].filter(Boolean).join('|')
+  return getBeamData(seed)
 })
 
 const mrzLine1 = computed(() => {
@@ -157,20 +234,16 @@ const mrzLine2 = computed(() => {
   width: 64px;
   height: 78px;
   border-radius: 6px;
-  border: 2px solid var(--tpl-blue);
-  background: color-mix(in srgb, var(--tpl-blue) 12%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   flex-shrink: 0;
-}
+  border: 2px solid var(--color-border);
+  padding: 3px;
 
-.avatar-letter {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--tpl-blue);
-  font-optical-sizing: auto;
+  & svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .field-label {
