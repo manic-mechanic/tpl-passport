@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
-import branchData from '#data/updated-branch-info.json'
+import branchData from '#data/branch-info.json'
 import IconBack from '~/components/icons/IconBack.vue'
 
 const route = useRoute()
