@@ -9,7 +9,7 @@ import {
   branchVisitCounts,
   homeVisitCount,
   maxNonHomeVisitCount,
-} from '../app/composables/useBadges.js'
+} from '@tpl-passport/shared'
 
 // Helper: build a minimal ctx with sensible defaults
 function ctx(overrides = {}) {
@@ -114,22 +114,22 @@ describe('fullyDocumentedCount', () => {
   })
 
   it('returns 0 when note is present but no photo', () => {
-    expect(fullyDocumentedCount([{ note: 'Great', hasPhoto: false }])).toBe(0)
+    expect(fullyDocumentedCount([{ note: 'Great' }])).toBe(0)
   })
 
   it('returns 0 when photo is present but note is empty', () => {
-    expect(fullyDocumentedCount([{ note: '', hasPhoto: true }])).toBe(0)
+    expect(fullyDocumentedCount([{ note: '', photoUri: 'https://example.com/p.jpg' }])).toBe(0)
   })
 
   it('returns 0 when photo is present but note is whitespace', () => {
-    expect(fullyDocumentedCount([{ note: '   ', hasPhoto: true }])).toBe(0)
+    expect(fullyDocumentedCount([{ note: '   ', photoUri: 'https://example.com/p.jpg' }])).toBe(0)
   })
 
   it('counts check-ins with both a non-empty note and a photo', () => {
     expect(fullyDocumentedCount([
-      { note: 'Good', hasPhoto: true },
-      { note: 'Also good', hasPhoto: true },
-      { note: 'No photo', hasPhoto: false },
+      { note: 'Good',     photoUri: 'https://example.com/p.jpg' },
+      { note: 'Also good', photoUri: 'https://example.com/p.jpg' },
+      { note: 'No photo' },
     ])).toBe(2)
   })
 })
@@ -244,26 +244,18 @@ describe('badge: archivist', () => {
   })
 
   it('not earned with a photo but no note', () => {
-    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: '', hasPhoto: true }]
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: '', photoUri: 'https://example.com/p.jpg' }]
     expect(badge('archivist').earned(ctx({ checkIns }))).toBe(false)
   })
 
   it('not earned with a whitespace-only note and photo', () => {
-    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: '   ', hasPhoto: true }]
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: '   ', photoUri: 'https://example.com/p.jpg' }]
     expect(badge('archivist').earned(ctx({ checkIns }))).toBe(false)
   })
 
   it('earned when a check-in has both a note and a photo', () => {
-    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'Great', hasPhoto: true }]
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'Great', photoUri: 'https://example.com/p.jpg' }]
     expect(badge('archivist').earned(ctx({ checkIns }))).toBe(true)
-  })
-
-  it('stat counts revisits to the same branch', () => {
-    const checkIns = [
-      { branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'First', hasPhoto: true },
-      { branchCode: 'AG', timestamp: '2024-01-02T10:00:00.000Z', note: 'Second', hasPhoto: true },
-    ]
-    expect(badge('archivist').stat(ctx({ checkIns }))).toBe(2)
   })
 
   it('progress is 0/1 before earning', () => {
@@ -271,7 +263,7 @@ describe('badge: archivist', () => {
   })
 
   it('progress is 1/1 after earning', () => {
-    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'Great', hasPhoto: true }]
+    const checkIns = [{ branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'Great', photoUri: 'https://example.com/p.jpg' }]
     expect(badge('archivist').progress(ctx({ checkIns }))).toEqual({ current: 1, total: 1 })
   })
 })

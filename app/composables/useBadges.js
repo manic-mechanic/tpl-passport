@@ -1,5 +1,5 @@
-import { BADGES, compassPoints, compassBranches, physicalBranches, branchesByAlphaPage } from '@tpl-passport/shared'
-export { BADGES, compassPoints, compassBranches }
+import { BADGES, buildBadgeCtx, compassPoints, compassBranches } from '@tpl-passport/shared'
+export { BADGES, buildBadgeCtx, compassPoints, compassBranches }
 
 // Badge background gradients for suggestion cards in /explore.
 const BADGE_BG = {
@@ -18,58 +18,6 @@ const BADGE_BG = {
 }
 
 export function badgeBg(id) { return BADGE_BG[id] ?? 'var(--color-border)' }
-
-// Internal helpers for buildBadgeCtx
-
-function maxBranchesInOneDay(checkIns) {
-  const byDay = {}
-  for (const c of checkIns) {
-    const day = new Date(c.timestamp).toLocaleDateString('en-CA')
-    if (!byDay[day]) byDay[day] = new Set()
-    byDay[day].add(c.branchCode)
-  }
-  const sizes = Object.values(byDay).map(s => s.size)
-  return sizes.length ? Math.max(...sizes) : 0
-}
-
-function branchVisitCounts(checkIns) {
-  const counts = {}
-  for (const c of checkIns) counts[c.branchCode] = (counts[c.branchCode] ?? 0) + 1
-  return counts
-}
-
-function homeVisitCount(counts, homeBranch) {
-  return homeBranch ? (counts[homeBranch] ?? 0) : 0
-}
-
-function maxNonHomeVisitCount(counts, homeBranch) {
-  let max = 0
-  for (const [code, count] of Object.entries(counts)) {
-    if (code !== homeBranch && count > max) max = count
-  }
-  return max
-}
-
-// Web check-ins use `hasPhoto` flag; RN uses `photoUri` — keep this version here.
-function fullyDocumentedCount(checkIns) {
-  return checkIns.filter(c => c.note?.trim() && c.hasPhoto).length
-}
-
-export function buildBadgeCtx({ checkIns, visitedBranchCodes, completedChallenges, homeBranch }) {
-  const counts = branchVisitCounts(checkIns)
-  return {
-    visitCount:            visitedBranchCodes.size,
-    branchVisitCounts:     counts,
-    maxBranchesInOneDay:   maxBranchesInOneDay(checkIns),
-    homeVisitCount:        homeVisitCount(counts, homeBranch),
-    maxNonHomeVisitCount:  maxNonHomeVisitCount(counts, homeBranch),
-    fullyDocumentedCount:  fullyDocumentedCount(checkIns),
-    visitedBranchCodes,
-    completedChallenges,
-    checkIns,
-    homeBranch,
-  }
-}
 
 // Reactive composable — returns a computed badge context from the passport store.
 export function useBadgeCtx() {
