@@ -350,12 +350,4 @@ const mrzLine2 = computed(() => {
   line-height: 1;
 }
 
-/* Dark mode: bars go darker so white text stays readable against the lighter --tpl-blue */
-@media (prefers-color-scheme: dark) {
-  .card-top, .mrz { background: #1e3570; }
-  .passport-card { border-color: #1e3570; }
-}
-:global([data-theme="dark"]) .card-top,
-:global([data-theme="dark"]) .mrz { background: #1e3570; }
-:global([data-theme="dark"]) .passport-card { border-color: #1e3570; }
 </style>
