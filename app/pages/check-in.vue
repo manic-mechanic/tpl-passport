@@ -158,6 +158,22 @@ import jsQR from 'jsqr'
 import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { savePhoto } from '~/composables/usePhotoStore'
+
+const AUTH_BASE = 'https://auth.librarypassport.ca'
+
+async function uploadPhoto(timestamp, blob) {
+  try {
+    const res = await fetch(`${AUTH_BASE}/api/upload/photo?ext=jpg`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob,
+    })
+    if (!res.ok) return
+    const { publicUrl } = await res.json()
+    if (publicUrl) passport.markCheckInHasPhoto(timestamp, publicUrl)
+  } catch { /* fire-and-forget */ }
+}
 import { FEATURES } from '~/composables/useFeatureFlags'
 import { authClient } from '~/lib/auth-client'
 import IconPhoto from '~/components/icons/IconPhoto.vue'
@@ -333,6 +349,7 @@ async function doCheckIn() {
     if (photoBlob.value) {
       savePhoto(timestamp, photoBlob.value)
       passport.markCheckInHasPhoto(timestamp)
+      if (isSignedIn.value) uploadPhoto(timestamp, photoBlob.value)
     }
     const branchVisitCount = passport.checkIns.filter(c => c.branchCode === selectedBranch.value.BranchCode).length
     $posthog?.capture('checkin_completed', {
