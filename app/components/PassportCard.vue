@@ -7,28 +7,22 @@
     <div class="card-body">
       <div class="profile-row">
         <div class="profile-fields">
-          <div class="name-field">
+          <div>
             <p class="field-label">Name / Nom</p>
             <input v-model="passport.profile.name" class="name-input" type="text" placeholder="Your name" maxlength="40"
               autocomplete="given-name" :readonly="isSignedIn" />
           </div>
-          <div class="fields-row">
-            <div class="field-col">
-              <p class="field-label">Home Branch</p>
-              <div class="combobox-wrap">
-                <BranchCombobox v-model="passport.profile.homeBranch" variant="inline" placeholder="—" />
-              </div>
+          <div>
+            <p class="field-label">Home Branch</p>
+            <div v-if="isSignedIn" class="field-value">
+              {{ passport.profile.homeBranch ? branchNameForCode(passport.profile.homeBranch) : '—' }}
             </div>
-            <div class="field-col">
-              <p class="field-label">Favourite Book</p>
-              <div class="field-wrap">
-                <input v-model="passport.profile.favouriteBook" class="field-input" type="text" placeholder="—"
-                  maxlength="80" autocomplete="off" />
-              </div>
+            <div v-else class="combobox-wrap">
+              <BranchCombobox v-model="passport.profile.homeBranch" variant="inline" placeholder="—" />
             </div>
           </div>
         </div>
-        <div class="avatar" :style="avatarStyle">
+        <div class="avatar">
           <span class="avatar-letter">{{ avatarLetter }}</span>
         </div>
       </div>
@@ -69,9 +63,12 @@
 <script setup>
 import { usePassportStore } from '~/stores/passport'
 import { storeToRefs } from 'pinia'
-import { getStampColor } from '~/composables/useStamp'
 import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
+
+function branchNameForCode(code) {
+  return physicalBranches.find(b => b.BranchCode === code)?.BranchName ?? code
+}
 
 const passport = usePassportStore()
 
@@ -88,15 +85,6 @@ const issueYear = new Date().getFullYear()
 const avatarLetter = computed(() => {
   const name = passport.profile.name?.trim()
   return name ? name[0].toUpperCase() : '?'
-})
-
-const avatarStyle = computed(() => {
-  const code = passport.profile.homeBranch
-  const branch = code ? physicalBranches.find(b => b.BranchCode === code) : null
-  const { color, bg, border } = branch
-    ? getStampColor(branch.WardNo)
-    : { color: 'var(--tpl-blue)', bg: 'color-mix(in srgb, var(--tpl-blue) 12%, var(--color-paper))', border: 'color-mix(in srgb, var(--tpl-blue) 30%, transparent)' }
-  return { color, background: bg, borderColor: border }
 })
 
 const mrzLine1 = computed(() => {
@@ -117,15 +105,18 @@ const mrzLine2 = computed(() => {
 
 <style scoped>
 .passport-card {
+  position: relative;
   margin: 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-md);
+  border-left: 1px solid var(--tpl-blue);
+  border-right: 1px solid var(--tpl-blue);
 }
 
 .card-top {
   background: var(--tpl-blue);
-  padding: 10px 16px 8px;
+  padding: 12px 18px 10px;
 }
 
 .library-name {
@@ -138,15 +129,14 @@ const mrzLine2 = computed(() => {
 
 .card-body {
   background: var(--color-bg);
-  padding: 10px 16px 10px;
-  border-bottom: 1px solid rgba(100, 170, 248, 0.45);
+  padding: 14px 18px 14px;
 }
 
 .profile-row {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .profile-fields {
@@ -154,14 +144,21 @@ const mrzLine2 = computed(() => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+}
+
+.field-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--tpl-blue);
 }
 
 .avatar {
-  width: 72px;
-  height: 88px;
-  border-radius: 5px;
-  border: 2px solid currentColor;
+  width: 64px;
+  height: 78px;
+  border-radius: 6px;
+  border: 2px solid var(--tpl-blue);
+  background: color-mix(in srgb, var(--tpl-blue) 12%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -172,6 +169,7 @@ const mrzLine2 = computed(() => {
   font-family: var(--font-display);
   font-size: 1.75rem;
   font-weight: 700;
+  color: var(--tpl-blue);
   font-optical-sizing: auto;
 }
 
@@ -182,10 +180,6 @@ const mrzLine2 = computed(() => {
   text-transform: uppercase;
   color: var(--color-text-muted);
   margin-bottom: 2px;
-}
-
-.name-field {
-  min-width: 0;
 }
 
 .name-input {
@@ -218,41 +212,10 @@ const mrzLine2 = computed(() => {
   cursor: default;
 }
 
-.fields-row {
-  display: flex;
-  gap: 16px;
-}
-
-.field-col {
-  min-width: 0;
-  flex: 1;
-}
-
-.field-input {
-  font-size: 1rem;
-  font-family: var(--font-body);
-  font-weight: 600;
-  color: var(--tpl-blue);
-  background: none;
-  border: none;
-  outline: none;
-  padding: 0;
-  width: 100%;
-  min-width: 0;
-  display: block;
-}
-
-.field-input::placeholder {
-  color: var(--color-text-muted);
-  font-weight: 400;
-}
-
-.field-wrap,
 .combobox-wrap {
   border-bottom: 1px solid var(--color-border-soft);
 }
 
-.field-wrap:focus-within,
 .combobox-wrap:focus-within {
   border-bottom-color: var(--tpl-blue);
 }
@@ -339,7 +302,7 @@ const mrzLine2 = computed(() => {
 
 .mrz {
   background: var(--tpl-blue);
-  padding: 8px 14px 10px;
+  padding: 8px 18px 10px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -390,7 +353,9 @@ const mrzLine2 = computed(() => {
 /* Dark mode: bars go darker so white text stays readable against the lighter --tpl-blue */
 @media (prefers-color-scheme: dark) {
   .card-top, .mrz { background: #1e3570; }
+  .passport-card { border-color: #1e3570; }
 }
 :global([data-theme="dark"]) .card-top,
 :global([data-theme="dark"]) .mrz { background: #1e3570; }
+:global([data-theme="dark"]) .passport-card { border-color: #1e3570; }
 </style>
