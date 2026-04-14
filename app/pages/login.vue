@@ -23,13 +23,6 @@
             required />
         </div>
 
-        <div v-if="mode === 'signup'" class="field">
-          <label class="field-label">Home Branch <span class="field-optional">optional</span></label>
-          <div class="combobox-wrap">
-            <BranchCombobox v-model="homeBranch" placeholder="Search branches…" />
-          </div>
-        </div>
-
         <div class="field">
           <label class="field-label" for="email">Email</label>
           <input id="email" v-model="email" type="email" class="field-input" placeholder="you@example.com"
@@ -51,7 +44,7 @@
 
       <div class="divider"><span>or</span></div>
 
-      <button class="btn-google" :disabled="loading" @click="signInWithGoogle">
+      <button class="btn-google" :disabled="loading || googleLoading" @click="signInWithGoogle">
         <IconGoogle class="google-icon" />
         Continue with Google
       </button>
@@ -64,17 +57,38 @@ import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { authClient } from '~/lib/auth-client'
 import { usePassportStore } from '~/stores/passport'
 import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
+import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 const mode = ref('signin')
 const name = ref(passport.profile.name ?? '')
-const homeBranch = ref(passport.profile.homeBranch ?? '')
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
+const googleLoading = ref(false)
+
+async function syncAfterSignIn(userName) {
+  const serverProfile = await fetchProfile()
+  if (serverProfile?.name) passport.profile.name = serverProfile.name
+  else if (userName) passport.profile.name = userName
+  if (serverProfile?.homeBranch) {
+    passport.profile.homeBranch = serverProfile.homeBranch
+  } else if (passport.profile.homeBranch) {
+    pushProfile({ name: passport.profile.name, homeBranch: passport.profile.homeBranch })
+  }
+  try {
+    const serverCheckIns = await fetchCheckIns()
+    const serverTimestamps = new Set(serverCheckIns.map(c => c.timestamp))
+    const localOnly = passport.checkIns.filter(c => !serverTimestamps.has(c.timestamp))
+    const merged = [...serverCheckIns, ...localOnly]
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    passport.setCheckIns(merged)
+    for (const ci of localOnly) pushCheckIn(ci)
+  } catch { /* sync failures are non-critical */ }
+}
 
 async function submitEmail() {
   error.value = ''
@@ -87,14 +101,7 @@ async function submitEmail() {
         callbackURL: '/',
       })
       if (err) { error.value = err.message; return }
-      const serverProfile = await fetchProfile()
-      if (serverProfile?.name) passport.profile.name = serverProfile.name
-      else if (data?.user?.name) passport.profile.name = data.user.name
-      if (serverProfile?.homeBranch) {
-        passport.profile.homeBranch = serverProfile.homeBranch
-      } else if (passport.profile.homeBranch) {
-        pushProfile({ name: passport.profile.name, homeBranch: passport.profile.homeBranch })
-      }
+      await syncAfterSignIn(data?.user?.name)
       $posthog?.capture('sign_in_completed', { method: 'email' })
     } else {
       const { error: err } = await authClient.signUp.email({
@@ -105,13 +112,8 @@ async function submitEmail() {
       })
       if (err) { error.value = err.message; return }
       if (!passport.profile.name && name.value) passport.profile.name = name.value
-      if (homeBranch.value) passport.profile.homeBranch = homeBranch.value
-      await pushProfile({ name: name.value, homeBranch: homeBranch.value || null })
-      $posthog?.capture('sign_up_completed', {
-        method: 'email',
-        name_set: !!name.value,
-        home_branch_set: !!homeBranch.value,
-      })
+      await pushProfile({ name: name.value, homeBranch: null })
+      $posthog?.capture('sign_up_completed', { method: 'email', name_set: !!name.value })
     }
     navigateTo('/')
   } finally {
@@ -121,13 +123,13 @@ async function submitEmail() {
 
 async function signInWithGoogle() {
   error.value = ''
-  loading.value = true
+  googleLoading.value = true
   $posthog?.capture('google_signin_attempted')
   try {
     await authClient.signIn.social({ provider: 'google', callbackURL: window.location.origin + '/' })
   } catch (e) {
     error.value = 'Google sign-in failed. Please try again.'
-    loading.value = false
+    googleLoading.value = false
   }
 }
 </script>
