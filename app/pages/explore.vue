@@ -81,18 +81,23 @@
       <!-- Walking routes -->
       <div v-if="activeMode === 'walk'" class="routes-list">
         <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: route.id, route_name: route.name, visited: route.visited, total: route.total })">
-          <div class="route-top">
-            <span class="route-name">{{ route.name }}</span>
+          <div class="route-meta-row">
+            <span class="area-chip">{{ route.area }}</span>
+            <span class="route-info">🚶 {{ route.duration }} · {{ route.total }} stops</span>
             <IconChevron class="route-chevron" />
           </div>
-          <p class="route-meta">{{ route.area }} · {{ route.total }} stops · {{ route.duration }}</p>
-          <div class="route-progress">
-            <div class="route-bar">
-              <div class="route-fill" :style="{ width: (route.visited / route.total * 100) + '%' }" />
+          <p class="route-name">{{ route.name }}</p>
+          <p class="route-desc">{{ route.description }}</p>
+          <div class="route-stamps">
+            <div v-for="b in route.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
+              <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
+                <StampShape :branchCode="b.BranchCode" :wardNo="b.WardNo" :size="40" />
+              </div>
+              <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
             </div>
-            <span class="route-count" :class="{ done: route.visited === route.total }">
-              {{ route.visited }}/{{ route.total }}
-            </span>
+            <div v-if="route.branchObjects.length > 4" class="route-overflow">
+              +{{ route.branchObjects.length - 4 }}<br>More
+            </div>
           </div>
         </NuxtLink>
       </div>
@@ -311,7 +316,9 @@ function openBranchSheet(branch) {
   padding: 0 18px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1.5px solid var(--color-border-soft);
 }
 
 .tab-bar::-webkit-scrollbar {
@@ -329,7 +336,7 @@ function openBranchSheet(branch) {
   font-size: 0.875rem;
   font-weight: 600;
   font-family: var(--font-body);
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
@@ -337,14 +344,14 @@ function openBranchSheet(branch) {
 
 .tab-pill {
   &.active {
-    color: rgba(255, 255, 255, 0.95);
-    border-bottom-color: rgba(255, 255, 255, 0.9);
+    color: var(--tpl-navy);
+    border-bottom-color: var(--tpl-navy);
   }
 }
 
 :global([data-theme="dark"]) .tab-pill.active {
-  color: rgba(255, 255, 255, 0.95);
-  border-bottom-color: rgba(255, 255, 255, 0.9);
+  color: var(--color-brand-text);
+  border-bottom-color: var(--color-brand-text);
 }
 
 /* ── Near Me ─────────────────────────────────────────────────────── */
@@ -597,16 +604,21 @@ function openBranchSheet(branch) {
 }
 
 .route-card {
-  width: 100%;
+  display: block;
   text-align: left;
   padding: 14px 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: border-color 0.12s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .route-card:active {
@@ -614,65 +626,96 @@ function openBranchSheet(branch) {
   border-color: var(--color-border);
 }
 
-.route-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.route-name {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.route-chevron {
-  width: 16px;
-  height: 16px;
-  stroke: var(--color-border);
-  flex-shrink: 0;
-}
-
-.route-meta {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin: 0 0 10px;
-  line-height: 1;
-}
-
-.route-progress {
+.route-meta-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.route-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
+.area-chip {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tpl-navy);
+  background: color-mix(in srgb, var(--tpl-navy) 8%, transparent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+.route-info {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.route-chevron {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-muted);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.route-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.route-desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.route-fill {
-  height: 100%;
-  background: var(--tpl-blue);
-  border-radius: 2px;
-  min-width: 2px;
+.route-stamps {
+  display: flex;
+  gap: 6px;
+  padding-top: 4px;
 }
 
-.route-count {
-  font-size: 0.75rem;
-  font-weight: 600;
+.route-stamp-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.route-stamp-ghost {
+  opacity: 0.18;
+  filter: grayscale(1);
+}
+
+.route-stamp-label {
+  font-size: 0.625rem;
   color: var(--color-text-muted);
-  white-space: nowrap;
+  text-align: center;
+  line-height: 1.3;
 }
 
-.route-count {
-  &.done {
-    color: var(--tpl-blue);
-  }
+.route-overflow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border-soft);
+  border-radius: var(--radius-sm, 6px);
+  min-height: 40px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.4;
 }
 
 .coming-soon {

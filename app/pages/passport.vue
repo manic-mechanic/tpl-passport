@@ -221,21 +221,22 @@ onUnmounted(() => {
   display: flex;
   margin: 0 -18px;
   padding: 0 18px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  background: var(--color-bg);
+  border-bottom: 1.5px solid var(--color-border-soft);
 }
 
 .page-tab {
   flex: 1;
   padding: 10px 6px;
   border: none;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 1px solid var(--color-border-soft);
   border-bottom: 3px solid transparent;
-  margin-bottom: -2px;
+  margin-bottom: -1.5px;
   background: none;
   font-size: 0.875rem;
   font-weight: 600;
   font-family: var(--font-body);
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
@@ -246,13 +247,13 @@ onUnmounted(() => {
   }
 
   &.active {
-    color: rgba(255, 255, 255, 0.95);
-    border-bottom-color: rgba(255, 255, 255, 0.9);
+    color: var(--tpl-navy);
+    border-bottom-color: var(--tpl-navy);
   }
 
-  /* Completed — light tint signals progress without conflicting with active underline */
+  /* Completed — subtle warm tint */
   &.complete {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(200, 120, 32, 0.06);
   }
 }
 
