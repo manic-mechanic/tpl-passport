@@ -3,7 +3,9 @@
     <div v-for="branch in branches" :key="branch.BranchCode"
       class="nearby-row" role="link" tabindex="0"
       @click="navigate(branch)" @keydown.enter="navigate(branch)">
-      <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="36" />
+      <div :class="{ 'nearby-stamp-ghost': !passport.hasVisited(branch.BranchCode) }">
+        <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="36" />
+      </div>
       <div class="nearby-info">
         <span class="nearby-name">{{ branch.BranchName }}</span>
         <span class="nearby-dist">
@@ -18,8 +20,10 @@
 <script setup>
 import { formatDist } from '~/composables/useRegion'
 import IconChevron from './icons/IconChevron.vue';
+import { usePassportStore } from '~/stores/passport'
 
 const { $posthog } = useNuxtApp()
+const passport = usePassportStore()
 
 const props = defineProps({
   branches: { type: Array, required: true },
@@ -90,5 +94,10 @@ function navigate(branch) {
   height: 16px;
   flex-shrink: 0;
   stroke: var(--color-text-muted);
+}
+
+.nearby-stamp-ghost {
+  opacity: 0.18;
+  filter: grayscale(1);
 }
 </style>

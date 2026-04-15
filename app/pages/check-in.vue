@@ -24,25 +24,49 @@
       <p class="or-divider">or</p>
     </div>
 
-    <div v-if="!prefilled && !scanned && !detecting" class="not-here">
-      Not at this branch? <NuxtLink to="/explore" class="not-here-link">Find a branch →</NuxtLink>
-    </div>
-
-    <div v-if="selectedBranch" class="stamp-area">
+    <div v-if="selectedBranch && !showPicker" class="stamp-area">
       <StampShape :branchCode="selectedBranch.BranchCode" :wardNo="selectedBranch.WardNo" :size="100" />
       <p class="stamp-name">{{ selectedBranch.BranchName }}</p>
       <p class="stamp-region">{{ selectedBranch.District }}</p>
       <button v-if="scanned" class="change-branch-btn" @click="scanned = false; selectedCode = ''">
         Change branch
       </button>
+      <button v-else-if="!prefilled" class="change-branch-btn" @click="showPicker = true; pickerQuery = ''">
+        Change branch
+      </button>
     </div>
 
-    <div v-if="selectedBranch && alreadyVisitedToday" class="visited-notice">
+    <!-- Branch picker — shown when no branch selected or user wants to change -->
+    <div v-if="(!selectedBranch || showPicker) && !detecting && !prefilled && !scanned" class="branch-picker">
+      <input
+        v-model="pickerQuery"
+        type="text"
+        class="picker-search"
+        placeholder="Search branches…"
+        autocomplete="off"
+      />
+      <button class="picker-locate-btn" @click="detectNearest">
+        <svg class="picker-locate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+        </svg>
+        Use my location
+      </button>
+      <div class="picker-list">
+        <button
+          v-for="b in filteredBranches"
+          :key="b.BranchCode"
+          class="picker-row"
+          @click="selectedCode = b.BranchCode; pickerQuery = ''"
+        >{{ b.BranchName }}</button>
+      </div>
+    </div>
+
+    <div v-if="selectedBranch && !showPicker && alreadyVisitedToday" class="visited-notice">
       <IconVisited />
       You've already checked in here today
     </div>
 
-    <template v-if="selectedBranch && !alreadyVisitedToday">
+    <template v-if="selectedBranch && !showPicker && !alreadyVisitedToday">
       <div class="field-group">
         <label class="field-label" for="note-input">
           Note <span class="optional">optional</span>
@@ -54,7 +78,7 @@
     </template>
 
     <div class="cta-area">
-      <button v-if="selectedBranch" class="checkin-btn" :disabled="alreadyVisitedToday || isCheckingLocation"
+      <button v-if="selectedBranch && !showPicker" class="checkin-btn" :disabled="alreadyVisitedToday || isCheckingLocation"
         @click="doCheckIn">
         <span v-if="isCheckingLocation" class="btn-spinner" />
         {{ isCheckingLocation ? 'Checking location…' : 'Check in' }}
@@ -112,6 +136,18 @@
         </template>
       </div>
 
+      <div v-if="newBadges.length" class="badge-earned-list">
+        <div v-for="badge in newBadges" :key="badge.id" class="badge-earned-row">
+          <svg class="badge-earned-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9h12l-2-6H8L6 9z"/><circle cx="12" cy="15" r="5"/>
+          </svg>
+          <div class="badge-earned-info">
+            <span class="badge-earned-label">Badge earned!</span>
+            <span class="badge-earned-title">{{ badge.title }}</span>
+          </div>
+        </div>
+      </div>
+
       <div v-if="showSignInNudge" class="signin-nudge">
         <p class="signin-nudge__text">Save your progress — access your passport on any device</p>
         <NuxtLink to="/login" class="signin-nudge__link" @click="successSheetOpen = false">Sign in →</NuxtLink>
@@ -152,6 +188,7 @@
 import jsQR from 'jsqr'
 import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
+import { BADGES, buildBadgeCtx, useBadgeCtx } from '~/composables/useBadges'
 import { savePhoto } from '~/composables/usePhotoStore'
 
 const AUTH_BASE = 'https://auth.librarypassport.ca'
@@ -197,26 +234,31 @@ const prefilled = !!route.query.branch  // static — query string doesn't chang
 const scanned = ref(false)
 const autoDetected = ref(false)
 const detecting = ref(false)
+const showPicker = ref(false)
+const pickerQuery = ref('')
+
+async function detectNearest() {
+  detecting.value = true
+  showPicker.value = false
+  pickerQuery.value = ''
+  try {
+    const pos = await getPosition()
+    const nearest = sortedBranches
+      .map(b => ({ ...b, distKm: haversineKm(pos.coords.latitude, pos.coords.longitude, b.Lat, b.Long) }))
+      .sort((a, b) => a.distKm - b.distKm)[0]
+    selectedCode.value = nearest.BranchCode
+  } catch {
+    selectedCode.value = FALLBACK_BRANCH
+  } finally {
+    detecting.value = false
+    autoDetected.value = true
+  }
+}
 
 onMounted(async () => {
   const [{ data: session }] = await Promise.all([
     authClient.getSession(),
-    (async () => {
-      if (prefilled) return
-      detecting.value = true
-      try {
-        const pos = await getPosition()
-        const nearest = sortedBranches
-          .map(b => ({ ...b, distKm: haversineKm(pos.coords.latitude, pos.coords.longitude, b.Lat, b.Long) }))
-          .sort((a, b) => a.distKm - b.distKm)[0]
-        selectedCode.value = nearest.BranchCode
-      } catch {
-        selectedCode.value = FALLBACK_BRANCH
-      } finally {
-        detecting.value = false
-        autoDetected.value = true
-      }
-    })(),
+    (async () => { if (!prefilled) await detectNearest() })(),
   ])
   isSignedIn.value = !!session
 })
@@ -319,7 +361,32 @@ const locationDistFormatted = computed(() => {
     : `${Math.round(locationDistKm.value * 1000)} m`
 })
 
-watch(selectedCode, () => { locationStatus.value = 'idle'; locationDistKm.value = null })
+watch(selectedCode, () => {
+  locationStatus.value = 'idle'
+  locationDistKm.value = null
+  showPicker.value = false
+})
+
+const filteredBranches = computed(() => {
+  const q = pickerQuery.value.toLowerCase().trim()
+  return q ? sortedBranches.filter(b => b.BranchName.toLowerCase().includes(q)) : sortedBranches
+})
+
+// Badge earned detection
+const badgeCtx = useBadgeCtx()
+
+const newBadges = computed(() => {
+  if (!result.value) return []
+  const prevCheckIns = passport.checkIns.filter(c => c.timestamp !== result.value.timestamp)
+  const prevVisited = new Set(prevCheckIns.map(c => c.branchCode))
+  const ctxBefore = buildBadgeCtx({
+    checkIns: prevCheckIns,
+    visitedBranchCodes: prevVisited,
+    completedChallenges: passport.completedChallenges ?? [],
+    homeBranch: passport.profile.homeBranch ?? null,
+  })
+  return BADGES.filter(b => !b.earned(ctxBefore) && b.earned(badgeCtx.value))
+})
 
 async function doCheckIn() {
   if (!selectedBranch.value || alreadyVisitedToday.value) return
@@ -524,19 +591,81 @@ onUnmounted(() => {
   color: var(--color-text-muted);
 }
 
-.not-here {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  margin-bottom: 20px;
+/* ── Branch picker ── */
+.branch-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
-.not-here-link {
-  color: var(--tpl-blue);
-  font-weight: 600;
-  text-decoration: none;
+.picker-search {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-family: var(--font-body);
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s;
 
-  &:hover {
-    text-decoration: underline;
+  &:focus {
+    border-color: var(--tpl-blue);
+  }
+}
+
+.picker-locate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--tpl-blue);
+  cursor: pointer;
+  padding: 2px 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.picker-locate-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.picker-list {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.picker-row {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid var(--color-border-soft);
+  background: var(--color-surface);
+  font-size: 0.9375rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:active {
+    background: var(--color-paper);
   }
 }
 
@@ -899,6 +1028,52 @@ onUnmounted(() => {
   color: var(--color-text-mid);
   background: var(--color-surface);
   cursor: pointer;
+}
+
+/* ── Badge earned rows ── */
+.badge-earned-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.badge-earned-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 25%, transparent);
+  border-radius: var(--radius);
+}
+
+.badge-earned-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--tpl-blue);
+}
+
+.badge-earned-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.badge-earned-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tpl-blue);
+}
+
+.badge-earned-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .signin-nudge {

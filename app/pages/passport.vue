@@ -244,6 +244,7 @@ onUnmounted(() => {
 
   &:last-child {
     border-right: none;
+    flex: 2;
   }
 
   &.active {

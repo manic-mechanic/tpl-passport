@@ -1,5 +1,5 @@
 <template>
-  <main class="page-content">
+  <main class="page-content" :class="{ 'has-browse-cta': activeTab === 'near-me' }">
 
     <!-- Sticky header + tabs -->
     <div class="sticky-top">
@@ -18,6 +18,8 @@
         :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'">Near Me</button>
       <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
         :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'">Day Trips</button>
+      <button class="tab-pill" :class="{ active: activeTab === 'events' }" role="tab"
+        :aria-selected="activeTab === 'events'" @click="activeTab = 'events'">What's On</button>
       <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
         :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'">Extra Credit</button>
       </nav>
@@ -109,8 +111,41 @@
 
     </section>
 
+    <!-- What's On -->
+    <section v-show="activeTab === 'events'" class="explore-section">
+      <div v-if="eventsLoading" class="geo-state">
+        <span class="geo-spinner" />
+        <span>Loading events…</span>
+      </div>
+      <p v-else-if="eventsError" class="geo-denied">Could not load events.</p>
+      <p v-else-if="sortedEvents.length === 0" class="geo-denied">No upcoming events in the next 7 days.</p>
+      <div v-else class="events-list">
+        <div
+          v-for="event in sortedEvents"
+          :key="event.id"
+          class="event-row"
+          :class="{ 'event-row-clickable': event.branch }"
+          :role="event.branch ? 'button' : undefined"
+          :tabindex="event.branch ? 0 : undefined"
+          @click="event.branch && openBranchSheet(event.branch)"
+          @keydown.enter="event.branch && openBranchSheet(event.branch)"
+        >
+          <div class="event-date">
+            <span class="event-month">{{ formatEventDateParts(event.date).month }}</span>
+            <span class="event-day">{{ formatEventDateParts(event.date).day }}</span>
+            <span class="event-weekday">{{ formatEventDateParts(event.date).weekday }}</span>
+          </div>
+          <div class="event-info">
+            <p class="event-title">{{ event.title }}</p>
+            <p class="event-meta">{{ [event.locationName, formatEventTime(event.time), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}</p>
+          </div>
+          <IconChevron v-if="event.branch" class="event-chevron" />
+        </div>
+      </div>
+    </section>
+
     <!-- Browse All CTA -->
-    <div class="browse-cta">
+    <div v-if="activeTab === 'near-me'" class="browse-cta">
       <NuxtLink to="/branches" class="browse-btn">Browse all Branches</NuxtLink>
     </div>
 
@@ -137,7 +172,12 @@ const passport = usePassportStore()
 
 // ── Tab state ────────────────────────────────────────────────────────
 const route = useRoute()
-const activeTab = ref(route.query.tab === 'routes' ? 'routes' : 'near-me')
+const activeTab = ref(
+  route.query.tab === 'routes' ? 'routes'
+    : route.query.tab === 'events' ? 'events'
+      : route.query.tab === 'working-toward' ? 'working-toward'
+        : 'near-me'
+)
 const activeMode = ref('walk')    // 'walk' | 'bike' | 'transit' | 'drive'
 
 watch(activeMode, (mode) => {
@@ -206,6 +246,76 @@ const nearMeBranches = computed(() => {
   return [nearest, ...unvisited].map(item => ({ ...item, distanceLabel: formatDist(item.km) }))
 })
 
+// ── Events (What's On) ───────────────────────────────────────────────
+const branchByShortName = new Map(
+  physicalBranches.map(b => [b.BranchName.replace(/ Branch$/i, '').toLowerCase(), b])
+)
+
+function formatAudiences(raw) {
+  if (!raw) return ''
+  const groups = raw.split(',').map(g => g.trim())
+  const ADULT = new Set(['Adults (18+)', 'Older Adults', 'Younger Adults (18-24)'])
+  const KID = new Set(['Teens (13-17)', 'School Age Children (6-12)', 'Preschool Children (0-5)'])
+  const MAP = {
+    'Adults (18+)': 'Adults', 'Older Adults': 'Seniors', 'Younger Adults (18-24)': 'Ages 18–24',
+    'Teens (13-17)': 'Teens', 'School Age Children (6-12)': 'Kids 6–12', 'Preschool Children (0-5)': 'Ages 0–5',
+  }
+  const adults = groups.filter(g => ADULT.has(g))
+  const kids = groups.filter(g => KID.has(g))
+  if (adults.length >= 1 && kids.length >= 1) return 'All ages'
+  if (adults.length >= 2) return 'Adults'
+  if (kids.length >= 2) return 'Kids'
+  return groups.map(g => MAP[g] ?? g).join(', ')
+}
+
+function formatEventTime(s) {
+  if (!s) return ''
+  const tIdx = s.indexOf('T')
+  const timePart = tIdx !== -1 ? s.slice(tIdx + 1) : s
+  const [h, m] = timePart.split(':').map(Number)
+  if (isNaN(h) || isNaN(m)) return ''
+  const suffix = h >= 12 ? 'pm' : 'am'
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${h12}:${String(m).padStart(2, '0')}${suffix}`
+}
+
+function formatEventDateParts(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return {
+    day: d.getDate(),
+    month: d.toLocaleDateString('en-CA', { month: 'short' }).toUpperCase(),
+    weekday: d.toLocaleDateString('en-CA', { weekday: 'short' }),
+  }
+}
+
+const { data: eventsData, pending: eventsLoading, error: eventsError } = useFetch('/api/all-events', {
+  default: () => [],
+  transform: records => (Array.isArray(records) ? records : []).map(raw => {
+    const locationName = raw.LocationName ?? raw.Location ?? ''
+    return {
+      id: raw._id,
+      title: raw.EventName ?? raw['Event Name'] ?? raw.Title ?? 'Event',
+      date: raw.StartDateLocal,
+      time: raw.StartTime ?? '',
+      audiences: raw.Audiences ?? raw.AgeGroup ?? raw['Age Group'] ?? '',
+      locationName,
+      branch: branchByShortName.get(locationName.toLowerCase()) ?? null,
+    }
+  }),
+})
+
+const sortedEvents = computed(() => {
+  const evs = eventsData.value ?? []
+  if (!userLat.value || !userLng.value) return evs
+  return [...evs].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1
+    const aDist = a.branch ? haversineKm(userLat.value, userLng.value, a.branch.Lat, a.branch.Long) : 999
+    const bDist = b.branch ? haversineKm(userLat.value, userLng.value, b.branch.Lat, b.branch.Long) : 999
+    if (Math.abs(aDist - bDist) > 2) return aDist - bDist
+    return (a.time ?? '') < (b.time ?? '') ? -1 : 1
+  })
+})
+
 // ── Badge Suggestions ─────────────────────────────────────────────────
 const badgeCtx = useBadgeCtx()
 
@@ -244,8 +354,12 @@ function openBranchSheet(branch) {
 </script>
 
 <style scoped>
-/* Extra bottom padding so fixed browse button doesn't overlap content */
 .page-content {
+  padding-bottom: var(--nav-height);
+}
+
+/* Extra bottom padding only when browse button is visible (Near Me tab) */
+.page-content.has-browse-cta {
   padding-bottom: calc(var(--nav-height) + 72px);
 }
 
@@ -723,5 +837,106 @@ function openBranchSheet(branch) {
   color: var(--color-text-muted);
   padding: 24px 0;
   text-align: center;
+}
+
+/* ── What's On ───────────────────────────────────────────────────── */
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+}
+
+.event-row-clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    background: var(--color-paper);
+  }
+}
+
+.event-date {
+  flex-shrink: 0;
+  width: 46px;
+  background: color-mix(in srgb, var(--tpl-blue) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 25%, transparent);
+  border-radius: var(--radius-sm, 6px);
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.event-month {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--tpl-blue);
+  text-transform: uppercase;
+}
+
+.event-day {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--tpl-navy);
+}
+
+:global([data-theme="dark"]) .event-day {
+  color: var(--color-brand-text);
+}
+
+.event-weekday {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.event-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.event-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.event-meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-chevron {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-muted);
+  flex-shrink: 0;
 }
 </style>
