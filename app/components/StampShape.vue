@@ -3,7 +3,7 @@
   <!-- Width/height/border-radius all set inline via stampStyles.                    -->
   <!-- CSS var --stamp-rotate lets parents override the press animation correctly.   -->
   <div class="stamp-shape" :style="shapeStyle">
-    <div class="stamp-ring" :style="{ borderRadius: shape.borderRadius }" />
+    <div class="stamp-ring" :style="{ borderRadius: dims.ringBr }" />
     <slot>
       <span class="stamp-code" :style="{ fontFamily: font, fontSize: codeFontSize, opacity: inkOpacity }">
         {{ branchCode }}
@@ -27,19 +27,34 @@ const font       = computed(() => getStampFont(props.branchCode))
 const rotation   = computed(() => getStampRotation(props.branchCode))
 const inkOpacity = computed(() => getStampOpacity(props.branchCode))
 
-// Font size scales with the smaller dimension — keeps text filling the stamp at any size
-const codeFontSize = computed(() => {
-  if (props.size) return `${Math.round(props.size * 0.30)}px`
-  const minDim = Math.min(parseInt(shape.value.width), parseInt(shape.value.height))
-  return `${Math.round(minDim * 0.30)}px`
+// Proportional scaling — same logic as RN StampShape.
+// size prop scales relative to the larger dimension, preserving aspect ratio.
+const dims = computed(() => {
+  const shapeW = parseInt(shape.value.width)
+  const shapeH = parseInt(shape.value.height)
+  const scale = props.size != null ? props.size / Math.max(shapeW, shapeH) : 1
+  const w = Math.round(shapeW * scale)
+  const h = Math.round(shapeH * scale)
+  const isPercent = shape.value.borderRadius.includes('%')
+  // Keep % as-is (CSS resolves to correct ellipse); scale px values
+  const borderRadius = isPercent
+    ? shape.value.borderRadius
+    : `${Math.min(Math.round(parseInt(shape.value.borderRadius) * scale), Math.min(w, h) / 2)}px`
+  // Ring border-radius tracks outer minus 6px inset
+  const outerBrPx = isPercent ? Math.min(w, h) / 2 : Math.round(parseInt(shape.value.borderRadius) * scale)
+  const ringBr = `${Math.max(0, Math.min(outerBrPx, Math.min(w, h) / 2) - 6)}px`
+  return { w, h, borderRadius, ringBr }
 })
+
+const codeFontSize = computed(() => `${Math.round(Math.min(dims.value.w, dims.value.h) * 0.30)}px`)
 
 const shapeStyle = computed(() => {
   const { color, bg, border } = getStampColor(props.wardNo)
+  const { w, h, borderRadius } = dims.value
   return {
-    borderRadius: shape.value.borderRadius,
-    width:  props.size ? `${props.size}px` : shape.value.width,
-    height: props.size ? `${props.size}px` : shape.value.height,
+    borderRadius,
+    width:  `${w}px`,
+    height: `${h}px`,
     color,
     background: bg,
     borderColor: border,
