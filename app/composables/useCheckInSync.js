@@ -2,7 +2,7 @@
 // All requests use credentials: 'include' so the session cookie is sent.
 // Errors are swallowed — sync is best-effort and must never block local writes.
 
-const BASE = 'https://auth.librarypassport.ca'
+import { AUTH_BASE as BASE } from '~/lib/config'
 
 function fromServer(record) {
   return {

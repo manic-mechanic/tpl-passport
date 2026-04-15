@@ -129,6 +129,8 @@ import { usePassportStore } from '~/stores/passport'
 import { getPhotoUrl, savePhoto } from '~/composables/usePhotoStore'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { compassPoints } from '~/composables/useBadges'
+import { AUTH_BASE } from '~/lib/config'
+import { formatAudiences, formatEventTime } from '~/composables/useEvents'
 import IconParking from './icons/IconParking.vue'
 import IconTelephone from './icons/IconTelephone.vue'
 import IconMapPin from './icons/IconMapPin.vue'
@@ -200,25 +202,6 @@ const { data: rawEvents, pending: eventsPending } = useFetch('/api/branch-events
   transform: data => Array.isArray(data) ? data : [],
 })
 
-const AUDIENCE_MAP = {
-  'Adults (18+)': 'Adults', 'Older Adults': 'Seniors',
-  'Younger Adults (18-24)': 'Ages 18–24', 'Teens (13-17)': 'Teens',
-  'School Age Children (6-12)': 'Kids 6–12', 'Preschool Children (0-5)': 'Ages 0–5',
-}
-const ADULT_GROUPS = new Set(['Adults (18+)', 'Older Adults', 'Younger Adults (18-24)'])
-const KID_GROUPS = new Set(['Teens (13-17)', 'School Age Children (6-12)', 'Preschool Children (0-5)'])
-
-function formatAudiences(raw) {
-  if (!raw) return ''
-  const groups = raw.split(',').map(a => a.trim())
-  const adults = groups.filter(g => ADULT_GROUPS.has(g))
-  const kids = groups.filter(g => KID_GROUPS.has(g))
-  if (adults.length >= 1 && kids.length >= 1) return 'All ages'
-  if (adults.length >= 2) return 'Adults'
-  if (kids.length >= 2) return 'Kids'
-  return groups.map(g => AUDIENCE_MAP[g] ?? g).join(', ')
-}
-
 const events = computed(() =>
   (rawEvents.value ?? []).map(e => ({
     title: e.Title || '(Unnamed event)',
@@ -228,16 +211,6 @@ const events = computed(() =>
   }))
 )
 
-function formatEventTime(isoDatetime) {
-  if (!isoDatetime) return ''
-  const tIdx = isoDatetime.indexOf('T')
-  if (tIdx === -1) return ''
-  const [h, m] = isoDatetime.slice(tIdx + 1).split(':').map(Number)
-  if (isNaN(h) || isNaN(m)) return ''
-  const suffix = h >= 12 ? 'pm' : 'am'
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-  return `${h12}:${String(m).padStart(2, '0')}${suffix}`
-}
 function formatEventMonth(date) {
   return new Date(date + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short' }).toUpperCase()
 }
@@ -287,7 +260,6 @@ function saveNote(timestamp) {
 }
 
 // Photo adding on existing visits
-const AUTH_BASE = 'https://auth.librarypassport.ca'
 
 function compressPhoto(file, maxWidth = 1200, quality = 0.82) {
   return new Promise((resolve) => {

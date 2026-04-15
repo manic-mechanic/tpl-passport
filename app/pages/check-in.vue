@@ -190,8 +190,7 @@ import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { BADGES, buildBadgeCtx, useBadgeCtx } from '~/composables/useBadges'
 import { savePhoto } from '~/composables/usePhotoStore'
-
-const AUTH_BASE = 'https://auth.librarypassport.ca'
+import { AUTH_BASE } from '~/lib/config'
 
 async function uploadPhoto(timestamp, blob) {
   try {

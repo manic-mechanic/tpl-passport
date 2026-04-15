@@ -163,6 +163,7 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, haversineKm, formatDist, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
 import { BADGES, useBadgeCtx, badgeBg } from '~/composables/useBadges'
+import { formatAudiences, formatEventTime } from '~/composables/useEvents'
 import IconSearch from '~/components/icons/IconSearch.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -250,34 +251,6 @@ const nearMeBranches = computed(() => {
 const branchByShortName = new Map(
   physicalBranches.map(b => [b.BranchName.replace(/ Branch$/i, '').toLowerCase(), b])
 )
-
-function formatAudiences(raw) {
-  if (!raw) return ''
-  const groups = raw.split(',').map(g => g.trim())
-  const ADULT = new Set(['Adults (18+)', 'Older Adults', 'Younger Adults (18-24)'])
-  const KID = new Set(['Teens (13-17)', 'School Age Children (6-12)', 'Preschool Children (0-5)'])
-  const MAP = {
-    'Adults (18+)': 'Adults', 'Older Adults': 'Seniors', 'Younger Adults (18-24)': 'Ages 18–24',
-    'Teens (13-17)': 'Teens', 'School Age Children (6-12)': 'Kids 6–12', 'Preschool Children (0-5)': 'Ages 0–5',
-  }
-  const adults = groups.filter(g => ADULT.has(g))
-  const kids = groups.filter(g => KID.has(g))
-  if (adults.length >= 1 && kids.length >= 1) return 'All ages'
-  if (adults.length >= 2) return 'Adults'
-  if (kids.length >= 2) return 'Kids'
-  return groups.map(g => MAP[g] ?? g).join(', ')
-}
-
-function formatEventTime(s) {
-  if (!s) return ''
-  const tIdx = s.indexOf('T')
-  const timePart = tIdx !== -1 ? s.slice(tIdx + 1) : s
-  const [h, m] = timePart.split(':').map(Number)
-  if (isNaN(h) || isNaN(m)) return ''
-  const suffix = h >= 12 ? 'pm' : 'am'
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-  return `${h12}:${String(m).padStart(2, '0')}${suffix}`
-}
 
 function formatEventDateParts(dateStr) {
   const d = new Date(dateStr + 'T00:00:00')

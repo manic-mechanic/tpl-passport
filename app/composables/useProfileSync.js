@@ -1,7 +1,7 @@
 // Read/write profile data (name, homeBranch) via the shared auth server.
 // user_profile table is the source of truth — do not use authClient.updateUser() for these fields.
 
-const BASE = 'https://auth.librarypassport.ca'
+import { AUTH_BASE as BASE } from '~/lib/config'
 
 export async function fetchProfile() {
   try {
