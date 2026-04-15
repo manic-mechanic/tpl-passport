@@ -1,17 +1,19 @@
 <template>
   <main class="page-content">
 
-    <header class="page-header">
-      <h1>Check In</h1>
-      <p class="sub">
-        <template v-if="scanned">Scanned — <strong>{{ selectedBranch?.BranchName }}</strong></template>
-        <template v-else-if="prefilled">Scanning at <strong>{{ selectedBranch?.BranchName }}</strong></template>
-        <template v-else-if="detecting">Detecting your location…</template>
-        <template v-else-if="autoDetected && selectedBranch">Nearest branch — <strong>{{ selectedBranch.BranchName
-            }}</strong></template>
-        <template v-else>Select the branch you're visiting</template>
-      </p>
-    </header>
+    <div class="sticky-top">
+      <header class="page-header">
+        <h1>Check In</h1>
+        <p class="sub">
+          <template v-if="scanned">Scanned — <strong>{{ selectedBranch?.BranchName }}</strong></template>
+          <template v-else-if="prefilled">Scanning at <strong>{{ selectedBranch?.BranchName }}</strong></template>
+          <template v-else-if="detecting">Detecting your location…</template>
+          <template v-else-if="autoDetected && selectedBranch">Nearest branch — <strong>{{ selectedBranch.BranchName
+              }}</strong></template>
+          <template v-else>Select the branch you're visiting</template>
+        </p>
+      </header>
+    </div>
 
     <!-- QR scan button — gated behind FEATURES.qrCheckIn (awaiting QR deployment at branches) -->
     <div v-if="FEATURES.qrCheckIn && !prefilled && !scanned && !selectedBranch" class="qr-primary-area">
@@ -472,21 +474,30 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.sticky-top {
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 10;
+  margin: 0 -18px;
+  background: var(--tpl-navy);
+}
+
 .page-header {
-  padding: 20px 0 24px;
+  padding: 14px 18px 16px;
 
   & h1 {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
+    color: rgba(255, 255, 255, 0.92);
   }
 }
 
 .sub {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.55);
   line-height: 1.5;
 
   & strong {
-    color: var(--color-text-mid);
+    color: rgba(255, 255, 255, 0.8);
     font-weight: 600;
   }
 }

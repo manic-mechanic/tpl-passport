@@ -6,7 +6,6 @@
       <header class="page-header">
         <div>
           <h1>Explore</h1>
-          <p class="sub">Plan your next visit</p>
         </div>
         <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
           <IconSearch />

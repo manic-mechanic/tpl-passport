@@ -4,7 +4,6 @@
       <header class="page-header" ref="pageHeaderRef">
         <div>
           <h1>My Passport</h1>
-          <p class="sub">{{ passport.visitCount }} of {{ physicalBranches.length }} stamps collected</p>
         </div>
         <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
       </header>

@@ -1,5 +1,4 @@
 <script setup>
-import IconSettingsGear from '~/components/icons/IconSettingsGear.vue'
 import { authClient } from '~/lib/auth-client'
 import { usePassportStore } from '~/stores/passport'
 
@@ -30,9 +29,6 @@ function dismissBanner() {
     <div class="home-top-bar">
       <img src="/tpl-meta-card.png" class="top-bar-seal" alt="" aria-hidden="true" />
       <p class="top-bar-wordmark">passport<span>:</span></p>
-      <NuxtLink to="/settings" class="top-bar-settings" aria-label="Settings">
-        <IconSettingsGear />
-      </NuxtLink>
     </div>
 
     <div v-if="showBanner" class="signin-banner">
@@ -94,17 +90,6 @@ main {
   color: rgba(255, 255, 255, 0.55);
 }
 
-.top-bar-settings {
-  display: flex;
-  align-items: center;
-  color: rgba(255, 255, 255, 0.7);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.top-bar-settings svg {
-  width: 22px;
-  height: 22px;
-}
 
 .signin-banner {
   display: flex;

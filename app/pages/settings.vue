@@ -1,10 +1,7 @@
 <template>
   <main class="page-content">
     <header class="page-header">
-      <div class="brand">
-        <img src="/tpl-meta.png" class="tpl-logo" alt="Toronto Public Library" />
-        <span class="brand-title">passport<span class="brand-colon">:</span></span>
-      </div>
+      <h1>Settings</h1>
     </header>
     <div class="header-gap" />
 
@@ -355,29 +352,14 @@ function setDemo(mode) {
   height: 20px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tpl-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  opacity: 0.85;
-}
-
-.brand-title {
+.page-header h1 {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
   letter-spacing: -0.02em;
   font-optical-sizing: auto;
 }
-
-.brand-colon { color: rgba(255, 255, 255, 0.55); }
 
 .settings-group {
   margin-bottom: 24px;
