@@ -23,7 +23,7 @@ export async function pushProfile({ name, homeBranch }) {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, homeBranch: homeBranch ?? null }),
+      body: JSON.stringify({ name, ...(homeBranch != null ? { homeBranch } : {}) }),
     })
   } catch { /* best-effort */ }
 }
