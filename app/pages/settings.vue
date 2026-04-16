@@ -181,6 +181,7 @@
 </template>
 
 <script setup>
+import * as Sentry from '@sentry/nuxt'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
@@ -212,6 +213,7 @@ async function saveProfile() {
     passport.profile.name = profileName.value
     passport.profile.homeBranch = profileHomeBranch.value
     await pushProfile({ name: profileName.value, homeBranch: profileHomeBranch.value || null })
+    $posthog?.capture('profile_updated')
   } finally {
     profileSaving.value = false
   }
@@ -220,6 +222,8 @@ async function saveProfile() {
 async function signOut() {
   await authClient.signOut()
   $posthog?.capture('signed_out')
+  $posthog?.reset()
+  Sentry.setUser(null)
   session.value = null
 }
 
@@ -254,6 +258,7 @@ async function submitChangeEmail() {
     } else {
       showChangeEmail.value = false
       newEmail.value = ''
+      $posthog?.capture('email_changed')
     }
   } finally {
     emailSaving.value = false
@@ -312,6 +317,7 @@ async function submitChangePassword() {
             ? 'Current password is incorrect.'
             : (error.message ?? 'Something went wrong.')
     } else {
+      $posthog?.capture('password_changed')
       showChangePassword.value = false
       currentPassword.value = ''
       newPassword.value = ''

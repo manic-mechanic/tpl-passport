@@ -58,7 +58,6 @@ export default defineNuxtConfig({
       bypassGeofence: false,
       posthogKey: '',
       posthogHost: 'https://us.i.posthog.com',
-      sentryDsn: '',
     }
   },
 

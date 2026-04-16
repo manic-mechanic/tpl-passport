@@ -53,6 +53,7 @@
 </template>
 
 <script setup>
+import * as Sentry from '@sentry/nuxt'
 import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { authClient } from '~/lib/auth-client'
 import { usePassportStore } from '~/stores/passport'
@@ -102,9 +103,10 @@ async function submitEmail() {
       })
       if (err) { error.value = err.message; return }
       await syncAfterSignIn(data?.user?.name)
+      Sentry.setUser({ id: data.user.id })
       $posthog?.capture('sign_in_completed', { method: 'email' })
     } else {
-      const { error: err } = await authClient.signUp.email({
+      const { data: signUpData, error: err } = await authClient.signUp.email({
         name: name.value,
         email: email.value,
         password: password.value,
@@ -113,6 +115,7 @@ async function submitEmail() {
       if (err) { error.value = err.message; return }
       if (!passport.profile.name && name.value) passport.profile.name = name.value
       await pushProfile({ name: name.value, homeBranch: null })
+      Sentry.setUser({ id: signUpData.user.id })
       $posthog?.capture('sign_up_completed', { method: 'email', name_set: !!name.value })
     }
     navigateTo('/')
@@ -125,6 +128,7 @@ async function signInWithGoogle() {
   error.value = ''
   googleLoading.value = true
   $posthog?.capture('google_signin_attempted')
+  sessionStorage.setItem('google_signin_pending', Date.now().toString())
   try {
     await authClient.signIn.social({ provider: 'google', callbackURL: window.location.origin + '/' })
   } catch (e) {

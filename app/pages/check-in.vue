@@ -150,7 +150,7 @@
 
       <div v-if="showSignInNudge" class="signin-nudge">
         <p class="signin-nudge__text">Save your progress — access your passport on any device</p>
-        <NuxtLink to="/login" class="signin-nudge__link" @click="successSheetOpen = false">Sign in →</NuxtLink>
+        <NuxtLink to="/login" class="signin-nudge__link" @click="successSheetOpen = false; $posthog?.capture('signin_nudge_tapped')">Sign in →</NuxtLink>
       </div>
 
       <div v-if="nearbySuccessBranches.length" class="success-nearby">
@@ -314,6 +314,7 @@ async function onSuccessPhotoCapture(event) {
     savePhoto(ts, blob)
     passport.markCheckInHasPhoto(ts)
     if (isSignedIn.value) uploadPhoto(ts, blob)
+    $posthog?.capture('photo_taken', { branch_code: result.value.branchCode })
   }
 }
 

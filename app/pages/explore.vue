@@ -181,6 +181,10 @@ const activeTab = ref(
 )
 const activeMode = ref('walk')    // 'walk' | 'bike' | 'transit' | 'drive'
 
+watch(activeTab, (tab) => {
+  $posthog?.capture('explore_tab_changed', { tab })
+})
+
 watch(activeMode, (mode) => {
   $posthog?.capture('transport_mode_changed', { mode })
 })

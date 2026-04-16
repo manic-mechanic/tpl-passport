@@ -22,6 +22,7 @@
 </template>
 
 <script setup>
+import * as Sentry from '@sentry/nuxt'
 import { usePassportStore } from '~/stores/passport'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 import { authClient } from '~/lib/auth-client'
@@ -82,6 +83,14 @@ onMounted(async () => {
   // Covers: returning signed-in users, Google OAuth redirects (full page reload).
   const { data } = await authClient.getSession()
   isSignedIn.value = !!data
+  const googlePendingTs = sessionStorage.getItem('google_signin_pending')
+  if (data && googlePendingTs && (Date.now() - parseInt(googlePendingTs)) < 5 * 60 * 1000) {
+    Sentry.setUser({ id: data.user.id })
+    $posthog?.capture('sign_in_completed', { method: 'google' })
+  } else if (data) {
+    Sentry.setUser({ id: data.user.id })
+  }
+  if (googlePendingTs) sessionStorage.removeItem('google_signin_pending')
   if (data) {
     // user_profile is the source of truth for name + homeBranch.
     const serverProfile = await fetchProfile()
