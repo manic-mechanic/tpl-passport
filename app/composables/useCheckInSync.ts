@@ -4,8 +4,9 @@
 
 import { AUTH_BASE as BASE } from '~/lib/config'
 import { reportError } from '~/lib/reportError'
+import type { PassportCheckIn, ServerCheckInPayload, ServerCheckInRecord } from '~/types/passport'
 
-function fromServer(record) {
+function fromServer(record: ServerCheckInRecord): PassportCheckIn {
   return {
     branchCode: record.branch_code,
     timestamp: record.timestamp,
@@ -14,7 +15,7 @@ function fromServer(record) {
   }
 }
 
-function toServer(checkIn) {
+function toServer(checkIn: PassportCheckIn): ServerCheckInPayload {
   return {
     branchCode: checkIn.branchCode,
     timestamp: checkIn.timestamp,
@@ -23,7 +24,7 @@ function toServer(checkIn) {
   }
 }
 
-export async function fetchCheckIns() {
+export async function fetchCheckIns(): Promise<PassportCheckIn[]> {
   try {
     const res = await fetch(`${BASE}/api/checkins`, { credentials: 'include' })
     if (!res.ok) {
@@ -35,7 +36,8 @@ export async function fetchCheckIns() {
       })
       return []
     }
-    return (await res.json()).map(fromServer)
+    const data = await res.json() as ServerCheckInRecord[]
+    return data.map(fromServer)
   } catch (error) {
     reportError(error, {
       area: 'sync',
@@ -46,7 +48,7 @@ export async function fetchCheckIns() {
   }
 }
 
-export async function pushCheckIn(checkIn) {
+export async function pushCheckIn(checkIn: PassportCheckIn): Promise<void> {
   try {
     const res = await fetch(`${BASE}/api/checkins`, {
       method: 'POST',
@@ -75,7 +77,7 @@ export async function pushCheckIn(checkIn) {
   }
 }
 
-export async function patchCheckInPhoto(timestamp, photoUri) {
+export async function patchCheckInPhoto(timestamp: string, photoUri: string): Promise<void> {
   try {
     const res = await fetch(`${BASE}/api/checkins/${encodeURIComponent(timestamp)}`, {
       method: 'PATCH',

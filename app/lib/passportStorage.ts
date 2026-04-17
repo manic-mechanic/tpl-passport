@@ -1,13 +1,14 @@
 import { reportError } from '~/lib/reportError'
+import type { PassportPersistedState } from '~/types/passport'
 
 const STORAGE_KEY = 'tpl-passport'
 const STORAGE_VERSION = 2
 
-function isObject(value) {
+function isObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
 
-function normalizePayload(payload) {
+function normalizePayload(payload: unknown): PassportPersistedState | null {
   if (!isObject(payload)) return null
   return {
     anonymousId: typeof payload.anonymousId === 'string' ? payload.anonymousId : undefined,
@@ -17,7 +18,7 @@ function normalizePayload(payload) {
   }
 }
 
-function migratePayload(parsed) {
+function migratePayload(parsed: unknown): { version: number; payload: PassportPersistedState | null } | null {
   // Legacy format (v1): raw state object with no envelope.
   if (isObject(parsed) && !Object.prototype.hasOwnProperty.call(parsed, 'version')) {
     return { version: 1, payload: normalizePayload(parsed) }
@@ -46,7 +47,7 @@ function hasStorage() {
   return typeof localStorage !== 'undefined'
 }
 
-export function loadPassportState() {
+export function loadPassportState(): Partial<PassportPersistedState> {
   if (!hasStorage()) return {}
 
   const raw = localStorage.getItem(STORAGE_KEY)
@@ -72,7 +73,7 @@ export function loadPassportState() {
   }
 }
 
-export function savePassportState(state) {
+export function savePassportState(state: unknown) {
   if (!hasStorage()) return
 
   const payload = normalizePayload(state)

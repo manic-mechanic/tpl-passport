@@ -3,8 +3,14 @@
 
 import { AUTH_BASE as BASE } from '~/lib/config'
 import { reportError } from '~/lib/reportError'
+import type { SyncedProfile } from '~/types/passport'
 
-export async function fetchProfile() {
+interface ServerProfileRecord {
+  name?: string | null
+  home_branch?: string | null
+}
+
+export async function fetchProfile(): Promise<SyncedProfile | null> {
   try {
     const res = await fetch(`${BASE}/api/profile`, { credentials: 'include' })
     if (!res.ok) {
@@ -16,7 +22,7 @@ export async function fetchProfile() {
       })
       return null
     }
-    const data = await res.json()
+    const data = await res.json() as ServerProfileRecord
     return {
       name: data.name ?? '',
       homeBranch: data.home_branch ?? '',
@@ -31,7 +37,7 @@ export async function fetchProfile() {
   }
 }
 
-export async function pushProfile({ name, homeBranch }) {
+export async function pushProfile({ name, homeBranch }: { name: string; homeBranch: string | null }): Promise<void> {
   try {
     const res = await fetch(`${BASE}/api/profile`, {
       method: 'PUT',

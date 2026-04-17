@@ -1,6 +1,6 @@
 // Demo state helpers — loaded only in development builds.
 //
-// This file is code-split via the `import.meta.dev` guard in passport.js.
+// This file is code-split via the `import.meta.dev` guard in passport.ts.
 // Vite treats `import.meta.dev` as a compile-time constant and eliminates
 // the dynamic import branch in production builds — this file is never bundled
 // into the Vercel deployment.

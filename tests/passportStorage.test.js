@@ -6,7 +6,7 @@ const setItem = vi.fn((key, value) => { storage.set(key, value) })
 
 vi.stubGlobal('localStorage', { getItem, setItem })
 
-import { loadPassportState, savePassportState } from '../app/lib/passportStorage.js'
+import { loadPassportState, savePassportState } from '../app/lib/passportStorage'
 
 const STORAGE_KEY = 'tpl-passport'
 

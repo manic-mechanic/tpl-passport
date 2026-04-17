@@ -20,10 +20,10 @@ Lint:
 ## High-level architecture
 
 - This is a Nuxt 3 SPA (`ssr: false`) with a mobile-first UI and client-heavy behavior (`app/`).
-- Core user state lives in Pinia (`app/stores/passport.js`) and persists to `localStorage` (`tpl-passport` key). The app remains fully usable offline/local-first.
+- Core user state lives in Pinia (`app/stores/passport.ts`) and persists to `localStorage` (`tpl-passport` key). The app remains fully usable offline/local-first.
 - Cross-device sync is layered on top of local state:
   - Auth via Better Auth client (`app/lib/auth-client.ts`) against `https://auth.librarypassport.ca`.
-  - Check-ins/profile sync via best-effort fetch helpers (`app/composables/useCheckInSync.js`, `app/composables/useProfileSync.js`).
+  - Check-ins/profile sync via best-effort fetch helpers (`app/composables/useCheckInSync.ts`, `app/composables/useProfileSync.ts`).
   - On app mount (`app/app.vue`), session/profile/check-ins are reconciled; local-only check-ins are pushed up.
 - Server routes in this repo (`server/api/`) are primarily proxy/integration endpoints:
   - `all-events.get.js` and `branch-events.get.js` proxy Toronto CKAN event data and cache results.
