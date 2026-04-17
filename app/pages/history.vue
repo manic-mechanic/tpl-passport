@@ -57,6 +57,7 @@
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
+import { localDayKey } from '@tpl-passport/shared'
 import IconClock from '~/components/icons/IconClock.vue'
 
 const { $posthog } = useNuxtApp()
@@ -78,8 +79,8 @@ function isMemory(visit) {
 
 const grouped = computed(() => {
   const now = new Date()
-  const todayStr = now.toDateString()
-  const yesterdayStr = new Date(now - 86400000).toDateString()
+  const todayStr = localDayKey(now)
+  const yesterdayStr = localDayKey(new Date(now.getTime() - 86400000))
   const weekAgo = new Date(now - 7 * 86400000)
 
   const source = memoriesOnly.value ? passport.checkIns.filter(isMemory) : passport.checkIns
@@ -87,7 +88,7 @@ const grouped = computed(() => {
   const buckets = { 'Today': [], 'Yesterday': [], 'This week': [], 'Older': [] }
   for (const visit of source) {
     const d = new Date(visit.timestamp)
-    const ds = d.toDateString()
+    const ds = localDayKey(d)
     if (ds === todayStr) buckets['Today'].push(visit)
     else if (ds === yesterdayStr) buckets['Yesterday'].push(visit)
     else if (d > weekAgo) buckets['This week'].push(visit)
@@ -112,7 +113,7 @@ onUnmounted(() => {
 
 function formatTime(iso) {
   const d = new Date(iso)
-  if (d.toDateString() === new Date().toDateString())
+  if (localDayKey(d) === localDayKey(new Date()))
     return d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })
   return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
 }

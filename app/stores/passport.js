@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
 import { pushCheckIn, patchCheckInPhoto } from '~/composables/useCheckInSync'
 import { loadPassportState, savePassportState } from '~/lib/passportStorage'
+import { localDayKey } from '@tpl-passport/shared'
 
 export const usePassportStore = defineStore('passport', () => {
   // --- State (hydrated from localStorage on first load) ---
@@ -42,10 +43,11 @@ export const usePassportStore = defineStore('passport', () => {
   const hasVisited = (branchCode) => visitedBranchCodes.value.has(branchCode)
 
   const hasVisitedToday = (branchCode) => {
-    const today = new Date().toLocaleDateString('en-CA')
+    const today = localDayKey(new Date())
+    if (!today) return false
     return checkIns.value.some(
       c => c.branchCode === branchCode &&
-           new Date(c.timestamp).toLocaleDateString('en-CA') === today
+           localDayKey(c.timestamp) === today
     )
   }
 
