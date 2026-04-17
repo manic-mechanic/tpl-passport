@@ -43,6 +43,7 @@ Lint:
 - Use shared local-day utilities (`localDayKey` / `isSameLocalDay` from `@tpl-passport/shared`) for day-based logic instead of ad-hoc locale string comparisons.
 - Check-ins are one-per-branch-per-day (local day, `en-CA` date formatting) in `passport.checkIn`.
 - Sync helpers are intentionally non-blocking/best-effort and should not prevent local writes.
+- Check-in reconciliation should use `reconcileCheckIns` (`app/lib/checkInSyncMerge.ts`) so both app-load and post-login sync paths stay consistent.
 - Use `app/lib/config.ts` (`AUTH_BASE` / `getAuthBase()`) as the single source for auth service base URL; avoid hardcoded endpoint strings.
 - `user_profile` is source of truth for `name` and `homeBranch`; use `useProfileSync` endpoints rather than auth user profile mutation.
 - Feature rollout uses code-level flags in `app/composables/useFeatureFlags.js` (not env toggles) for unfinished features.

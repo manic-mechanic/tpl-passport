@@ -60,6 +60,7 @@ import { usePassportStore } from '~/stores/passport'
 import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
 import { reportError } from '~/lib/reportError'
+import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -83,10 +84,7 @@ async function syncAfterSignIn(userName) {
   }
   try {
     const serverCheckIns = await fetchCheckIns()
-    const serverTimestamps = new Set(serverCheckIns.map(c => c.timestamp))
-    const localOnly = passport.checkIns.filter(c => !serverTimestamps.has(c.timestamp))
-    const merged = [...serverCheckIns, ...localOnly]
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    const { merged, localOnly } = reconcileCheckIns(serverCheckIns, passport.checkIns)
     passport.setCheckIns(merged)
     for (const ci of localOnly) pushCheckIn(ci)
   } catch (error) {
