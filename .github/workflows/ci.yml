@@ -38,5 +38,26 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
+      - name: Start app for E2E
+        run: npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/nuxt-dev.log 2>&1 &
+
+      - name: Wait for app
+        run: |
+          for i in {1..300}; do
+            if curl -fsS http://127.0.0.1:4173 > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Nuxt dev server did not become ready in time."
+          cat /tmp/nuxt-dev.log
+          exit 1
+
       - name: E2E tests
+        env:
+          PLAYWRIGHT_SKIP_WEBSERVER: '1'
         run: npm run test:e2e
+
+      - name: Print Nuxt logs on E2E failure
+        if: failure()
+        run: cat /tmp/nuxt-dev.log
