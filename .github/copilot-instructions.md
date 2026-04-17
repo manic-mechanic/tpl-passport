@@ -10,10 +10,12 @@ Use npm scripts from `package.json`:
 - `npm run generate` — static generation.
 - `npm test` — run full Vitest suite once (`vitest run`).
 - `npm run test:watch` — watch mode tests.
+- `npm run test:e2e` — run Playwright UI regression tests.
 - `npm run lint` — run ESLint checks.
 - `npm run lint:fix` — auto-fix lint issues where possible.
 - Single test file: `npm test -- tests/passport.test.js`
 - Single test by name: `npm test -- -t "checkIn"`
+- Single Playwright file: `npm run test:e2e -- tests/e2e/signin-theme.spec.ts`
 
 ## High-level architecture
 

@@ -39,6 +39,7 @@ All branch data is static JSON from the [Toronto Open Data](https://open.toronto
 - `npm run dev` — start local development server
 - `npm test` — run tests once
 - `npm run test:watch` — run tests in watch mode
+- `npm run test:e2e` — run Playwright end-to-end regression tests
 - `npm run lint` — run ESLint checks
 - `npm run lint:fix` — auto-fix lint issues where possible
 - `npm run build` — build for production

@@ -19,6 +19,8 @@ logs
 .fleet
 .idea
 .playwright-mcp
+playwright-report
+test-results
 reference
 
 # LLM assistant config
