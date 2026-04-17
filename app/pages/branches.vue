@@ -1,6 +1,5 @@
 <template>
   <main class="page-content">
-
     <header class="page-header">
       <NuxtLink to="/explore" class="back-link">
         <IconBack />
@@ -19,12 +18,21 @@
       </div>
       <div class="pill-bar">
         <button class="sort-tab" :class="{ 'sort-tab-active': visitFilter === 'unvisited' }"
-          @click="visitFilter = visitFilter === 'unvisited' ? null : 'unvisited'">Unvisited</button>
+                @click="visitFilter = visitFilter === 'unvisited' ? null : 'unvisited'"
+        >
+          Unvisited
+        </button>
         <button class="sort-tab" :class="{ 'sort-tab-active': visitFilter === 'visited' }"
-          @click="visitFilter = visitFilter === 'visited' ? null : 'visited'">Visited</button>
+                @click="visitFilter = visitFilter === 'visited' ? null : 'visited'"
+        >
+          Visited
+        </button>
         <span class="pill-divider" />
         <button class="sort-tab" :class="{ 'sort-tab-active': byDistrict }"
-          @click="byDistrict = !byDistrict">District</button>
+                @click="byDistrict = !byDistrict"
+        >
+          District
+        </button>
       </div>
     </div>
 
@@ -43,7 +51,6 @@
         <BranchCard :branch="branch" as-button @select="openSheet" />
       </li>
     </ul>
-
   </main>
 
   <!-- Branch detail sheet -->

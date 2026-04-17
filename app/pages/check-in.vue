@@ -1,6 +1,5 @@
 <template>
   <main class="page-content">
-
     <div class="sticky-top">
       <header class="page-header">
         <h1>Check In</h1>
@@ -8,8 +7,10 @@
           <template v-if="scanned">Scanned — <strong>{{ selectedBranch?.BranchName }}</strong></template>
           <template v-else-if="prefilled">Scanning at <strong>{{ selectedBranch?.BranchName }}</strong></template>
           <template v-else-if="detecting">Detecting your location…</template>
-          <template v-else-if="autoDetected && selectedBranch">Nearest branch — <strong>{{ selectedBranch.BranchName
-              }}</strong></template>
+          <template v-else-if="autoDetected && selectedBranch">
+            Nearest branch — <strong>{{ selectedBranch.BranchName
+            }}</strong>
+          </template>
           <template v-else>Select the branch you're visiting</template>
         </p>
       </header>
@@ -25,7 +26,7 @@
     </div>
 
     <div v-if="selectedBranch && !showPicker" class="stamp-area">
-      <StampShape :branchCode="selectedBranch.BranchCode" :wardNo="selectedBranch.WardNo" :size="100" />
+      <StampShape :branch-code="selectedBranch.BranchCode" :ward-no="selectedBranch.WardNo" :size="100" />
       <p class="stamp-name">{{ selectedBranch.BranchName }}</p>
       <p class="stamp-region">{{ selectedBranch.District }}</p>
       <button v-if="scanned" class="change-branch-btn" @click="scanned = false; selectedCode = ''">
@@ -47,7 +48,7 @@
       />
       <button class="picker-locate-btn" @click="detectNearest">
         <svg class="picker-locate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
         </svg>
         Use my location
       </button>
@@ -57,7 +58,9 @@
           :key="b.BranchCode"
           class="picker-row"
           @click="selectedCode = b.BranchCode; pickerQuery = ''"
-        >{{ b.BranchName }}</button>
+        >
+          {{ b.BranchName }}
+        </button>
       </div>
     </div>
 
@@ -72,14 +75,16 @@
           Note <span class="optional">optional</span>
         </label>
         <textarea id="note-input" v-model="noteText" class="note-textarea"
-          placeholder="What did you do? What did you read?" rows="3" maxlength="500" />
+                  placeholder="What did you do? What did you read?" rows="3" maxlength="500"
+        />
         <p class="char-count">{{ noteText.length }} / 500</p>
       </div>
     </template>
 
     <div class="cta-area">
       <button v-if="selectedBranch && !showPicker" class="checkin-btn" :disabled="alreadyVisitedToday || isCheckingLocation"
-        @click="doCheckIn">
+              @click="doCheckIn"
+      >
         <span v-if="isCheckingLocation" class="btn-spinner" />
         {{ isCheckingLocation ? 'Checking location…' : 'Check in' }}
       </button>
@@ -105,7 +110,6 @@
         </p> -->
       <!-- END STASHED: QR dev tip -->
     </div>
-
   </main>
 
   <!-- ── Check-in success sheet ───── -->
@@ -113,7 +117,7 @@
     <div v-if="result">
       <div class="success-hero">
         <div class="success-stamp-wrap">
-          <StampShape :branchCode="result.branchCode" :wardNo="result.wardNo" :size="110" />
+          <StampShape :branch-code="result.branchCode" :ward-no="result.wardNo" :size="110" />
           <div class="success-check-badge">
             <IconSuccessCheck />
           </div>
@@ -139,7 +143,7 @@
       <div v-if="newBadges.length" class="badge-earned-list">
         <div v-for="badge in newBadges" :key="badge.id" class="badge-earned-row">
           <svg class="badge-earned-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 9h12l-2-6H8L6 9z"/><circle cx="12" cy="15" r="5"/>
+            <path d="M6 9h12l-2-6H8L6 9z" /><circle cx="12" cy="15" r="5" />
           </svg>
           <div class="badge-earned-info">
             <span class="badge-earned-label">Badge earned!</span>
@@ -155,7 +159,7 @@
 
       <div v-if="nearbySuccessBranches.length" class="success-nearby">
         <p class="success-nearby-heading">Also nearby</p>
-        <NearbyBranchList :branches="nearbySuccessBranches" :showDistrict="true" />
+        <NearbyBranchList :branches="nearbySuccessBranches" :show-district="true" />
       </div>
     </div>
   </BaseSheet>
@@ -177,7 +181,7 @@
 
       <p class="scanner-hint">Point at a branch QR code</p>
 
-      <button class="scanner-close" @click="closeScanner" aria-label="Close scanner">
+      <button class="scanner-close" aria-label="Close scanner" @click="closeScanner">
         <IconClose />
       </button>
     </div>

@@ -27,20 +27,23 @@ const contextualTab = computed(() => {
 <template>
   <nav class="bottom-nav">
     <NuxtLink to="/" class="nav-item" active-class="nav-item-active"
-      :class="{ 'nav-item-active': contextualTab === '/' }" exact>
+              :class="{ 'nav-item-active': contextualTab === '/' }" exact
+    >
       <IconNavHome class="nav-icon" />
       <span class="nav-label">Home</span>
     </NuxtLink>
 
     <NuxtLink to="/explore" class="nav-item" active-class="nav-item-active"
-      :class="{ 'nav-item-active': contextualTab === '/explore' }">
+              :class="{ 'nav-item-active': contextualTab === '/explore' }"
+    >
       <IconNavExplore class="nav-icon" />
       <span class="nav-label">Explore</span>
     </NuxtLink>
 
     <!-- Primary action — check-in (center) -->
     <NuxtLink to="/check-in" class="nav-item nav-item-checkin" active-class="nav-item-active"
-      :class="{ 'nav-item-active': contextualTab === '/check-in' }">
+              :class="{ 'nav-item-active': contextualTab === '/check-in' }"
+    >
       <div class="checkin-orb">
         <IconNavCheckIn class="nav-icon" />
       </div>
@@ -48,7 +51,8 @@ const contextualTab = computed(() => {
     </NuxtLink>
 
     <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active"
-      :class="{ 'nav-item-active': contextualTab === '/passport' }">
+              :class="{ 'nav-item-active': contextualTab === '/passport' }"
+    >
       <IconNavPassport class="nav-icon" />
       <span class="nav-label">Passport</span>
     </NuxtLink>
@@ -57,7 +61,6 @@ const contextualTab = computed(() => {
       <IconSettingsGear class="nav-icon" />
       <span class="nav-label">Settings</span>
     </NuxtLink>
-
   </nav>
 </template>
 

@@ -20,19 +20,22 @@
         <div v-if="mode === 'signup'" class="field">
           <label class="field-label" for="name">Name</label>
           <input id="name" v-model="name" type="text" class="field-input" placeholder="Your name" autocomplete="name"
-            required />
+                 required
+          />
         </div>
 
         <div class="field">
           <label class="field-label" for="email">Email</label>
           <input id="email" v-model="email" type="email" class="field-input" placeholder="you@example.com"
-            autocomplete="email" required />
+                 autocomplete="email" required
+          />
         </div>
 
         <div class="field">
           <label class="field-label" for="password">Password</label>
           <input id="password" v-model="password" type="password" class="field-input" placeholder="••••••••"
-            autocomplete="current-password" required />
+                 autocomplete="current-password" required
+          />
         </div>
 
         <p v-if="error" class="error-msg">{{ error }}</p>

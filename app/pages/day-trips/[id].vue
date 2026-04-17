@@ -1,6 +1,5 @@
 <template>
   <main class="page-content">
-
     <header class="route-header">
       <NuxtLink to="/explore?tab=routes" class="back-link">
         <IconBack />
@@ -21,7 +20,8 @@
       <h2 class="stops-title">Stops</h2>
       <div class="stops-list">
         <BranchCard v-for="(b, i) in branchObjects" :key="b.BranchCode" :branch="b" :index="i + 1" as-button
-          @select="openSheet" />
+                    @select="openSheet"
+        />
       </div>
     </section>
 
@@ -31,7 +31,6 @@
         Curated tips from locals and librarians — coming soon.
       </p>
     </section>
-
   </main>
 
   <!-- Branch detail sheet -->

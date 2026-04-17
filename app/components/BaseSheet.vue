@@ -1,12 +1,12 @@
 <template>
-  <DrawerRoot :open="open" @update:open="$emit('update:open', $event)" :noBodyStyles="true">
+  <DrawerRoot :open="open" :no-body-styles="true" @update:open="$emit('update:open', $event)">
     <DrawerPortal>
       <DrawerOverlay class="sheet-overlay" />
       <DrawerContent class="sheet-content" :style="{ height }" :aria-label="ariaLabel">
         <div class="sheet-handle-row">
           <div class="sheet-handle-bar" />
         </div>
-        <button class="sheet-close" @click="$emit('update:open', false)" aria-label="Close">
+        <button class="sheet-close" aria-label="Close" @click="$emit('update:open', false)">
           <IconSheetClose />
         </button>
         <div class="sheet-scroll">

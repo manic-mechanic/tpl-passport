@@ -1,5 +1,5 @@
 <template>
-  <div class="combo" ref="comboRef">
+  <div ref="comboRef" class="combo">
     <input
       v-bind="$attrs"
       type="text"
@@ -7,6 +7,7 @@
       :class="{ 'combo-input-inline': variant === 'inline' }"
       :value="displayValue"
       :placeholder="placeholder"
+      autocomplete="off"
       @input="onInput"
       @focus="onFocus"
       @blur="onBlur"
@@ -14,7 +15,6 @@
       @keydown.escape="close"
       @keydown.arrow-down.prevent="moveFocus(1)"
       @keydown.arrow-up.prevent="moveFocus(-1)"
-      autocomplete="off"
     />
     <Teleport to="body">
       <ul v-if="open" class="combo-list" :style="listStyle">
@@ -27,7 +27,9 @@
           class="combo-item"
           :class="{ 'combo-item-hi': i === focusedIdx }"
           @mousedown.prevent="select(b.BranchCode)"
-        >{{ b.BranchName }}</li>
+        >
+          {{ b.BranchName }}
+        </li>
         <li v-if="!filtered.length" class="combo-none">No matches</li>
       </ul>
     </Teleport>

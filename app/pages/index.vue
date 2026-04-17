@@ -25,7 +25,6 @@ function dismissBanner() {
 
 <template>
   <main class="page-content">
-
     <div class="home-top-bar">
       <img src="/tpl-meta-card.png" class="top-bar-seal" alt="" aria-hidden="true" />
       <p class="top-bar-wordmark">passport<span>:</span></p>
