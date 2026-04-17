@@ -30,6 +30,7 @@ import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
 import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 import { reportError } from '~/lib/reportError'
 import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
+import { reconcileProfile } from '~/lib/profileSyncMerge'
 
 const passport = usePassportStore()
 const { $posthog } = useNuxtApp()
@@ -96,10 +97,13 @@ onMounted(async () => {
   if (data) {
     // user_profile is the source of truth for name + homeBranch.
     const serverProfile = await fetchProfile()
-    if (serverProfile?.name) passport.profile.name = serverProfile.name
-    if (serverProfile?.homeBranch) {
-      passport.profile.homeBranch = serverProfile.homeBranch
-    } else if (passport.profile.homeBranch) {
+    const { nextName, nextHomeBranch, shouldPushHomeBranch } = reconcileProfile(
+      passport.profile,
+      serverProfile
+    )
+    passport.profile.name = nextName
+    passport.profile.homeBranch = nextHomeBranch
+    if (shouldPushHomeBranch) {
       // Local has homeBranch but server doesn't — push it up.
       await pushProfile({ name: passport.profile.name, homeBranch: passport.profile.homeBranch })
     }

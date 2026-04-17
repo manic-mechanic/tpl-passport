@@ -61,6 +61,7 @@ import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
 import { reportError } from '~/lib/reportError'
 import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
+import { reconcileProfile } from '~/lib/profileSyncMerge'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -75,11 +76,14 @@ const googleLoading = ref(false)
 
 async function syncAfterSignIn(userName) {
   const serverProfile = await fetchProfile()
-  if (serverProfile?.name) passport.profile.name = serverProfile.name
-  else if (userName) passport.profile.name = userName
-  if (serverProfile?.homeBranch) {
-    passport.profile.homeBranch = serverProfile.homeBranch
-  } else if (passport.profile.homeBranch) {
+  const { nextName, nextHomeBranch, shouldPushHomeBranch } = reconcileProfile(
+    passport.profile,
+    serverProfile,
+    userName ?? ''
+  )
+  passport.profile.name = nextName
+  passport.profile.homeBranch = nextHomeBranch
+  if (shouldPushHomeBranch) {
     pushProfile({ name: passport.profile.name, homeBranch: passport.profile.homeBranch })
   }
   try {
