@@ -30,6 +30,8 @@ function dismissBanner() {
       <p class="top-bar-wordmark">passport<span>:</span></p>
     </div>
 
+    <InstallHelperCard class="home-install-helper" />
+
     <div v-if="showBanner" class="signin-banner">
       <div class="signin-banner__body">
         <p class="signin-banner__text">Save your progress — access your passport on any device</p>
@@ -98,6 +100,10 @@ main {
   background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface));
   border: 1px solid color-mix(in srgb, var(--tpl-blue) 22%, transparent);
   border-radius: var(--radius);
+  margin-top: -8px;
+}
+
+.home-install-helper {
   margin-top: -8px;
 }
 

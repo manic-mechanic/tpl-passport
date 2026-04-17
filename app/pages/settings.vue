@@ -128,6 +128,12 @@
       </div>
     </section>
 
+    <!-- Install -->
+    <section v-if="showInstallSection" class="settings-group">
+      <p class="section-label">Install</p>
+      <InstallHelperCard />
+    </section>
+
     <!-- Demo mode — dev only -->
     <section v-if="isDev" class="settings-group">
       <p class="section-label">Demo mode</p>
@@ -200,10 +206,12 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
 import { pushProfile } from '~/composables/useProfileSync'
+import { isRunningStandalone } from '~/lib/installHelper'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const { public: { isDev } } = useRuntimeConfig()
+const showInstallSection = ref(false)
 
 watch(() => passport.profile.theme, (theme) => {
   $posthog?.capture('theme_changed', { theme: theme || 'system' })
@@ -214,7 +222,17 @@ const session = ref(null)
 onMounted(async () => {
   const { data } = await authClient.getSession()
   session.value = data
+  showInstallSection.value = !isRunningStandalone()
+  window.addEventListener('appinstalled', onAppInstalled)
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('appinstalled', onAppInstalled)
+})
+
+function onAppInstalled() {
+  showInstallSection.value = false
+}
 
 // Profile editing
 const profileName = ref(passport.profile.name ?? '')

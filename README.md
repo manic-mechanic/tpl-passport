@@ -25,7 +25,7 @@ Open the app on your phone for the best experience — it's designed as a mobile
 | **Passport** | Stamp book across 5 alphabetical pages + an Extra Credit page for badges |
 | **History** | Check-in log grouped by recency; filter to visits with notes or photos |
 | **Branch detail** | Branch info, hours, events, and services |
-| **Settings** | Sign in/out, theme picker (Light / Auto / Dark), dev-only demo mode |
+| **Settings** | Sign in/out, theme picker (Light / Auto / Dark), install helper, dev-only demo mode |
 | **QR Print** | Printable branch QR codes for check-in campaigns |
 
 ## Stack
