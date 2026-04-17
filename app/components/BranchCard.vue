@@ -1,9 +1,10 @@
 <template>
   <NuxtLink v-if="!asButton" :to="`/branch/${branch.BranchCode}`" class="branch-card"
-    :class="{ 'branch-card-compact': compact }">
+            :class="{ 'branch-card-compact': compact }"
+  >
     <span v-if="index !== null" class="card-index">{{ index }}</span>
     <div class="card-stamp" :class="{ 'card-stamp-ghost': !visited }">
-      <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="stampSize" />
+      <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" :size="stampSize" />
     </div>
     <div class="card-info">
       <span class="card-name">{{ branch.BranchName }}</span>
@@ -16,10 +17,11 @@
     </div>
   </NuxtLink>
   <button v-else type="button" class="branch-card" :class="{ 'branch-card-compact': compact }"
-    @click="$emit('select', branch)">
+          @click="$emit('select', branch)"
+  >
     <span v-if="index !== null" class="card-index">{{ index }}</span>
     <div class="card-stamp" :class="{ 'card-stamp-ghost': !visited }">
-      <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="stampSize" />
+      <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" :size="stampSize" />
     </div>
     <div class="card-info">
       <span class="card-name">{{ branch.BranchName }}</span>

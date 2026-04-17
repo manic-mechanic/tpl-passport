@@ -1,10 +1,11 @@
 <template>
   <div class="nearby-list">
     <div v-for="branch in branches" :key="branch.BranchCode"
-      class="nearby-row" role="link" tabindex="0"
-      @click="navigate(branch)" @keydown.enter="navigate(branch)">
+         class="nearby-row" role="link" tabindex="0"
+         @click="navigate(branch)" @keydown.enter="navigate(branch)"
+    >
       <div :class="{ 'nearby-stamp-ghost': !passport.hasVisited(branch.BranchCode) }">
-        <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="36" />
+        <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" :size="36" />
       </div>
       <div class="nearby-info">
         <span class="nearby-name">{{ branch.BranchName }}</span>

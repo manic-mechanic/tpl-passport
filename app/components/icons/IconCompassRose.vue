@@ -1,19 +1,24 @@
 <template>
   <svg class="compass-rose" viewBox="0 0 64 64" aria-hidden="true">
     <circle cx="32" cy="32" r="30" fill="none" :stroke="isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.15)'"
-      stroke-width="4" />
+            stroke-width="4"
+    />
     <polygon points="32,5 28.5,13 35.5,13" :fill="labelColor('n', true)" />
     <line x1="60" y1="32" x2="51" y2="32" stroke-width="1.5" :stroke="lineColor('e')" />
     <line x1="32" y1="60" x2="32" y2="51" stroke-width="1.5" :stroke="lineColor('s')" />
     <line x1="4" y1="32" x2="13" y2="32" stroke-width="1.5" :stroke="lineColor('w')" />
     <text x="32" y="22" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="800"
-      :fill="labelColor('n', true)">N</text>
+          :fill="labelColor('n', true)"
+    >N</text>
     <text x="45" y="33" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700"
-      :fill="labelColor('e')">E</text>
+          :fill="labelColor('e')"
+    >E</text>
     <text x="32" y="45" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700"
-      :fill="labelColor('s')">S</text>
+          :fill="labelColor('s')"
+    >S</text>
     <text x="19" y="33" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="700"
-      :fill="labelColor('w')">W</text>
+          :fill="labelColor('w')"
+    >W</text>
     <circle cx="32" cy="32" r="2.5" :fill="isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.22)'" />
   </svg>
 </template>

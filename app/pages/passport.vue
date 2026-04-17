@@ -1,7 +1,7 @@
 <template>
   <main class="page-content">
-    <div class="sticky-top" ref="stickyTopRef">
-      <header class="page-header" ref="pageHeaderRef">
+    <div ref="stickyTopRef" class="sticky-top">
+      <header ref="pageHeaderRef" class="page-header">
         <div>
           <h1>My Passport</h1>
         </div>
@@ -13,13 +13,15 @@
         <button v-for="(page, i) in branchesByAlphaPage" :key="page.label" class="page-tab" :class="{
           active: activePage === i,
           complete: isPageComplete(page),
-        }" role="tab" :aria-selected="activePage === i" @click="goToPage(i)">
+        }" role="tab" :aria-selected="activePage === i" @click="goToPage(i)"
+        >
           {{ page.label }}
         </button>
         <button class="page-tab" :class="{
           active: activePage === EXTRA_CREDIT_IDX,
           complete: extraCreditEarned === BADGES.length,
-        }" role="tab" :aria-selected="activePage === EXTRA_CREDIT_IDX" @click="goToPage(EXTRA_CREDIT_IDX)">
+        }" role="tab" :aria-selected="activePage === EXTRA_CREDIT_IDX" @click="goToPage(EXTRA_CREDIT_IDX)"
+        >
           Extra Credit
         </button>
       </nav>
@@ -28,7 +30,8 @@
     <div class="passport-book">
       <!-- Alpha pages -->
       <section v-for="(page, i) in branchesByAlphaPage" v-show="activePage === i" :key="page.label"
-        class="passport-page" :class="{ complete: isPageComplete(page) }">
+               class="passport-page" :class="{ complete: isPageComplete(page) }"
+      >
         <div class="page-header-row" :style="{ top: stickyHeight + 'px' }">
           <span class="page-range">{{ page.label }}</span>
           <div class="page-header-right">
@@ -41,9 +44,9 @@
           <template v-for="branch in page.branches" :key="branch.BranchCode">
             <button class="stamp-slot" @click="openSheet(branch)">
               <div v-if="!passport.hasVisited(branch.BranchCode)" class="stamp-ghost">
-                <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" />
+                <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" />
               </div>
-              <StampShape v-else :branchCode="branch.BranchCode" :wardNo="branch.WardNo" />
+              <StampShape v-else :branch-code="branch.BranchCode" :ward-no="branch.WardNo" />
               <span class="stamp-name" :class="{ unseen: !passport.hasVisited(branch.BranchCode) }">{{ branch.BranchName
               }}</span>
               <span v-if="passport.hasVisited(branch.BranchCode)" class="stamp-date">{{ visitDate(branch.BranchCode)
@@ -70,7 +73,8 @@
 
       <!-- Extra Credit page -->
       <div v-show="activePage === EXTRA_CREDIT_IDX" class="badges-section"
-        :class="{ complete: extraCreditEarned === BADGES.length }">
+           :class="{ complete: extraCreditEarned === BADGES.length }"
+      >
         <div class="page-header-row" :style="{ top: stickyHeight + 'px' }">
           <span class="page-range">Extra Credit</span>
           <div class="page-header-right">

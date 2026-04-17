@@ -10,7 +10,8 @@
           <div>
             <p class="field-label">Name / Nom</p>
             <input v-model="passport.profile.name" class="name-input" type="text" placeholder="Your name" maxlength="40"
-              autocomplete="given-name" :readonly="isSignedIn" />
+                   autocomplete="given-name" :readonly="isSignedIn"
+            />
           </div>
           <div>
             <p class="field-label">Home Branch</p>
@@ -30,16 +31,19 @@
             <g mask="url(#avatar-mask)">
               <rect width="36" height="36" :fill="avatarData.backgroundColor" />
               <rect x="0" y="0" width="36" height="36"
-                :transform="`translate(${avatarData.wrapperTranslateX} ${avatarData.wrapperTranslateY}) rotate(${avatarData.wrapperRotate} 18 18) scale(${avatarData.wrapperScale})`"
-                :fill="avatarData.wrapperColor"
-                :rx="avatarData.isCircle ? 36 : 6" />
+                    :transform="`translate(${avatarData.wrapperTranslateX} ${avatarData.wrapperTranslateY}) rotate(${avatarData.wrapperRotate} 18 18) scale(${avatarData.wrapperScale})`"
+                    :fill="avatarData.wrapperColor"
+                    :rx="avatarData.isCircle ? 36 : 6"
+              />
               <g :transform="`translate(${avatarData.faceTranslateX} ${avatarData.faceTranslateY}) rotate(${avatarData.faceRotate} 18 18)`">
                 <path v-if="avatarData.isMouthOpen"
-                  :d="`M15 ${19 + avatarData.mouthSpread}c2 1 4 1 6 0`"
-                  :stroke="avatarData.faceColor" fill="none" stroke-linecap="round" />
+                      :d="`M15 ${19 + avatarData.mouthSpread}c2 1 4 1 6 0`"
+                      :stroke="avatarData.faceColor" fill="none" stroke-linecap="round"
+                />
                 <path v-else
-                  :d="`M13,${19 + avatarData.mouthSpread} a1,0.75 0 0,0 10,0`"
-                  :fill="avatarData.faceColor" />
+                      :d="`M13,${19 + avatarData.mouthSpread} a1,0.75 0 0,0 10,0`"
+                      :fill="avatarData.faceColor"
+                />
                 <rect :x="14 - avatarData.eyeSpread" y="14" width="1.5" height="2" rx="1" :fill="avatarData.faceColor" />
                 <rect :x="20 + avatarData.eyeSpread" y="14" width="1.5" height="2" rx="1" :fill="avatarData.faceColor" />
               </g>

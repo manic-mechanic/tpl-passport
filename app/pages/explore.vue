@@ -1,6 +1,5 @@
 <template>
   <main class="page-content" :class="{ 'has-browse-cta': activeTab === 'near-me' }">
-
     <!-- Sticky header + tabs -->
     <div class="sticky-top">
       <header class="page-header">
@@ -14,14 +13,26 @@
 
       <!-- Tab pills -->
       <nav class="tab-bar" role="tablist">
-      <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
-        :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'">Near Me</button>
-      <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
-        :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'">Day Trips</button>
-      <button class="tab-pill" :class="{ active: activeTab === 'events' }" role="tab"
-        :aria-selected="activeTab === 'events'" @click="activeTab = 'events'">What's On</button>
-      <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
-        :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'">Extra Credit</button>
+        <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
+                :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'"
+        >
+          Near Me
+        </button>
+        <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
+                :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'"
+        >
+          Day Trips
+        </button>
+        <button class="tab-pill" :class="{ active: activeTab === 'events' }" role="tab"
+                :aria-selected="activeTab === 'events'" @click="activeTab = 'events'"
+        >
+          What's On
+        </button>
+        <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
+                :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'"
+        >
+          Extra Credit
+        </button>
       </nav>
     </div>
 
@@ -36,7 +47,8 @@
 
       <div v-else-if="geoStatus === 'ready'" class="near-me-list">
         <BranchCard v-for="item in nearMeBranches" :key="item.branch.BranchCode" :branch="item.branch"
-          :distance="item.distanceLabel" as-button @select="openBranchSheet" />
+                    :distance="item.distanceLabel" as-button @select="openBranchSheet"
+        />
       </div>
     </section>
 
@@ -61,7 +73,8 @@
             <div v-if="s.branches.length" class="suggestion-branches">
               <p class="suggestion-subhead">Suggested:</p>
               <BranchCard v-for="b in s.branches" :key="b.BranchCode" :branch="b" compact as-button
-                @select="openBranchSheet" />
+                          @select="openBranchSheet"
+              />
             </div>
           </div>
         </div>
@@ -70,11 +83,11 @@
 
     <!-- Day Trips -->
     <section v-show="activeTab === 'routes'" class="explore-section">
-
       <!-- Mode sub-tabs -->
       <nav class="mode-bar" role="tablist">
         <button v-for="mode in MODES" :key="mode.id" class="mode-tab" :class="{ active: activeMode === mode.id }"
-          role="tab" :aria-selected="activeMode === mode.id" @click="activeMode = mode.id">
+                role="tab" :aria-selected="activeMode === mode.id" @click="activeMode = mode.id"
+        >
           <IconMode class="mode-icon" v-html="mode.icon" />
           {{ mode.label }}
         </button>
@@ -82,23 +95,23 @@
 
       <!-- Walking routes -->
       <div v-if="activeMode === 'walk'" class="routes-list">
-        <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: route.id, route_name: route.name, visited: route.visited, total: route.total })">
+        <NuxtLink v-for="tripRoute in routesWithProgress" :key="tripRoute.id" :to="'/day-trips/' + tripRoute.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: tripRoute.id, route_name: tripRoute.name, visited: tripRoute.visited, total: tripRoute.total })">
           <div class="route-meta-row">
-            <span class="area-chip">{{ route.area }}</span>
-            <span class="route-info">🚶 {{ route.duration }} · {{ route.total }} stops</span>
+            <span class="area-chip">{{ tripRoute.area }}</span>
+            <span class="route-info">🚶 {{ tripRoute.duration }} · {{ tripRoute.total }} stops</span>
             <IconChevron class="route-chevron" />
           </div>
-          <p class="route-name">{{ route.name }}</p>
-          <p class="route-desc">{{ route.description }}</p>
+          <p class="route-name">{{ tripRoute.name }}</p>
+          <p class="route-desc">{{ tripRoute.description }}</p>
           <div class="route-stamps">
-            <div v-for="b in route.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
+            <div v-for="b in tripRoute.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
               <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
-                <StampShape :branchCode="b.BranchCode" :wardNo="b.WardNo" :size="40" />
+                <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
               </div>
               <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
             </div>
-            <div v-if="route.branchObjects.length > 4" class="route-overflow">
-              +{{ route.branchObjects.length - 4 }}<br>More
+            <div v-if="tripRoute.branchObjects.length > 4" class="route-overflow">
+              +{{ tripRoute.branchObjects.length - 4 }}<br>More
             </div>
           </div>
         </NuxtLink>
@@ -106,9 +119,8 @@
 
       <!-- Stubbed modes -->
       <p v-else class="coming-soon">
-        {{MODES.find(m => m.id === activeMode)?.label}} routes coming soon.
+        {{ MODES.find(m => m.id === activeMode)?.label }} routes coming soon.
       </p>
-
     </section>
 
     <!-- What's On -->
@@ -148,14 +160,12 @@
     <div v-if="activeTab === 'near-me'" class="browse-cta">
       <NuxtLink to="/branches" class="browse-btn">Browse all Branches</NuxtLink>
     </div>
-
   </main>
 
   <!-- Branch detail sheet -->
   <BaseSheet v-model:open="branchSheetOpen" :height="branchSheetHeight">
     <BranchDetail v-if="activeBranch" :branch="activeBranch" source="explore" />
   </BaseSheet>
-
 </template>
 
 <script setup>

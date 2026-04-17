@@ -36,18 +36,20 @@
       <!-- Navigator: compass branches -->
       <div v-if="activeBadge.id === 'navigator'" class="detail-list">
         <div v-for="[dir, label] in [['n', 'North'], ['e', 'East'], ['s', 'South'], ['w', 'West']]" :key="dir"
-          class="detail-row" :class="{ done: badgeCtx.visitedBranchCodes.has(compassPoints[dir]) }">
+             class="detail-row" :class="{ done: badgeCtx.visitedBranchCodes.has(compassPoints[dir]) }"
+        >
           <span class="detail-check">{{ badgeCtx.visitedBranchCodes.has(compassPoints[dir]) ? '✓' : '·' }}</span>
           <span class="detail-text"><span class="detail-dir">{{ label }}</span> — {{ branchName(compassPoints[dir])
-            }}</span>
+          }}</span>
         </div>
       </div>
 
       <!-- Page Turner: one branch per page -->
       <div v-if="activeBadge.id === 'page_turner'" class="detail-list">
         <div v-for="page in branchesByAlphaPage" :key="page.label" class="detail-row"
-          :class="{ done: page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }">
-          <span class="detail-check">{{page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' :
+             :class="{ done: page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }"
+        >
+          <span class="detail-check">{{ page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' :
             '·' }}</span>
           <span class="detail-text">{{ page.label }}</span>
         </div>
@@ -56,12 +58,13 @@
       <!-- Page Filler: fill one complete page -->
       <div v-if="activeBadge.id === 'page_filler'" class="detail-list">
         <div v-for="page in branchesByAlphaPage" :key="page.label" class="detail-row"
-          :class="{ done: page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }">
-          <span class="detail-check">{{page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' :
+             :class="{ done: page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }"
+        >
+          <span class="detail-check">{{ page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' :
             '·' }}</span>
           <span class="detail-text">{{ page.label }}</span>
-          <span class="detail-count">{{page.branches.filter(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)).length
-            }}/{{ page.branches.length }}</span>
+          <span class="detail-count">{{ page.branches.filter(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)).length
+          }}/{{ page.branches.length }}</span>
         </div>
       </div>
 

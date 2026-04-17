@@ -22,7 +22,8 @@
           </div>
           <div v-if="showChangeEmail" class="inline-form">
             <input v-model="newEmail" class="inline-input" type="email" placeholder="New email address"
-              autocomplete="email" autocapitalize="none" />
+                   autocomplete="email" autocapitalize="none"
+            />
             <p v-if="emailError" class="inline-error">{{ emailError }}</p>
             <div class="inline-actions">
               <button class="inline-cancel" @click="cancelChangeEmail">Cancel</button>
@@ -39,11 +40,14 @@
           </div>
           <div v-if="showChangePassword" class="inline-form">
             <input v-model="currentPassword" class="inline-input" type="password" placeholder="Current password"
-              autocomplete="current-password" />
+                   autocomplete="current-password"
+            />
             <input v-model="newPassword" class="inline-input" type="password" placeholder="New password"
-              autocomplete="new-password" />
+                   autocomplete="new-password"
+            />
             <input v-model="confirmPassword" class="inline-input" type="password" placeholder="Confirm new password"
-              autocomplete="new-password" />
+                   autocomplete="new-password"
+            />
             <p v-if="passwordError" class="inline-error">{{ passwordError }}</p>
             <div class="inline-actions">
               <button class="inline-cancel" @click="cancelChangePassword">Cancel</button>
@@ -74,7 +78,8 @@
         <div class="setting-row">
           <label class="setting-label" for="profile-name">Name</label>
           <input id="profile-name" v-model="profileName" class="profile-input" type="text"
-            placeholder="Your name" maxlength="40" autocomplete="given-name" />
+                 placeholder="Your name" maxlength="40" autocomplete="given-name"
+          />
         </div>
         <div class="setting-row">
           <span class="setting-label">Home Branch</span>
@@ -101,17 +106,23 @@
               class="theme-btn"
               :class="{ active: passport.profile.theme === 'light' }"
               @click="passport.profile.theme = 'light'"
-            >Light</button>
+            >
+              Light
+            </button>
             <button
               class="theme-btn"
               :class="{ active: passport.profile.theme === '' }"
               @click="passport.profile.theme = ''"
-            >Auto</button>
+            >
+              Auto
+            </button>
             <button
               class="theme-btn"
               :class="{ active: passport.profile.theme === 'dark' }"
               @click="passport.profile.theme = 'dark'"
-            >Dark</button>
+            >
+              Dark
+            </button>
           </div>
         </div>
       </div>
@@ -149,12 +160,16 @@
               class="theme-btn"
               :class="{ active: !passport.profile.bypassLocationFence }"
               @click="passport.profile.bypassLocationFence = false"
-            >On</button>
+            >
+              On
+            </button>
             <button
               class="theme-btn"
               :class="{ active: passport.profile.bypassLocationFence }"
               @click="passport.profile.bypassLocationFence = true"
-            >Off</button>
+            >
+              Off
+            </button>
           </div>
         </div>
       </div>
@@ -176,7 +191,6 @@
         </div>
       </div>
     </section>
-
   </main>
 </template>
 

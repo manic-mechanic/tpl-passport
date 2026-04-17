@@ -12,11 +12,11 @@
         :to="`/passport?page=${passportPageIndex(branch.BranchName)}`"
         class="stamp-slot"
       >
-        <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="44" />
+        <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" :size="44" />
         <span class="stamp-label">{{ branch.BranchName }}</span>
       </NuxtLink>
       <div v-for="i in placeholderCount" :key="`empty-${i}`" class="stamp-slot stamp-slot-empty">
-        <StampShape :branchCode="GHOST_CODES[(i - 1) % GHOST_CODES.length]" :wardNo="GHOST_WARDS[(i - 1) % GHOST_WARDS.length]" :size="44" />
+        <StampShape :branch-code="GHOST_CODES[(i - 1) % GHOST_CODES.length]" :ward-no="GHOST_WARDS[(i - 1) % GHOST_WARDS.length]" :size="44" />
       </div>
     </div>
 

@@ -1,6 +1,7 @@
 <template>
   <div class="badge-shape" :class="[badge.shape, colorClass]"
-    :style="{ ...inlineStyle, width: size + 'px', height: size + 'px' }">
+       :style="{ ...inlineStyle, width: size + 'px', height: size + 'px' }"
+  >
     <template v-if="badge.id === 'navigator'">
       <IconCompassRose :ctx="ctx" />
     </template>

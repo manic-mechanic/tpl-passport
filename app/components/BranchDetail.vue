@@ -2,7 +2,7 @@
   <div v-if="branch">
     <div class="branch-hero">
       <div :class="{ 'stamp-ghost': !hasVisited }">
-        <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="72" />
+        <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" :size="72" />
       </div>
       <div class="branch-title-area">
         <h1>{{ branch.BranchName }}</h1>
@@ -29,7 +29,8 @@
 
     <div class="checkin-area">
       <NuxtLink v-if="checkinState !== 'blocked'" :to="`/check-in?branch=${branch.BranchCode}`" class="checkin-btn"
-        :class="{ visited: checkinState === 'visited' }">
+                :class="{ visited: checkinState === 'visited' }"
+      >
         {{ checkinState === 'visited' ? 'Check in again' : 'Check in here' }}
       </NuxtLink>
       <button v-else class="checkin-btn blocked" disabled>
@@ -49,17 +50,19 @@
                 <input type="file" accept="image/*" class="visit-file-input" @change="onVisitPhotoCapture($event, visit.timestamp)" />
               </label>
               <button class="visit-action-btn" :title="editingNote === visit.timestamp ? 'Cancel' : 'Edit note'"
-                @click="toggleNoteEdit(visit.timestamp)">
+                      @click="toggleNoteEdit(visit.timestamp)"
+              >
                 <IconNote class="visit-action-icon" />
               </button>
             </div>
           </div>
           <button v-if="photoUrls[visit.timestamp]" class="visit-photo-btn"
-            @click="lightboxSrc = photoUrls[visit.timestamp]">
+                  @click="lightboxSrc = photoUrls[visit.timestamp]"
+          >
             <img :src="photoUrls[visit.timestamp]" class="visit-photo-thumb" alt="Check-in photo" />
           </button>
           <template v-if="editingNote === visit.timestamp">
-            <textarea class="visit-note-input" v-model="noteInputs[visit.timestamp]" placeholder="Add a note…" rows="3" />
+            <textarea v-model="noteInputs[visit.timestamp]" class="visit-note-input" placeholder="Add a note…" rows="3" />
             <div class="visit-note-actions">
               <button class="note-save-btn" @click="saveNote(visit.timestamp)">Save</button>
               <button class="note-cancel-btn" @click="editingNote = null">Cancel</button>

@@ -2,8 +2,10 @@
   <main class="page-content">
     <header class="page-header">
       <h1>History</h1>
-      <p class="sub" v-if="passport.checkIns.length">{{ passport.checkIns.length }} check-in{{ passport.checkIns.length
-        !== 1 ? 's' : '' }}</p>
+      <p v-if="passport.checkIns.length" class="sub">
+        {{ passport.checkIns.length }} check-in{{ passport.checkIns.length
+          !== 1 ? 's' : '' }}
+      </p>
     </header>
     <div class="header-gap" />
 
@@ -27,7 +29,10 @@
 
     <div v-if="passport.checkIns.length" class="filter-bar">
       <button class="filter-pill" :class="{ active: memoriesOnly }"
-        @click="memoriesOnly = !memoriesOnly">Memories</button>
+              @click="memoriesOnly = !memoriesOnly"
+      >
+        Memories
+      </button>
     </div>
 
     <template v-if="passport.checkIns.length">
@@ -37,8 +42,9 @@
           <ul class="checkin-list">
             <li v-for="visit in items" :key="visit.timestamp">
               <BranchCard v-if="branchObjectMap[visit.branchCode]" :branch="branchObjectMap[visit.branchCode]"
-                :meta="formatTime(visit.timestamp)" :has-note="!!visit.note"
-                :has-photo="!!photoUrls[visit.timestamp]" />
+                          :meta="formatTime(visit.timestamp)" :has-note="!!visit.note"
+                          :has-photo="!!photoUrls[visit.timestamp]"
+              />
             </li>
           </ul>
         </section>
