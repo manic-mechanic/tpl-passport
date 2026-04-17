@@ -2,15 +2,11 @@ import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
 import { pushCheckIn, patchCheckInPhoto } from '~/composables/useCheckInSync'
-
-const STORAGE_KEY = 'tpl-passport'
+import { loadPassportState, savePassportState } from '~/lib/passportStorage'
 
 export const usePassportStore = defineStore('passport', () => {
   // --- State (hydrated from localStorage on first load) ---
-  let saved = {}
-  if (import.meta.client) {
-    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { saved = {} }
-  }
+  const saved = loadPassportState()
 
   const anonymousId = ref(saved.anonymousId ?? (import.meta.client ? crypto.randomUUID() : ''))
 
@@ -28,12 +24,12 @@ export const usePassportStore = defineStore('passport', () => {
 
   // Persist to localStorage whenever state changes
   function persist() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    savePassportState({
       anonymousId: anonymousId.value,
       checkIns: checkIns.value,
       profile: profile.value,
       completedChallenges: completedChallenges.value,
-    }))
+    })
   }
 
   watch([anonymousId, checkIns, profile, completedChallenges], persist, { deep: true })
