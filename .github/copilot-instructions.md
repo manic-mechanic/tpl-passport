@@ -10,12 +10,10 @@ Use npm scripts from `package.json`:
 - `npm run generate` — static generation.
 - `npm test` — run full Vitest suite once (`vitest run`).
 - `npm run test:watch` — watch mode tests.
+- `npm run lint` — run ESLint checks.
+- `npm run lint:fix` — auto-fix lint issues where possible.
 - Single test file: `npm test -- tests/passport.test.js`
 - Single test by name: `npm test -- -t "checkIn"`
-
-Lint:
-
-- No lint script is currently defined in `package.json`.
 
 ## High-level architecture
 
