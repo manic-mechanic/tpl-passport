@@ -1,8 +1,9 @@
 // Sync check-ins between the local Pinia store and the shared auth server.
 // All requests use credentials: 'include' so the session cookie is sent.
-// Errors are swallowed — sync is best-effort and must never block local writes.
+// Errors are reported, but sync remains best-effort and never blocks local writes.
 
 import { AUTH_BASE as BASE } from '~/lib/config'
+import { reportError } from '~/lib/reportError'
 
 function fromServer(record) {
   return {
@@ -25,33 +26,80 @@ function toServer(checkIn) {
 export async function fetchCheckIns() {
   try {
     const res = await fetch(`${BASE}/api/checkins`, { credentials: 'include' })
-    if (!res.ok) return []
+    if (!res.ok) {
+      reportError(new Error(`fetchCheckIns failed: HTTP ${res.status}`), {
+        area: 'sync',
+        operation: 'fetch_checkins',
+        status: res.status,
+        endpoint: '/api/checkins',
+      })
+      return []
+    }
     return (await res.json()).map(fromServer)
-  } catch {
+  } catch (error) {
+    reportError(error, {
+      area: 'sync',
+      operation: 'fetch_checkins',
+      endpoint: '/api/checkins',
+    })
     return []
   }
 }
 
 export async function pushCheckIn(checkIn) {
   try {
-    await fetch(`${BASE}/api/checkins`, {
+    const res = await fetch(`${BASE}/api/checkins`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(toServer(checkIn)),
     })
-  } catch { /* fire-and-forget */ }
+    if (!res.ok) {
+      reportError(new Error(`pushCheckIn failed: HTTP ${res.status}`), {
+        area: 'sync',
+        operation: 'push_checkin',
+        status: res.status,
+        endpoint: '/api/checkins',
+        branchCode: checkIn.branchCode,
+        timestamp: checkIn.timestamp,
+      })
+    }
+  } catch (error) {
+    reportError(error, {
+      area: 'sync',
+      operation: 'push_checkin',
+      endpoint: '/api/checkins',
+      branchCode: checkIn.branchCode,
+      timestamp: checkIn.timestamp,
+    })
+  }
 }
 
 export async function patchCheckInPhoto(timestamp, photoUri) {
   try {
-    await fetch(`${BASE}/api/checkins/${encodeURIComponent(timestamp)}`, {
+    const res = await fetch(`${BASE}/api/checkins/${encodeURIComponent(timestamp)}`, {
       method: 'PATCH',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ photoUri }),
     })
-  } catch { /* fire-and-forget */ }
+    if (!res.ok) {
+      reportError(new Error(`patchCheckInPhoto failed: HTTP ${res.status}`), {
+        area: 'sync',
+        operation: 'patch_checkin_photo',
+        status: res.status,
+        endpoint: '/api/checkins/:timestamp',
+        timestamp,
+      })
+    }
+  } catch (error) {
+    reportError(error, {
+      area: 'sync',
+      operation: 'patch_checkin_photo',
+      endpoint: '/api/checkins/:timestamp',
+      timestamp,
+    })
+  }
 }
 
 export function useCheckInSync() {

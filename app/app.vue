@@ -28,6 +28,7 @@ import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 import { authClient } from '~/lib/auth-client'
 import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
 import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
+import { reportError } from '~/lib/reportError'
 
 const passport = usePassportStore()
 const { $posthog } = useNuxtApp()
@@ -113,7 +114,12 @@ onMounted(async () => {
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       passport.setCheckIns(merged)
       for (const ci of localOnly) pushCheckIn(ci)
-    } catch { /* sync failures are non-critical */ }
+    } catch (error) {
+      reportError(error, {
+        area: 'sync',
+        operation: 'initial_checkin_merge',
+      })
+    }
   }
 
   // Let auth-synced homeBranch watcher flush before enabling analytics

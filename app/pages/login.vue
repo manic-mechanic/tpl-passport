@@ -59,6 +59,7 @@ import { authClient } from '~/lib/auth-client'
 import { usePassportStore } from '~/stores/passport'
 import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
+import { reportError } from '~/lib/reportError'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -88,7 +89,12 @@ async function syncAfterSignIn(userName) {
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     passport.setCheckIns(merged)
     for (const ci of localOnly) pushCheckIn(ci)
-  } catch { /* sync failures are non-critical */ }
+  } catch (error) {
+    reportError(error, {
+      area: 'sync',
+      operation: 'post_signin_checkin_merge',
+    })
+  }
 }
 
 async function submitEmail() {
@@ -132,6 +138,10 @@ async function signInWithGoogle() {
   try {
     await authClient.signIn.social({ provider: 'google', callbackURL: window.location.origin + '/' })
   } catch (e) {
+    reportError(e, {
+      area: 'auth',
+      operation: 'google_signin',
+    })
     error.value = 'Google sign-in failed. Please try again.'
     googleLoading.value = false
   }

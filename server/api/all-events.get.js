@@ -5,6 +5,7 @@
 // and a single sorted+limited request misses near-term events when the dataset has many future entries.
 //
 // In-memory stale-while-revalidate cache (~30 min TTL).
+import { reportServerError } from '../lib/reportServerError'
 
 const EVENTS_RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'
 const CKAN = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action'
@@ -37,7 +38,12 @@ export default defineEventHandler(async () => {
     if (now - cache.fetchedAt > CACHE_TTL) {
       fetchAllEvents()
         .then(data => { cache = { data, fetchedAt: Date.now() } })
-        .catch(() => {})
+        .catch((error) => {
+          reportServerError(error, {
+            area: 'events',
+            operation: 'all_events_cache_refresh',
+          })
+        })
     }
     return cache.data
   }
@@ -46,7 +52,11 @@ export default defineEventHandler(async () => {
     const data = await fetchAllEvents()
     cache = { data, fetchedAt: now }
     return data
-  } catch {
+  } catch (error) {
+    reportServerError(error, {
+      area: 'events',
+      operation: 'all_events_fetch',
+    })
     return []
   }
 })

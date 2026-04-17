@@ -7,6 +7,7 @@
 // a LocationName filter. This matches the useAllEvents pattern and avoids
 // the limit=100 + client-side filterToWindow approach that misses events
 // for busy branches with 100+ past or far-future records.
+import { reportServerError } from '../lib/reportServerError'
 
 const EVENTS_RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'
 const CKAN = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action'
@@ -34,7 +35,12 @@ export default defineEventHandler(async (event) => {
       if (a.StartDateLocal !== b.StartDateLocal) return a.StartDateLocal < b.StartDateLocal ? -1 : 1
       return (a.StartTime ?? '') < (b.StartTime ?? '') ? -1 : 1
     })
-  } catch {
+  } catch (error) {
+    reportServerError(error, {
+      area: 'events',
+      operation: 'branch_events_fetch',
+      library: shortName,
+    })
     return []
   }
 })
