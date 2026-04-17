@@ -129,7 +129,7 @@ import { usePassportStore } from '~/stores/passport'
 import { getPhotoUrl, savePhoto } from '~/composables/usePhotoStore'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { compassPoints } from '~/composables/useBadges'
-import { AUTH_BASE } from '~/lib/config'
+import { getAuthBase } from '~/lib/config'
 import { formatAudiences, formatEventTime } from '~/composables/useEvents'
 import IconParking from './icons/IconParking.vue'
 import IconTelephone from './icons/IconTelephone.vue'
@@ -287,7 +287,7 @@ async function onVisitPhotoCapture(event, timestamp) {
   if (oldUrl) URL.revokeObjectURL(oldUrl)
   photoUrls.value[timestamp] = URL.createObjectURL(blob)
   try {
-    const res = await fetch(`${AUTH_BASE}/api/upload/photo?ext=jpg`, {
+    const res = await fetch(`${getAuthBase()}/api/upload/photo?ext=jpg`, {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'image/jpeg' },
       body: blob,

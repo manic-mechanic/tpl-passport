@@ -1,5 +1,6 @@
 import { createAuthClient } from 'better-auth/vue'
+import { AUTH_BASE } from '~/lib/config'
 
 export const authClient = createAuthClient({
-  baseURL: 'https://auth.librarypassport.ca',
+  baseURL: AUTH_BASE,
 })

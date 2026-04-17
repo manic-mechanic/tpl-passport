@@ -22,7 +22,7 @@ Lint:
 - This is a Nuxt 3 SPA (`ssr: false`) with a mobile-first UI and client-heavy behavior (`app/`).
 - Core user state lives in Pinia (`app/stores/passport.ts`) and persists to `localStorage` (`tpl-passport` key). The app remains fully usable offline/local-first.
 - Cross-device sync is layered on top of local state:
-  - Auth via Better Auth client (`app/lib/auth-client.ts`) against `https://auth.librarypassport.ca`.
+  - Auth via Better Auth client (`app/lib/auth-client.ts`) using centralized auth base config (`app/lib/config.ts`).
   - Check-ins/profile sync via best-effort fetch helpers (`app/composables/useCheckInSync.ts`, `app/composables/useProfileSync.ts`).
   - On app mount (`app/app.vue`), session/profile/check-ins are reconciled; local-only check-ins are pushed up.
 - Server routes in this repo (`server/api/`) are primarily proxy/integration endpoints:
@@ -43,6 +43,7 @@ Lint:
 - Use shared local-day utilities (`localDayKey` / `isSameLocalDay` from `@tpl-passport/shared`) for day-based logic instead of ad-hoc locale string comparisons.
 - Check-ins are one-per-branch-per-day (local day, `en-CA` date formatting) in `passport.checkIn`.
 - Sync helpers are intentionally non-blocking/best-effort and should not prevent local writes.
+- Use `app/lib/config.ts` (`AUTH_BASE` / `getAuthBase()`) as the single source for auth service base URL; avoid hardcoded endpoint strings.
 - `user_profile` is source of truth for `name` and `homeBranch`; use `useProfileSync` endpoints rather than auth user profile mutation.
 - Feature rollout uses code-level flags in `app/composables/useFeatureFlags.js` (not env toggles) for unfinished features.
 - Styling rules from `CLAUDE.md` are strict and should be preserved:

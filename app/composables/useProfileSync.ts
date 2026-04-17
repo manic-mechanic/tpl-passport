@@ -1,7 +1,7 @@
 // Read/write profile data (name, homeBranch) via the shared auth server.
 // user_profile table is the source of truth — do not use authClient.updateUser() for these fields.
 
-import { AUTH_BASE as BASE } from '~/lib/config'
+import { getAuthBase } from '~/lib/config'
 import { reportError } from '~/lib/reportError'
 import type { SyncedProfile } from '~/types/passport'
 
@@ -12,7 +12,7 @@ interface ServerProfileRecord {
 
 export async function fetchProfile(): Promise<SyncedProfile | null> {
   try {
-    const res = await fetch(`${BASE}/api/profile`, { credentials: 'include' })
+    const res = await fetch(`${getAuthBase()}/api/profile`, { credentials: 'include' })
     if (!res.ok) {
       reportError(new Error(`fetchProfile failed: HTTP ${res.status}`), {
         area: 'sync',
@@ -39,7 +39,7 @@ export async function fetchProfile(): Promise<SyncedProfile | null> {
 
 export async function pushProfile({ name, homeBranch }: { name: string; homeBranch: string | null }): Promise<void> {
   try {
-    const res = await fetch(`${BASE}/api/profile`, {
+    const res = await fetch(`${getAuthBase()}/api/profile`, {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

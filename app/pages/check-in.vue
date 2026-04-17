@@ -190,11 +190,11 @@ import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { BADGES, buildBadgeCtx, useBadgeCtx } from '~/composables/useBadges'
 import { savePhoto } from '~/composables/usePhotoStore'
-import { AUTH_BASE } from '~/lib/config'
+import { getAuthBase } from '~/lib/config'
 
 async function uploadPhoto(timestamp, blob) {
   try {
-    const res = await fetch(`${AUTH_BASE}/api/upload/photo?ext=jpg`, {
+    const res = await fetch(`${getAuthBase()}/api/upload/photo?ext=jpg`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'image/jpeg' },

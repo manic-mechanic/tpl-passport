@@ -2,7 +2,7 @@
 // All requests use credentials: 'include' so the session cookie is sent.
 // Errors are reported, but sync remains best-effort and never blocks local writes.
 
-import { AUTH_BASE as BASE } from '~/lib/config'
+import { getAuthBase } from '~/lib/config'
 import { reportError } from '~/lib/reportError'
 import type { PassportCheckIn, ServerCheckInPayload, ServerCheckInRecord } from '~/types/passport'
 
@@ -26,7 +26,7 @@ function toServer(checkIn: PassportCheckIn): ServerCheckInPayload {
 
 export async function fetchCheckIns(): Promise<PassportCheckIn[]> {
   try {
-    const res = await fetch(`${BASE}/api/checkins`, { credentials: 'include' })
+    const res = await fetch(`${getAuthBase()}/api/checkins`, { credentials: 'include' })
     if (!res.ok) {
       reportError(new Error(`fetchCheckIns failed: HTTP ${res.status}`), {
         area: 'sync',
@@ -50,7 +50,7 @@ export async function fetchCheckIns(): Promise<PassportCheckIn[]> {
 
 export async function pushCheckIn(checkIn: PassportCheckIn): Promise<void> {
   try {
-    const res = await fetch(`${BASE}/api/checkins`, {
+    const res = await fetch(`${getAuthBase()}/api/checkins`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -79,7 +79,7 @@ export async function pushCheckIn(checkIn: PassportCheckIn): Promise<void> {
 
 export async function patchCheckInPhoto(timestamp: string, photoUri: string): Promise<void> {
   try {
-    const res = await fetch(`${BASE}/api/checkins/${encodeURIComponent(timestamp)}`, {
+    const res = await fetch(`${getAuthBase()}/api/checkins/${encodeURIComponent(timestamp)}`, {
       method: 'PATCH',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

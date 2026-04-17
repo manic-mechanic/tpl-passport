@@ -56,6 +56,7 @@ export default defineNuxtConfig({
     public: {
       isDev: true,
       bypassGeofence: false,
+      authBase: 'https://auth.librarypassport.ca',
       posthogKey: '',
       posthogHost: 'https://us.i.posthog.com',
     }
