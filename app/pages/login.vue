@@ -198,6 +198,7 @@ async function signInWithGoogle() {
 <style scoped>
 .login-page {
   min-height: 100svh;
+  min-height: 100dvh;
   padding: 0 16px calc(var(--nav-height) + 16px);
   max-width: 480px;
   margin: 0 auto;

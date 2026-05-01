@@ -14,7 +14,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'TPL Passport',
+      title: 'Library Passport',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         // PWA + iOS installability
@@ -34,9 +34,11 @@ export default defineNuxtConfig({
         },
         // PWA
         { rel: 'manifest', href: '/manifest.json' },
-        { rel: 'icon', type: 'image/png', href: '/tpl-meta-card.png' },
+        { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/icon-192.png' },
+        { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/icon-512.png' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'shortcut icon', href: '/favicon.ico' },
-        { rel: 'apple-touch-icon', href: '/tpl-meta-card.png' },
+        { rel: 'apple-touch-icon', href: '/icon-192.png' },
       ],
     },
   },

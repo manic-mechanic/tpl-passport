@@ -83,6 +83,7 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   min-height: 100svh;
+  min-height: 100dvh;
   overscroll-behavior-y: none;
   height: 100%;
   /* Subtle paper grain texture */
@@ -94,12 +95,14 @@ body {
   max-width: 480px;
   margin: 0 auto;
   min-height: 100svh;
+  min-height: 100dvh;
   position: relative;
   background: var(--color-bg);
 }
 
 #__nuxt {
   min-height: 100svh;
+  min-height: 100dvh;
   background: var(--color-bg);
   height: 100%;
 }
@@ -120,6 +123,7 @@ body {
 .page-content {
   padding: env(safe-area-inset-top) 18px calc(var(--nav-height) + 16px);
   min-height: 100svh;
+  min-height: 100dvh;
   background: var(--color-bg);
 }
 

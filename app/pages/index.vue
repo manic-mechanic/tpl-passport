@@ -64,7 +64,6 @@ function openBranchSheet(branch) {
 main {
   display: flex;
   flex-direction: column;
-  min-height: 100svh;
   gap: 18px;
 }
 

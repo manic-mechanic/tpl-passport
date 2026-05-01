@@ -59,6 +59,7 @@ export function getInstallGuide(userAgent: string): InstallGuide {
       title: 'Install on Android',
       platform: 'android',
       steps: [
+        'Use an HTTPS URL (or localhost). HTTP device-IP URLs only support bookmark shortcuts.',
         'Open the browser menu.',
         'Tap "Install app" or "Add to Home screen".',
         'Confirm to finish installing.',
