@@ -1,10 +1,9 @@
 <template>
   <main class="page-content">
-    <div class="sticky-top" ref="stickyTopRef">
-      <header class="page-header" ref="pageHeaderRef">
+    <div ref="stickyTopRef" class="sticky-top">
+      <header ref="pageHeaderRef" class="page-header">
         <div>
           <h1>My Passport</h1>
-          <p class="sub">{{ passport.visitCount }} of {{ physicalBranches.length }} stamps collected</p>
         </div>
         <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
       </header>
@@ -14,13 +13,15 @@
         <button v-for="(page, i) in branchesByAlphaPage" :key="page.label" class="page-tab" :class="{
           active: activePage === i,
           complete: isPageComplete(page),
-        }" role="tab" :aria-selected="activePage === i" @click="goToPage(i)">
+        }" role="tab" :aria-selected="activePage === i" @click="goToPage(i)"
+        >
           {{ page.label }}
         </button>
         <button class="page-tab" :class="{
           active: activePage === EXTRA_CREDIT_IDX,
           complete: extraCreditEarned === BADGES.length,
-        }" role="tab" :aria-selected="activePage === EXTRA_CREDIT_IDX" @click="goToPage(EXTRA_CREDIT_IDX)">
+        }" role="tab" :aria-selected="activePage === EXTRA_CREDIT_IDX" @click="goToPage(EXTRA_CREDIT_IDX)"
+        >
           Extra Credit
         </button>
       </nav>
@@ -29,17 +30,12 @@
     <div class="passport-book">
       <!-- Alpha pages -->
       <section v-for="(page, i) in branchesByAlphaPage" v-show="activePage === i" :key="page.label"
-        class="passport-page" :class="{ complete: isPageComplete(page) }">
+               class="passport-page" :class="{ complete: isPageComplete(page) }"
+      >
         <div class="page-header-row" :style="{ top: stickyHeight + 'px' }">
           <span class="page-range">{{ page.label }}</span>
           <div class="page-header-right">
-            <svg v-if="isPageComplete(page)" class="page-seal" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-              aria-hidden="true">
-              <circle cx="10" cy="10" r="8.5" stroke-width="1.5" />
-              <circle cx="10" cy="10" r="5.5" stroke-width="1" opacity="0.35" />
-              <polyline points="6.5 10 9 12.5 13.5 7.5" stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+            <IconPageSeal v-if="isPageComplete(page)" class="page-seal" aria-hidden="true" />
             <span class="page-count">{{ pageVisitCount(page) }}/{{ page.branches.length }}</span>
           </div>
         </div>
@@ -48,13 +44,13 @@
           <template v-for="branch in page.branches" :key="branch.BranchCode">
             <button class="stamp-slot" @click="openSheet(branch)">
               <div v-if="!passport.hasVisited(branch.BranchCode)" class="stamp-ghost">
-                <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" />
+                <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" />
               </div>
-              <StampShape v-else :branchCode="branch.BranchCode" :wardNo="branch.WardNo" />
+              <StampShape v-else :branch-code="branch.BranchCode" :ward-no="branch.WardNo" />
               <span class="stamp-name" :class="{ unseen: !passport.hasVisited(branch.BranchCode) }">{{ branch.BranchName
-                }}</span>
+              }}</span>
               <span v-if="passport.hasVisited(branch.BranchCode)" class="stamp-date">{{ visitDate(branch.BranchCode)
-                }}</span>
+              }}</span>
             </button>
           </template>
           <!-- phantom cell keeps the grid even when a page has an odd branch count -->
@@ -63,19 +59,13 @@
 
         <nav class="page-turner" aria-label="Navigate pages">
           <button v-if="activePage > 0" class="turner-btn prev" @click="goToPage(activePage - 1)">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <polyline points="10 3 5 8 10 13" />
-            </svg>
+            <IconTurnerPrev aria-hidden="true" />
             {{ ALL_PAGES[activePage - 1] }}
           </button>
           <span v-else />
           <button v-if="activePage < EXTRA_CREDIT_IDX" class="turner-btn next" @click="goToPage(activePage + 1)">
             {{ ALL_PAGES[activePage + 1] }}
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 3 11 8 6 13" />
-            </svg>
+            <IconTurnerNext aria-hidden="true" />
           </button>
           <span v-else />
         </nav>
@@ -83,28 +73,20 @@
 
       <!-- Extra Credit page -->
       <div v-show="activePage === EXTRA_CREDIT_IDX" class="badges-section"
-        :class="{ complete: extraCreditEarned === BADGES.length }">
+           :class="{ complete: extraCreditEarned === BADGES.length }"
+      >
         <div class="page-header-row" :style="{ top: stickyHeight + 'px' }">
           <span class="page-range">Extra Credit</span>
           <div class="page-header-right">
-            <svg v-if="extraCreditEarned === BADGES.length" class="page-seal" viewBox="0 0 20 20" fill="none"
-              stroke="currentColor" aria-hidden="true">
-              <circle cx="10" cy="10" r="8.5" stroke-width="1.5" />
-              <circle cx="10" cy="10" r="5.5" stroke-width="1" opacity="0.35" />
-              <polyline points="6.5 10 9 12.5 13.5 7.5" stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" />
-            </svg>
+            <IconPageSeal v-if="extraCreditEarned === BADGES.length" class="page-seal" aria-hidden="true" />
             <span class="page-count">{{ extraCreditEarned }}/{{ BADGES.length }}</span>
           </div>
         </div>
-        <BadgesSection :sheet-height="sheetHeight" />
+        <BadgesSection :sheet-height="badgeSheetHeight" />
 
         <nav class="page-turner" aria-label="Navigate pages">
           <button class="turner-btn prev" @click="goToPage(EXTRA_CREDIT_IDX - 1)">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
-              <polyline points="10 3 5 8 10 13" />
-            </svg>
+            <IconTurnerPrev aria-hidden="true" />
             {{ ALL_PAGES[EXTRA_CREDIT_IDX - 1] }}
           </button>
           <span />
@@ -115,7 +97,7 @@
 
   <!-- Stamp detail sheet -->
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight" :aria-label="activeStamp?.BranchName + ' stamp detail'">
-    <BranchDetail v-if="activeStamp" :branch="activeStamp" source="passport" />
+    <BranchDetail v-if="activeStamp" :branch="activeStamp" source="passport" @open-branch="openSheet" />
   </BaseSheet>
 </template>
 
@@ -123,10 +105,20 @@
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
+import IconPageSeal from '~/components/icons/IconPageSeal.vue'
+import IconTurnerPrev from '~/components/icons/IconTurnerPrev.vue'
+import IconTurnerNext from '~/components/icons/IconTurnerNext.vue'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const route = useRoute()
+
+onMounted(() => {
+  $posthog?.capture('passport_viewed', {
+    visit_count: passport.visitCount,
+    completion_pct: passport.overallPct,
+  })
+})
 
 const EXTRA_CREDIT_IDX = branchesByAlphaPage.length  // index of Extra Credit tab (= 5)
 const ALL_PAGES = [...branchesByAlphaPage.map(p => p.label), 'Extra Credit']
@@ -141,7 +133,10 @@ const stickyHeight = ref(156)  // sticky block height — drives page-header-row
 const pageHeaderHeight = ref(68) // h1 row height — drives sheet top edge
 
 const sheetHeight = computed(() =>
-  `calc(100dvh - var(--nav-height) - ${pageHeaderHeight.value}px)`
+  `calc(100svh - var(--nav-height) - ${pageHeaderHeight.value}px)`
+)
+const badgeSheetHeight = computed(() =>
+  `min(560px, calc(100svh - var(--nav-height) - ${pageHeaderHeight.value}px))`
 )
 
 function remeasure() {
@@ -198,9 +193,9 @@ onUnmounted(() => {
 /* ── Sticky header block (title + tabs) ── */
 .sticky-top {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top);
   z-index: 10;
-  background: var(--color-bg);
+  background: var(--tpl-navy);
   /* Bleed to screen edges */
   margin: 0 -18px;
   padding: 0 18px;
@@ -214,18 +209,19 @@ onUnmounted(() => {
 
   & h1 {
     margin-bottom: 4px;
+    color: rgba(255, 255, 255, 0.92);
   }
 }
 
 .sub {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .all-visits-link {
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--tpl-blue);
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
   white-space: nowrap;
   padding-bottom: 2px;
@@ -236,7 +232,8 @@ onUnmounted(() => {
   display: flex;
   margin: 0 -18px;
   padding: 0 18px;
-  border-bottom: 2px solid var(--color-border-soft);
+  background: var(--color-bg);
+  border-bottom: 1.5px solid var(--color-border-soft);
 }
 
 .page-tab {
@@ -244,8 +241,8 @@ onUnmounted(() => {
   padding: 10px 6px;
   border: none;
   border-right: 1px solid var(--color-border-soft);
-  border-bottom: 3px solid var(--color-bg);
-  margin-bottom: -2px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1.5px;
   background: none;
   font-size: 0.875rem;
   font-weight: 600;
@@ -258,6 +255,7 @@ onUnmounted(() => {
 
   &:last-child {
     border-right: none;
+    flex: 2;
   }
 
   &.active {
@@ -265,47 +263,24 @@ onUnmounted(() => {
     border-bottom-color: var(--tpl-navy);
   }
 
-  /* Completed — light tint signals progress without conflicting with active underline */
+  /* Completed — subtle warm tint */
   &.complete {
-    background: color-mix(in srgb, var(--tpl-blue) 8%, transparent);
+    background: rgba(200, 120, 32, 0.06);
   }
 }
 
-/* Active tab uses --tpl-navy which is near-black in dark mode — swap to brand text */
-@media (prefers-color-scheme: dark) {
-  .page-tab.active {
-    color: var(--color-brand-text);
-    border-bottom-color: var(--color-brand-text);
-  }
-}
-
-:global([data-theme="dark"]) .page-tab.active {
-  color: var(--color-brand-text);
-  border-bottom-color: var(--color-brand-text);
-}
 
 /* ── Book container — bleed to screen edges ── */
 .passport-book {
   padding-bottom: 24px;
   margin: 0 -18px;
+  background: var(--color-bg);
 }
 
 /* ── Each alpha "page" — full-bleed section ── */
 .passport-page {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-paper);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.04);
-
-  @media (prefers-color-scheme: dark) {
-    & {
-      background: rgba(255, 255, 255, 0.04);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.2);
-    }
-  }
-}
-
-:global([data-theme="dark"]) .passport-page {
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 /* ── Page header row — sticky within its section ── */
@@ -409,13 +384,13 @@ onUnmounted(() => {
   font-size: 0.75rem;
   font-weight: 500;
   text-align: center;
-  color: var(--color-text-mid);
+  color: var(--color-text);
   line-height: 1.3;
   max-width: 160px;
 
   &.unseen {
     color: var(--color-text-muted);
-    opacity: 0.65;
+    opacity: 0.82;
   }
 }
 

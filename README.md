@@ -1,6 +1,6 @@
 # TPL Passport
 
-A mobile-first stamp-collecting app for the Toronto Public Library. Visit branches, collect stamps, complete challenges, and fill your passport.
+A mobile-first stamp-collecting app for the Toronto Public Library. Visit branches, collect stamps, earn badges, and fill your passport.
 
 <p align="center">
   <img src="docs/screenshot-home.png" width="22%" />
@@ -9,45 +9,40 @@ A mobile-first stamp-collecting app for the Toronto Public Library. Visit branch
   <img src="docs/screenshot-branch.png" width="22%" />
 </p>
 
+_Screenshots are representative and may lag the current UI._
+
 ## Try it
 
 Open the app on your phone for the best experience — it's designed as a mobile PWA and can be added to your home screen.
-
-**To simulate the QR check-in flow:**
-1. Open **[the app](https://tpl-passport.vercel.app)** on your phone
-2. Open **`/qr-print`** on a second device (laptop, tablet)
-3. Tap **Scan QR code** in the app, then point your phone at any branch code on the print page
 
 ## What's in the app
 
 | Screen | Description |
 |--------|-------------|
-| **Home** | Passport progress card, stats, achievements, recent visit |
-| **Explore** | All 100 branches — search, filter A–Z or by region, "Not yet" toggle |
-| **Check In** | Manual branch selection or QR scan; optional note and photo |
-| **Passport** | Full stamp grid organised by region — each branch has a unique stamp |
-| **History** | Check-in log grouped by recency, week streak |
-| **Branch detail** | Info, events, services, and branch challenges (unlocked on first visit) |
-| **Settings** | Profile card, theme toggle (light / dark / system), demo modes |
-
-Branch challenges (check out a book, attend a program, meet a librarian) unlock after your first visit and count toward overall passport completion.
+| **Home** | Passport progress, recent visits, and earned badges; sign-in prompt for logged-out users |
+| **Explore** | Four tabs: nearby branches, walking day-trips, upcoming events, and badge suggestions |
+| **Check In** | Select a branch, add an optional note or photo, verify proximity, earn a stamp |
+| **Passport** | Stamp book across 5 alphabetical pages + an Extra Credit page for badges |
+| **History** | Check-in log grouped by recency; filter to visits with notes or photos |
+| **Branch detail** | Branch info, hours, events, and services |
+| **Settings** | Sign in/out, theme picker (Light / Auto / Dark), install helper, dev-only demo mode |
+| **QR Print** | Printable branch QR codes for check-in campaigns |
 
 ## Stack
 
-- **Nuxt 3** (SPA mode — `ssr: false`)
+- **Nuxt 4** (SPA mode — `ssr: false`)
 - **Pinia** for state, persisted to `localStorage`
-- **Supabase** — planned for cross-device sync; not yet wired up
+- **Better Auth + Turso (libSQL)** — email/password and Google OAuth; cross-device sync
 - **Vercel** for hosting
 
-All branch data is static JSON from the [Toronto Open Data](https://open.toronto.ca/) portal (`tpl-branch-general-information-2023.json`).
+Branch and route data is static JSON in `packages/shared/data/`, sourced from the [Toronto Open Data](https://open.toronto.ca/) portal.
 
-## Dev setup
+## Commands
 
-```bash
-bun install
-bun run dev
-```
-
-Open `http://localhost:3000`.
-
-The `#data` alias in `nuxt.config.ts` points to `/data/` at the repo root (outside the `app/` srcDir) — used for importing the branch JSON.
+- `npm run dev` — start local development server
+- `npm test` — run tests once
+- `npm run test:watch` — run tests in watch mode
+- `npm run test:e2e` — run Playwright end-to-end regression tests
+- `npm run lint` — run ESLint checks
+- `npm run lint:fix` — auto-fix lint issues where possible
+- `npm run build` — build for production

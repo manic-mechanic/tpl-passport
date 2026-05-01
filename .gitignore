@@ -18,6 +18,9 @@ logs
 .DS_Store
 .fleet
 .idea
+.playwright-mcp
+playwright-report
+test-results
 reference
 
 # LLM assistant config
@@ -25,6 +28,9 @@ CLAUDE.md
 
 # Unused / superseded data files
 data/tpl-branch-general-information-2023.json
+
+# Drizzle migration history
+drizzle
 
 # Local env files
 .env

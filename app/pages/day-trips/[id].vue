@@ -1,11 +1,8 @@
 <template>
   <main class="page-content">
-
     <header class="route-header">
       <NuxtLink to="/explore?tab=routes" class="back-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
+        <IconBack />
         Day Trips
       </NuxtLink>
       <h1 class="route-title">{{ trip.name }}</h1>
@@ -15,23 +12,15 @@
     <p class="route-description">{{ trip.description }}</p>
 
     <a :href="mapsUrl" target="_blank" rel="noopener" class="maps-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        <circle cx="12" cy="9" r="2.5"/>
-      </svg>
+      <IconMapPin />
       Open full route in Maps
     </a>
 
     <section class="stops-section">
       <h2 class="stops-title">Stops</h2>
       <div class="stops-list">
-        <BranchCard
-          v-for="(b, i) in branchObjects"
-          :key="b.BranchCode"
-          :branch="b"
-          :index="i + 1"
-          as-button
-          @select="openSheet"
+        <BranchCard v-for="(b, i) in branchObjects" :key="b.BranchCode" :branch="b" :index="i + 1" as-button
+                    @select="openSheet"
         />
       </div>
     </section>
@@ -42,18 +31,19 @@
         Curated tips from locals and librarians — coming soon.
       </p>
     </section>
-
   </main>
 
   <!-- Branch detail sheet -->
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight">
-    <BranchDetail v-if="activeBranch" :branch="activeBranch" />
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" @open-branch="openSheet" />
   </BaseSheet>
 </template>
 
 <script setup>
 import { physicalBranches, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
+import IconBack from '~/components/icons/IconBack.vue'
+import IconMapPin from '~/components/icons/IconMapPin.vue'
 
 const nuxtRoute = useRoute()
 
@@ -64,13 +54,13 @@ if (!trip) {
 }
 
 const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
-const branchObjects  = trip.branches.map(code => branchesByCode[code]).filter(Boolean)
+const branchObjects = trip.branches.map(code => branchesByCode[code]).filter(Boolean)
 
 const mapsUrl = buildMapsUrl(branchObjects)
 
-const sheetOpen    = ref(false)
+const sheetOpen = ref(false)
 const activeBranch = ref(null)
-const sheetHeight  = 'calc(100dvh - var(--nav-height) - 60px)'
+const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
 function openSheet(branch) {
   activeBranch.value = branch
@@ -97,7 +87,11 @@ function openSheet(branch) {
   text-decoration: none;
   margin-bottom: 6px;
 }
-.back-link svg { width: 16px; height: 16px; }
+
+.back-link svg {
+  width: 16px;
+  height: 16px;
+}
 
 .route-title {
   font-family: var(--font-display);
@@ -136,11 +130,23 @@ function openSheet(branch) {
   transition: opacity 0.15s;
 }
 
-.maps-btn:active { opacity: 0.85; }
-.maps-btn svg { width: 16px; height: 16px; stroke: #fff; }
+.maps-btn:active {
+  opacity: 0.85;
+}
 
-.stops-section { margin-bottom: 28px; }
-.suggestions-section { margin-bottom: 16px; }
+.maps-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: #fff;
+}
+
+.stops-section {
+  margin-bottom: 28px;
+}
+
+.suggestions-section {
+  margin-bottom: 16px;
+}
 
 .stops-title {
   font-size: 1rem;
@@ -160,5 +166,4 @@ function openSheet(branch) {
   color: var(--color-text-muted);
   font-style: italic;
 }
-
 </style>

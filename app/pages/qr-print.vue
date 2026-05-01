@@ -2,9 +2,7 @@
   <main class="page-content">
     <header class="page-header">
       <NuxtLink to="/settings" class="back-link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
+        <IconBack />
         Settings
       </NuxtLink>
       <h1 class="page-title">QR Codes</h1>
@@ -17,30 +15,14 @@
 
     <!-- Search -->
     <div class="search-wrap">
-      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input
-        v-model="query"
-        type="search"
-        class="search-input"
-        placeholder="Search branches…"
-      />
+      <IconSearch />
+      <input v-model="query" type="search" class="search-input" placeholder="Search branches…" />
     </div>
 
     <!-- QR grid -->
     <div class="qr-grid">
-      <div
-        v-for="branch in filteredBranches"
-        :key="branch.BranchCode"
-        class="qr-card"
-      >
-        <img
-          :src="qrUrl(branch.BranchCode)"
-          :alt="`QR code for ${branch.BranchName}`"
-          class="qr-img"
-          loading="lazy"
-        />
+      <div v-for="branch in filteredBranches" :key="branch.BranchCode" class="qr-card">
+        <img :src="qrUrl(branch.BranchCode)" :alt="`QR code for ${branch.BranchName}`" class="qr-img" loading="lazy" />
         <div class="qr-info">
           <p class="qr-name">{{ branch.BranchName }}</p>
           <p class="qr-code">{{ branch.BranchCode }}</p>
@@ -56,6 +38,8 @@
 </template>
 
 <script setup>
+import IconBack from '~/components/icons/IconBack.vue'
+import IconSearch from '~/components/icons/IconSearch.vue'
 import { physicalBranches } from '~/composables/useRegion'
 
 const query = ref('')
@@ -100,7 +84,10 @@ function qrUrl(branchCode) {
   flex-shrink: 0;
 }
 
-.back-link svg { width: 16px; height: 16px; }
+.back-link svg {
+  width: 16px;
+  height: 16px;
+}
 
 .page-title {
   font-size: 1.125rem;
@@ -122,7 +109,7 @@ function qrUrl(branchCode) {
   margin-bottom: 18px;
 }
 
-.search-icon {
+.search-wrap svg {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -146,7 +133,9 @@ function qrUrl(branchCode) {
   box-shadow: var(--shadow-sm);
 }
 
-.search-input::placeholder { color: var(--color-text-muted); }
+.search-input::placeholder {
+  color: var(--color-text-muted);
+}
 
 /* QR grid — two columns */
 .qr-grid {

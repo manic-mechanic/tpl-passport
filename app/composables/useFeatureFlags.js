@@ -3,7 +3,7 @@
 export const FEATURES = Object.freeze({
   // Branch challenges (check out a book, attend a program, meet a librarian)
   // Awaiting: TPL partnership + in-branch QR signage deployment
-  // Re-enable: set to true. Affects: BranchChallenges.vue, useBadges.js (quest_master), passport.js (demo state)
+  // Re-enable: set to true. Affects: BranchChallenges.vue, useBadges.js (quest_master), passport.ts (demo state)
   challenges: false,
 
   // QR code check-in via camera scan

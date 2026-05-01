@@ -1,11 +1,121 @@
 <template>
   <main class="page-content">
     <header class="page-header">
-      <div class="brand">
-        <img src="/tpl-meta.png" class="tpl-logo" alt="Toronto Public Library" />
-        <span class="brand-title">passport<span class="brand-colon">:</span></span>
-      </div>
+      <h1>Settings</h1>
     </header>
+    <div class="header-gap" />
+    <p v-if="inlineToast.text" class="inline-toast" :class="inlineToast.kind">{{ inlineToast.text }}</p>
+
+    <!-- Account -->
+    <section class="settings-group">
+      <p class="section-label">Account</p>
+      <div class="settings-card card">
+        <template v-if="session">
+          <div class="setting-row">
+            <span class="setting-label">Signed in as</span>
+            <span class="account-email">{{ session.user.email }}</span>
+          </div>
+
+          <template v-if="!isGoogleAccount">
+            <div class="setting-row">
+              <span class="setting-label">Email</span>
+              <button class="inline-open" @click="toggleChangeEmail">
+                {{ showChangeEmail ? 'Close' : 'Change email' }}
+              </button>
+            </div>
+            <div v-if="showChangeEmail" class="inline-form">
+              <input v-model="newEmail" class="inline-input" type="email" placeholder="New email address"
+                     autocomplete="email" autocapitalize="none"
+              >
+              <p v-if="emailError" class="inline-error">{{ emailError }}</p>
+              <div class="inline-actions">
+                <button class="inline-cancel" @click="cancelChangeEmail">Cancel</button>
+                <button class="inline-save" :disabled="emailSaving" @click="submitChangeEmail">
+                  {{ emailSaving ? 'Saving…' : 'Update' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <span class="setting-label">Password</span>
+              <button class="inline-open" @click="toggleChangePassword">
+                {{ showChangePassword ? 'Close' : 'Change password' }}
+              </button>
+            </div>
+            <div v-if="showChangePassword" class="inline-form">
+              <input v-model="currentPassword" class="inline-input" type="password" placeholder="Current password"
+                     autocomplete="current-password"
+              >
+              <input v-model="newPassword" class="inline-input" type="password" placeholder="New password"
+                     autocomplete="new-password"
+              >
+              <input v-model="confirmPassword" class="inline-input" type="password" placeholder="Confirm new password"
+                     autocomplete="new-password"
+              >
+              <p v-if="passwordError" class="inline-error">{{ passwordError }}</p>
+              <div class="inline-actions">
+                <button class="inline-cancel" @click="cancelChangePassword">Cancel</button>
+                <button class="inline-save" :disabled="passwordSaving" @click="submitChangePassword">
+                  {{ passwordSaving ? 'Saving…' : 'Update' }}
+                </button>
+              </div>
+            </div>
+          </template>
+          <p v-else class="provider-note">Signed in with Google — email and password are managed by Google.</p>
+
+          <div class="setting-row">
+            <button class="signout-btn" @click="signOut">Sign out</button>
+          </div>
+        </template>
+        <div v-else class="setting-row">
+          <div>
+            <span class="setting-label">Save your progress</span>
+            <p class="setting-hint">Access your passport on any device</p>
+          </div>
+          <NuxtLink to="/login" class="signin-link">Sign in →</NuxtLink>
+        </div>
+      </div>
+    </section>
+
+    <!-- Profile -->
+    <section class="settings-group">
+      <p class="section-label">Profile</p>
+      <div class="settings-card card">
+        <template v-if="session && !profileEditing">
+          <div class="setting-row">
+            <span class="setting-label">Name</span>
+            <span class="account-email">{{ profileName || '—' }}</span>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Home Branch</span>
+            <span class="account-email">{{ profileHomeBranch || '—' }}</span>
+          </div>
+          <div class="setting-row">
+            <button class="inline-open" @click="profileEditing = true">Edit profile</button>
+          </div>
+        </template>
+        <template v-else>
+          <div class="setting-row">
+            <label class="setting-label" for="profile-name">Name</label>
+            <input id="profile-name" v-model="profileName" class="profile-input" type="text"
+                   placeholder="Your name" maxlength="40" autocomplete="given-name"
+            >
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Home Branch</span>
+            <div class="profile-branch-wrap">
+              <BranchCombobox v-model="profileHomeBranch" placeholder="Search branches…" />
+            </div>
+          </div>
+          <div class="setting-row">
+            <button class="profile-save-btn" :disabled="profileSaving" @click="saveProfile">
+              {{ profileSaving ? 'Saving…' : 'Save' }}
+            </button>
+            <button v-if="session" class="profile-cancel-btn" @click="cancelProfileEdit">Cancel</button>
+          </div>
+        </template>
+      </div>
+    </section>
 
     <!-- Appearance -->
     <section class="settings-group">
@@ -18,20 +128,32 @@
               class="theme-btn"
               :class="{ active: passport.profile.theme === 'light' }"
               @click="passport.profile.theme = 'light'"
-            >Light</button>
+            >
+              Light
+            </button>
             <button
               class="theme-btn"
               :class="{ active: passport.profile.theme === '' }"
               @click="passport.profile.theme = ''"
-            >Auto</button>
+            >
+              Auto
+            </button>
             <button
               class="theme-btn"
               :class="{ active: passport.profile.theme === 'dark' }"
               @click="passport.profile.theme = 'dark'"
-            >Dark</button>
+            >
+              Dark
+            </button>
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- Install -->
+    <section v-if="showInstallSection" class="settings-group">
+      <p class="section-label">Install</p>
+      <InstallHelperCard />
     </section>
 
     <!-- Demo mode — dev only -->
@@ -66,12 +188,16 @@
               class="theme-btn"
               :class="{ active: !passport.profile.bypassLocationFence }"
               @click="passport.profile.bypassLocationFence = false"
-            >On</button>
+            >
+              On
+            </button>
             <button
               class="theme-btn"
               :class="{ active: passport.profile.bypassLocationFence }"
               @click="passport.profile.bypassLocationFence = true"
-            >Off</button>
+            >
+              Off
+            </button>
           </div>
         </div>
       </div>
@@ -85,22 +211,206 @@
           <span class="setting-label">Version</span>
           <span class="about-val">1.0 MVP</span>
         </div>
-        <div class="about-row link">
-          <a href="https://tpl.ca" target="_blank" class="about-link">Toronto Public Library ↗</a>
+        <div class="about-row">
+          <span class="setting-label">Developed by</span>
+          <a href="https://www.github.com/bennygoldman" target="_blank" class="about-link">Benny Goldman ↗</a>
+        </div>
+        <div class="about-row">
+          <p class="disclaimer">This is an unofficial app and is not affiliated with or endorsed by Toronto Public Library.</p>
         </div>
       </div>
     </section>
-
   </main>
 </template>
 
 <script setup>
+import * as Sentry from '@sentry/nuxt'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
+import { authClient } from '~/lib/auth-client'
+import { pushProfile } from '~/composables/useProfileSync'
+import { isRunningStandalone } from '~/lib/installHelper'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const { public: { isDev } } = useRuntimeConfig()
+const showInstallSection = ref(false)
+const isGoogleAccount = ref(false)
+const profileEditing = ref(false)
+const inlineToast = ref({ text: '', kind: 'success' })
+
+watch(() => passport.profile.theme, (theme) => {
+  $posthog?.capture('theme_changed', { theme: theme || 'system' })
+})
+
+const session = ref(null)
+
+onMounted(async () => {
+  const { data } = await authClient.getSession()
+  session.value = data
+  profileEditing.value = !data
+  try {
+    if (typeof authClient.listAccounts === 'function') {
+      const { data: accounts } = await authClient.listAccounts()
+      isGoogleAccount.value = Array.isArray(accounts) && accounts.some(account => account.provider === 'google')
+    }
+  } catch {
+    isGoogleAccount.value = false
+  }
+  showInstallSection.value = !isRunningStandalone()
+  window.addEventListener('appinstalled', onAppInstalled)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('appinstalled', onAppInstalled)
+})
+
+function onAppInstalled() {
+  showInstallSection.value = false
+}
+
+// Profile editing
+const profileName = ref(passport.profile.name ?? '')
+const profileHomeBranch = ref(passport.profile.homeBranch ?? '')
+const profileSaving = ref(false)
+
+function showToast(text, kind = 'success') {
+  inlineToast.value = { text, kind }
+  window.setTimeout(() => {
+    if (inlineToast.value.text === text) inlineToast.value = { text: '', kind: 'success' }
+  }, 2400)
+}
+
+async function saveProfile() {
+  profileSaving.value = true
+  try {
+    passport.profile.name = profileName.value
+    passport.profile.homeBranch = profileHomeBranch.value
+    await pushProfile({ name: profileName.value, homeBranch: profileHomeBranch.value || null })
+    $posthog?.capture('profile_updated')
+    profileEditing.value = false
+    showToast('Profile updated.')
+  } finally {
+    profileSaving.value = false
+  }
+}
+
+function cancelProfileEdit() {
+  profileName.value = passport.profile.name ?? ''
+  profileHomeBranch.value = passport.profile.homeBranch ?? ''
+  profileEditing.value = false
+}
+
+async function signOut() {
+  await authClient.signOut()
+  $posthog?.capture('signed_out')
+  $posthog?.reset()
+  Sentry.setUser(null)
+  session.value = null
+}
+
+// Change email
+const showChangeEmail = ref(false)
+const newEmail = ref('')
+const emailError = ref('')
+const emailSaving = ref(false)
+
+function toggleChangeEmail() {
+  showChangeEmail.value = !showChangeEmail.value
+  newEmail.value = ''
+  emailError.value = ''
+}
+
+function cancelChangeEmail() {
+  showChangeEmail.value = false
+  newEmail.value = ''
+  emailError.value = ''
+}
+
+async function submitChangeEmail() {
+  const trimmed = newEmail.value.trim()
+  if (!trimmed) { emailError.value = 'Enter a new email address.'; return }
+  if (trimmed === session.value?.user?.email) { emailError.value = 'That is already your current email.'; return }
+  emailError.value = ''
+  emailSaving.value = true
+  try {
+    const { error } = await authClient.changeEmail({ newEmail: trimmed })
+    if (error) {
+      emailError.value = error.message ?? 'Something went wrong.'
+    } else {
+      showChangeEmail.value = false
+      newEmail.value = ''
+      $posthog?.capture('email_changed')
+      showToast('Email updated.')
+    }
+  } finally {
+    emailSaving.value = false
+  }
+}
+
+// Change password
+const showChangePassword = ref(false)
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const passwordError = ref('')
+const passwordSaving = ref(false)
+
+function toggleChangePassword() {
+  showChangePassword.value = !showChangePassword.value
+  currentPassword.value = ''
+  newPassword.value = ''
+  confirmPassword.value = ''
+  passwordError.value = ''
+}
+
+function cancelChangePassword() {
+  showChangePassword.value = false
+  currentPassword.value = ''
+  newPassword.value = ''
+  confirmPassword.value = ''
+  passwordError.value = ''
+}
+
+async function submitChangePassword() {
+  if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
+    passwordError.value = 'All fields are required.'
+    return
+  }
+  if (newPassword.value !== confirmPassword.value) {
+    passwordError.value = 'New passwords do not match.'
+    return
+  }
+  if (newPassword.value.length < 8) {
+    passwordError.value = 'Password must be at least 8 characters.'
+    return
+  }
+  passwordError.value = ''
+  passwordSaving.value = true
+  try {
+    const { error } = await authClient.changePassword({
+      currentPassword: currentPassword.value,
+      newPassword: newPassword.value,
+    })
+    if (error) {
+      passwordError.value =
+        error.code === 'CREDENTIAL_ACCOUNT_NOT_FOUND'
+          ? 'No password on this account (signed in with Google).'
+          : error.code === 'INVALID_PASSWORD'
+            ? 'Current password is incorrect.'
+            : (error.message ?? 'Something went wrong.')
+    } else {
+      $posthog?.capture('password_changed')
+      showChangePassword.value = false
+      currentPassword.value = ''
+      newPassword.value = ''
+      confirmPassword.value = ''
+      showToast('Password updated.')
+    }
+  } finally {
+    passwordSaving.value = false
+  }
+}
 
 watch(() => passport.profile.theme, (theme) => {
   $posthog?.capture('theme_changed', { theme: theme || 'system' })
@@ -124,34 +434,230 @@ function setDemo(mode) {
 
 <style scoped>
 .page-header {
-  padding: 20px 0 18px;
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 10;
+  margin: 0 -18px;
+  padding: 14px 18px 16px;
+  background: var(--tpl-navy);
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.header-gap {
+  height: 20px;
 }
 
-.tpl-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
+.inline-toast {
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 25%, transparent);
+  background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface));
+  color: var(--color-text-mid);
+  font-size: 0.875rem;
+  padding: 10px 12px;
+
+  &.error {
+    border-color: color-mix(in srgb, var(--color-error) 35%, transparent);
+    background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
+    color: var(--color-error);
+  }
 }
 
-.brand-title {
+.page-header h1 {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--tpl-navy);
+  color: rgba(255, 255, 255, 0.92);
   letter-spacing: -0.02em;
   font-optical-sizing: auto;
 }
 
-.brand-colon { color: var(--tpl-blue); }
-
 .settings-group {
   margin-bottom: 24px;
+}
+
+/* ── Profile ──────────────────────────────────── */
+.profile-input {
+  font-size: 1rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: none;
+  border: none;
+  outline: none;
+  text-align: right;
+  width: 55%;
+  padding: 0;
+}
+
+.profile-input::placeholder { color: var(--color-text-muted); }
+
+.profile-branch-wrap {
+  width: 55%;
+  text-align: right;
+
+  :deep(.combo-input) {
+    text-align: right;
+    font-size: 1rem;
+    color: var(--color-text);
+    background: transparent;
+    border: none;
+    outline: none;
+    width: 100%;
+  }
+}
+
+.profile-save-btn {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  color: var(--tpl-blue);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.profile-cancel-btn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* ── Account — inline forms ───────────────────── */
+.setting-row-action {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active { opacity: 0.7; }
+}
+
+.setting-chevron {
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  transition: transform 0.15s;
+  display: inline-block;
+
+  &.open { transform: rotate(90deg); }
+}
+
+.inline-form {
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--color-border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-bg);
+}
+
+.inline-input {
+  width: 100%;
+  font-size: 1rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  outline: none;
+  box-sizing: border-box;
+
+  &:focus { border-color: var(--tpl-blue); }
+  &::placeholder { color: var(--color-text-muted); }
+}
+
+.inline-error {
+  font-size: 0.75rem;
+  color: #c0392b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.inline-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.inline-cancel {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  cursor: pointer;
+}
+
+.inline-save {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: #fff;
+  background: var(--tpl-blue);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.inline-open {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--tpl-blue);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.provider-note {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border-soft);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Account ──────────────────────────────────── */
+.account-email {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+  text-align: right;
+}
+
+.signin-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tpl-blue);
+}
+
+.signout-btn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 /* ── Shared settings card ─────────────────────── */
@@ -274,5 +780,11 @@ function setDemo(mode) {
   color: var(--tpl-blue);
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+.disclaimer {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 </style>

@@ -14,14 +14,14 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'TPL Passport',
+      title: 'Library Passport',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         // PWA + iOS installability
         { name: 'theme-color', content: '#001c71', media: '(prefers-color-scheme: light)' },
         { name: 'theme-color', content: '#111850', media: '(prefers-color-scheme: dark)' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-title', content: 'TPL Passport' },
+        { name: 'apple-mobile-web-app-title', content: 'Library Passport' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
       ],
       link: [
@@ -34,15 +34,22 @@ export default defineNuxtConfig({
         },
         // PWA
         { rel: 'manifest', href: '/manifest.json' },
-        { rel: 'icon', type: 'image/png', href: '/tpl-meta-card.png' },
-        { rel: 'apple-touch-icon', href: '/tpl-meta-card.png' },
+        { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/icon-192.png' },
+        { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/icon-512.png' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'shortcut icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', href: '/icon-192.png' },
       ],
     },
   },
 
-  // Alias for static branch data sitting outside the app/ srcDir
+  build: {
+    transpile: ['@tpl-passport/shared'],
+  },
+
+  // Alias for branch data — now served from the shared package
   alias: {
-    '#data': fileURLToPath(new URL('./data', import.meta.url)),
+    '#data': fileURLToPath(new URL('./packages/shared/data', import.meta.url)),
   },
 
   // Dev-only features (demo mode, location fence bypass, QR scanner).
@@ -52,9 +59,9 @@ export default defineNuxtConfig({
     public: {
       isDev: true,
       bypassGeofence: false,
+      authBase: 'https://auth.librarypassport.ca',
       posthogKey: '',
       posthogHost: 'https://us.i.posthog.com',
-      sentryDsn: '',
     }
   },
 

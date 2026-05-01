@@ -1,29 +1,40 @@
 <template>
-  <main class="page-content">
+  <main class="page-content" :class="{ 'has-browse-cta': activeTab === 'near-me' }">
+    <!-- Sticky header + tabs -->
+    <div class="sticky-top">
+      <header class="page-header">
+        <div>
+          <h1>Explore</h1>
+        </div>
+        <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
+          <IconSearch />
+        </NuxtLink>
+      </header>
 
-    <!-- Header -->
-    <header class="page-header">
-      <div>
-        <h1>Explore</h1>
-        <p class="sub">Plan your next visit</p>
-      </div>
-      <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-      </NuxtLink>
-    </header>
-
-    <!-- Tab pills -->
-    <nav class="tab-bar" role="tablist">
-      <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
-        :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'">Near Me</button>
-      <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
-        :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'">Day Trips</button>
-      <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
-        :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'">Extra Credit</button>
-    </nav>
+      <!-- Tab pills -->
+      <nav class="tab-bar" role="tablist">
+        <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
+                :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'"
+        >
+          Near Me
+        </button>
+        <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
+                :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'"
+        >
+          Day Trips
+        </button>
+        <button class="tab-pill" :class="{ active: activeTab === 'events' }" role="tab"
+                :aria-selected="activeTab === 'events'" @click="activeTab = 'events'"
+        >
+          What's On
+        </button>
+        <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
+                :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'"
+        >
+          Extra Credit
+        </button>
+      </nav>
+    </div>
 
     <!-- Near Me -->
     <section v-show="activeTab === 'near-me'" class="explore-section">
@@ -36,7 +47,8 @@
 
       <div v-else-if="geoStatus === 'ready'" class="near-me-list">
         <BranchCard v-for="item in nearMeBranches" :key="item.branch.BranchCode" :branch="item.branch"
-          :distance="item.distanceLabel" as-button @select="openBranchSheet" />
+                    :distance="item.distanceLabel" as-button @select="openBranchSheet"
+        />
       </div>
     </section>
 
@@ -48,7 +60,7 @@
       <div v-else class="badge-suggestions">
         <div v-for="s in badgeSuggestions" :key="s.id" class="suggestion-card">
           <div class="suggestion-badge" :class="s.shape" :style="{ background: badgeBg(s.id) }">
-            <span v-if="s.label" class="suggestion-badge-label">{{ s.label }}</span>
+            <span v-if="s.displayLabel" class="suggestion-badge-label">{{ s.displayLabel }}</span>
           </div>
           <div class="suggestion-body">
             <div class="suggestion-header">
@@ -61,7 +73,8 @@
             <div v-if="s.branches.length" class="suggestion-branches">
               <p class="suggestion-subhead">Suggested:</p>
               <BranchCard v-for="b in s.branches" :key="b.BranchCode" :branch="b" compact as-button
-                @select="openBranchSheet" />
+                          @select="openBranchSheet"
+              />
             </div>
           </div>
         </div>
@@ -70,57 +83,105 @@
 
     <!-- Day Trips -->
     <section v-show="activeTab === 'routes'" class="explore-section">
-
       <!-- Mode sub-tabs -->
       <nav class="mode-bar" role="tablist">
         <button v-for="mode in MODES" :key="mode.id" class="mode-tab" :class="{ active: activeMode === mode.id }"
-          role="tab" :aria-selected="activeMode === mode.id" @click="activeMode = mode.id">
-          <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
-            stroke-linecap="round" stroke-linejoin="round" v-html="mode.icon" />
+                role="tab" :aria-selected="activeMode === mode.id" @click="activeMode = mode.id"
+        >
+          <IconMode class="mode-icon" v-html="mode.icon" />
           {{ mode.label }}
         </button>
       </nav>
 
       <!-- Walking routes -->
       <div v-if="activeMode === 'walk'" class="routes-list">
-        <NuxtLink v-for="route in routesWithProgress" :key="route.id" :to="'/day-trips/' + route.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: route.id, route_name: route.name, visited: route.visited, total: route.total })">
-          <div class="route-top">
-            <span class="route-name">{{ route.name }}</span>
-            <svg class="route-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+        <NuxtLink v-for="tripRoute in routesWithProgress" :key="tripRoute.id" :to="'/day-trips/' + tripRoute.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: tripRoute.id, route_name: tripRoute.name, visited: tripRoute.visited, total: tripRoute.total })">
+          <div class="route-meta-row">
+            <span class="area-chip">{{ tripRoute.area }}</span>
+            <span class="route-info">🚶 {{ tripRoute.duration }} · {{ tripRoute.total }} stops</span>
+            <IconChevron class="route-chevron" />
           </div>
-          <p class="route-meta">{{ route.area }} · {{ route.total }} stops · {{ route.duration }}</p>
-          <div class="route-progress">
-            <div class="route-bar">
-              <div class="route-fill" :style="{ width: (route.visited / route.total * 100) + '%' }" />
+          <p class="route-name">{{ tripRoute.name }}</p>
+          <p class="route-desc">{{ tripRoute.description }}</p>
+          <div class="route-stamps">
+            <div v-for="b in tripRoute.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
+              <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
+                <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
+              </div>
+              <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
             </div>
-            <span class="route-count" :class="{ done: route.visited === route.total }">
-              {{ route.visited }}/{{ route.total }}
-            </span>
+            <div v-if="tripRoute.branchObjects.length > 4" class="route-overflow">
+              +{{ tripRoute.branchObjects.length - 4 }}<br>More
+            </div>
           </div>
         </NuxtLink>
       </div>
 
       <!-- Stubbed modes -->
       <p v-else class="coming-soon">
-        {{MODES.find(m => m.id === activeMode)?.label}} routes coming soon.
+        {{ MODES.find(m => m.id === activeMode)?.label }} routes coming soon.
       </p>
+    </section>
 
+    <!-- What's On -->
+    <section v-show="activeTab === 'events'" class="explore-section">
+      <div v-if="eventsLoading && sortedEvents.length === 0" class="geo-state">
+        <span class="geo-spinner" />
+        <span>Loading events…</span>
+      </div>
+      <p v-else-if="eventsError" class="geo-denied">Could not load events.</p>
+      <div v-else class="events-list">
+        <div class="events-controls">
+          <button class="events-filter-btn" :class="{ active: !isManualDaySelection }" @click="resetToToday">
+            Today
+          </button>
+          <input
+            v-model="selectedEventsDate"
+            class="events-date-input"
+            type="date"
+            :min="availableEventDays[0] ?? selectedEventsDate"
+            :max="availableEventDays[availableEventDays.length - 1] ?? selectedEventsDate"
+            @change="onEventsDateChange"
+          >
+        </div>
+        <p v-if="eventsInView.length === 0" class="geo-denied">No events for the selected day.</p>
+        <div
+          v-for="event in eventsInView"
+          :key="event.id"
+          class="event-row"
+          :class="{ 'event-row-clickable': event.branch }"
+          :role="event.branch ? 'button' : undefined"
+          :tabindex="event.branch ? 0 : undefined"
+          @click="event.branch && openBranchSheet(event.branch)"
+          @keydown.enter="event.branch && openBranchSheet(event.branch)"
+        >
+          <div class="event-date">
+            <span class="event-month">{{ formatEventDateParts(event.date).month }}</span>
+            <span class="event-day">{{ formatEventDateParts(event.date).day }}</span>
+            <span class="event-weekday">{{ formatEventDateParts(event.date).weekday }}</span>
+          </div>
+          <div class="event-info">
+            <p class="event-title">{{ event.title }}</p>
+            <p class="event-meta">{{ [event.locationName, formatEventTime(event.time), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}</p>
+          </div>
+          <IconChevron v-if="event.branch" class="event-chevron" />
+        </div>
+        <button v-if="canLoadMoreDays" class="events-load-more" @click="loadMoreDays">
+          Load more days
+        </button>
+      </div>
     </section>
 
     <!-- Browse All CTA -->
-    <div class="browse-cta">
+    <div v-if="activeTab === 'near-me'" class="browse-cta">
       <NuxtLink to="/branches" class="browse-btn">Browse all Branches</NuxtLink>
     </div>
-
   </main>
 
   <!-- Branch detail sheet -->
   <BaseSheet v-model:open="branchSheetOpen" :height="branchSheetHeight">
-    <BranchDetail v-if="activeBranch" :branch="activeBranch" />
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="explore" @open-branch="openBranchSheet" />
   </BaseSheet>
-
 </template>
 
 <script setup>
@@ -128,14 +189,29 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, haversineKm, formatDist, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
 import { BADGES, useBadgeCtx, badgeBg } from '~/composables/useBadges'
+import { formatAudiences, formatEventTime } from '~/composables/useEvents'
+import { localDayKey } from '@tpl-passport/shared'
+import { reportError } from '~/lib/reportError'
+import IconSearch from '~/components/icons/IconSearch.vue'
+import IconMode from '~/components/icons/IconMode.vue'
+import IconChevron from '~/components/icons/IconChevron.vue'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 // ── Tab state ────────────────────────────────────────────────────────
 const route = useRoute()
-const activeTab = ref(route.query.tab === 'routes' ? 'routes' : 'near-me')
+const activeTab = ref(
+  route.query.tab === 'routes' ? 'routes'
+    : route.query.tab === 'events' ? 'events'
+      : route.query.tab === 'working-toward' ? 'working-toward'
+        : 'near-me'
+)
 const activeMode = ref('walk')    // 'walk' | 'bike' | 'transit' | 'drive'
+
+watch(activeTab, (tab) => {
+  $posthog?.capture('explore_tab_changed', { tab })
+})
 
 watch(activeMode, (mode) => {
   $posthog?.capture('transport_mode_changed', { mode })
@@ -203,6 +279,144 @@ const nearMeBranches = computed(() => {
   return [nearest, ...unvisited].map(item => ({ ...item, distanceLabel: formatDist(item.km) }))
 })
 
+// ── Events (What's On) ───────────────────────────────────────────────
+const branchByShortName = new Map(
+  physicalBranches.map(b => [b.BranchName.replace(/ Branch$/i, '').toLowerCase(), b])
+)
+
+function formatEventDateParts(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return {
+    day: d.getDate(),
+    month: d.toLocaleDateString('en-CA', { month: 'short' }).toUpperCase(),
+    weekday: d.toLocaleDateString('en-CA', { weekday: 'short' }),
+  }
+}
+
+const eventsData = ref([])
+const eventsLoading = ref(false)
+const eventsError = ref(null)
+const loadedEventOffsets = ref([])
+const MAX_EVENT_DAYS = 7
+
+function eventFromRaw(raw) {
+    const locationName = raw.LocationName ?? raw.Location ?? ''
+    return {
+      id: raw._id,
+      title: raw.EventName ?? raw['Event Name'] ?? raw.Title ?? 'Event',
+      date: raw.StartDateLocal,
+      time: raw.StartTime ?? '',
+      audiences: raw.Audiences ?? raw.AgeGroup ?? raw['Age Group'] ?? '',
+      locationName,
+      branch: branchByShortName.get(locationName.toLowerCase()) ?? null,
+    }
+}
+
+async function fetchEventsWindow(offset, days) {
+  eventsLoading.value = true
+  eventsError.value = null
+  try {
+    const records = await $fetch('/api/all-events', { query: { offset, days } })
+    const mapped = (Array.isArray(records) ? records : []).map(eventFromRaw)
+    const next = new Map(eventsData.value.map(event => [event.id, event]))
+    for (const event of mapped) next.set(event.id, event)
+    eventsData.value = [...next.values()]
+    loadedEventOffsets.value = [...new Set([
+      ...loadedEventOffsets.value,
+      ...Array.from({ length: days }, (_, i) => offset + i).filter(i => i >= 0 && i < MAX_EVENT_DAYS),
+    ])]
+  } catch (error) {
+    eventsError.value = error
+    reportError(error, {
+      area: 'events',
+      operation: 'all_events_window_fetch',
+      offset,
+      days,
+    })
+  } finally {
+    eventsLoading.value = false
+  }
+}
+
+const sortedEvents = computed(() => {
+  const evs = eventsData.value
+  if (!userLat.value || !userLng.value) return evs
+  return [...evs].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1
+    const aDist = a.branch ? haversineKm(userLat.value, userLng.value, a.branch.Lat, a.branch.Long) : 999
+    const bDist = b.branch ? haversineKm(userLat.value, userLng.value, b.branch.Lat, b.branch.Long) : 999
+    if (Math.abs(aDist - bDist) > 2) return aDist - bDist
+    return (a.time ?? '') < (b.time ?? '') ? -1 : 1
+  })
+})
+
+const selectedEventsDate = ref(localDayKey(new Date()) ?? '')
+const isManualDaySelection = ref(false)
+const visibleEventDayCount = ref(1)
+const todayDay = computed(() => localDayKey(new Date()) ?? '')
+
+function dayAtOffset(offset) {
+  const day = new Date()
+  day.setDate(day.getDate() + offset)
+  return localDayKey(day)
+}
+
+function offsetForDay(dayKey) {
+  if (!dayKey || !todayDay.value) return null
+  const base = new Date(`${todayDay.value}T00:00:00`)
+  const target = new Date(`${dayKey}T00:00:00`)
+  return Math.round((target.getTime() - base.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+const availableEventDays = computed(() =>
+  Array.from({ length: MAX_EVENT_DAYS }, (_, i) => dayAtOffset(i)).filter(Boolean)
+)
+
+const visibleEventDays = computed(() =>
+  availableEventDays.value.slice(0, visibleEventDayCount.value)
+)
+
+const eventsInView = computed(() => {
+  if (isManualDaySelection.value && selectedEventsDate.value) {
+    return sortedEvents.value.filter(event => event.date === selectedEventsDate.value)
+  }
+  return sortedEvents.value.filter(event => visibleEventDays.value.includes(event.date))
+})
+
+const canLoadMoreDays = computed(() =>
+  !isManualDaySelection.value && visibleEventDayCount.value < MAX_EVENT_DAYS
+)
+
+async function ensureOffsetLoaded(offset) {
+  if (offset < 0 || offset >= MAX_EVENT_DAYS) return
+  if (loadedEventOffsets.value.includes(offset)) return
+  await fetchEventsWindow(offset, 1)
+}
+
+async function resetToToday() {
+  selectedEventsDate.value = todayDay.value
+  isManualDaySelection.value = false
+  visibleEventDayCount.value = 1
+  await ensureOffsetLoaded(0)
+}
+
+async function loadMoreDays() {
+  const nextOffset = visibleEventDayCount.value
+  visibleEventDayCount.value += 1
+  await ensureOffsetLoaded(nextOffset)
+}
+
+async function onEventsDateChange() {
+  isManualDaySelection.value = true
+  const offset = offsetForDay(selectedEventsDate.value)
+  if (offset === null) return
+  await ensureOffsetLoaded(offset)
+}
+
+onMounted(() => {
+  ensureOffsetLoaded(0)
+})
+
 // ── Badge Suggestions ─────────────────────────────────────────────────
 const badgeCtx = useBadgeCtx()
 
@@ -210,11 +424,19 @@ const badgeSuggestions = computed(() => {
   const ctx = badgeCtx.value
   return BADGES
     .filter(a => !a.earned(ctx))
-    .map(a => ({ id: a.id, title: a.title, shape: a.shape, label: a.label ?? null, ...a.suggest(ctx) }))
+    .map(a => ({ id: a.id, title: a.title, shape: a.shape, displayLabel: suggestionBadgeLabel(a, ctx), ...a.suggest(ctx) }))
     .filter(s => s.message)
     .sort((a, b) => b.pct - a.pct)
     .slice(0, 3)
 })
+
+function suggestionBadgeLabel(badge, ctx) {
+  if (badge.id === 'day_tripper') return String(ctx.maxBranchesInOneDay)
+  if (badge.id === 'familiar_face') return String(ctx.homeVisitCount)
+  if (badge.id === 'return_visitor') return String(ctx.maxNonHomeVisitCount)
+  if (badge.id === 'archivist') return String(ctx.fullyDocumentedCount)
+  return badge.label ?? null
+}
 
 // ── Suggested Routes ─────────────────────────────────────────────────
 const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
@@ -232,7 +454,7 @@ const routesWithProgress = computed(() =>
 // ── Sheets ────────────────────────────────────────────────────────────
 const branchSheetOpen = ref(false)
 const activeBranch = ref(null)
-const branchSheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
+const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
 function openBranchSheet(branch) {
   activeBranch.value = branch
@@ -241,14 +463,27 @@ function openBranchSheet(branch) {
 </script>
 
 <style scoped>
-/* Extra bottom padding so fixed browse button doesn't overlap content */
 .page-content {
+  padding-bottom: var(--nav-height);
+}
+
+/* Extra bottom padding only when browse button is visible (Near Me tab) */
+.page-content.has-browse-cta {
   padding-bottom: calc(var(--nav-height) + 72px);
+}
+
+/* ── Sticky header block ─────────────────────────────────────────── */
+.sticky-top {
+  position: sticky;
+  top: env(safe-area-inset-top);
+  z-index: 10;
+  margin: 0 -18px;
+  background: var(--tpl-navy);
 }
 
 /* ── Page header ─────────────────────────────────────────────────── */
 .page-header {
-  padding: 20px 0 14px;
+  padding: 14px 18px 14px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -256,20 +491,21 @@ function openBranchSheet(branch) {
 
 .page-header h1 {
   margin-bottom: 3px;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .sub {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .search-btn {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,6 +527,7 @@ function openBranchSheet(branch) {
 
 /* ── Sections ────────────────────────────────────────────────────── */
 .explore-section {
+  margin-top: 20px;
   margin-bottom: 28px;
 }
 
@@ -298,10 +535,12 @@ function openBranchSheet(branch) {
 /* ── Tab bar ─────────────────────────────────────────────────────── */
 .tab-bar {
   display: flex;
-  margin: 0 -18px 20px;
+  margin: 0;
   padding: 0 18px;
   overflow-x: auto;
   scrollbar-width: none;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
   border-bottom: 1.5px solid var(--color-border-soft);
 }
 
@@ -330,13 +569,6 @@ function openBranchSheet(branch) {
   &.active {
     color: var(--tpl-navy);
     border-bottom-color: var(--tpl-navy);
-
-    @media (prefers-color-scheme: dark) {
-      & {
-        color: var(--color-brand-text);
-        border-bottom-color: var(--color-brand-text);
-      }
-    }
   }
 }
 
@@ -595,16 +827,21 @@ function openBranchSheet(branch) {
 }
 
 .route-card {
-  width: 100%;
+  display: block;
   text-align: left;
   padding: 14px 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: border-color 0.12s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .route-card:active {
@@ -612,65 +849,96 @@ function openBranchSheet(branch) {
   border-color: var(--color-border);
 }
 
-.route-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.route-name {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.route-chevron {
-  width: 16px;
-  height: 16px;
-  stroke: var(--color-border);
-  flex-shrink: 0;
-}
-
-.route-meta {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin: 0 0 10px;
-  line-height: 1;
-}
-
-.route-progress {
+.route-meta-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.route-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
+.area-chip {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tpl-navy);
+  background: color-mix(in srgb, var(--tpl-navy) 8%, transparent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+.route-info {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.route-chevron {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-muted);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.route-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.route-desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.route-fill {
-  height: 100%;
-  background: var(--tpl-blue);
-  border-radius: 2px;
-  min-width: 2px;
+.route-stamps {
+  display: flex;
+  gap: 6px;
+  padding-top: 4px;
 }
 
-.route-count {
-  font-size: 0.75rem;
-  font-weight: 600;
+.route-stamp-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.route-stamp-ghost {
+  opacity: 0.18;
+  filter: grayscale(1);
+}
+
+.route-stamp-label {
+  font-size: 0.625rem;
   color: var(--color-text-muted);
-  white-space: nowrap;
+  text-align: center;
+  line-height: 1.3;
 }
 
-.route-count {
-  &.done {
-    color: var(--tpl-blue);
-  }
+.route-overflow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border-soft);
+  border-radius: var(--radius-sm, 6px);
+  min-height: 40px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: 1.4;
 }
 
 .coming-soon {
@@ -678,5 +946,156 @@ function openBranchSheet(branch) {
   color: var(--color-text-muted);
   padding: 24px 0;
   text-align: center;
+}
+
+/* ── What's On ───────────────────────────────────────────────────── */
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.events-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.events-filter-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  cursor: pointer;
+
+  &.active {
+    background: var(--tpl-navy);
+    border-color: var(--tpl-navy);
+    color: #fff;
+  }
+}
+
+.events-date-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+}
+
+.event-row-clickable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    background: var(--color-paper);
+  }
+}
+
+.event-date {
+  flex-shrink: 0;
+  width: 46px;
+  background: color-mix(in srgb, var(--tpl-blue) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 25%, transparent);
+  border-radius: var(--radius-sm, 6px);
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.event-month {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--tpl-blue);
+  text-transform: uppercase;
+}
+
+.event-day {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--tpl-navy);
+}
+
+:global([data-theme="dark"]) .event-day {
+  color: var(--color-brand-text);
+}
+
+.event-weekday {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.event-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.event-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.event-meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-chevron {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.events-load-more {
+  margin-top: 6px;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-mid);
 }
 </style>

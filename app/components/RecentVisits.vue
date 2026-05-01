@@ -6,17 +6,18 @@
     </div>
 
     <div class="stamp-strip">
-      <NuxtLink
+      <button
         v-for="branch in recentBranches"
         :key="branch.BranchCode"
-        :to="`/passport?page=${passportPageIndex(branch.BranchName)}`"
+        type="button"
         class="stamp-slot"
+        @click="emit('select', branch)"
       >
-        <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="44" />
+        <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" :size="44" />
         <span class="stamp-label">{{ branch.BranchName }}</span>
-      </NuxtLink>
+      </button>
       <div v-for="i in placeholderCount" :key="`empty-${i}`" class="stamp-slot stamp-slot-empty">
-        <StampShape :branchCode="GHOST_CODES[(i - 1) % GHOST_CODES.length]" :wardNo="GHOST_WARDS[(i - 1) % GHOST_WARDS.length]" :size="44" />
+        <StampShape :branch-code="GHOST_CODES[(i - 1) % GHOST_CODES.length]" :ward-no="GHOST_WARDS[(i - 1) % GHOST_WARDS.length]" :size="44" />
       </div>
     </div>
 
@@ -28,12 +29,8 @@
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, ALPHA_PAGES } from '~/composables/useRegion'
-
-function passportPageIndex(branchName) {
-  const c = branchName[0].toUpperCase()
-  return ALPHA_PAGES.findIndex(p => c >= p.from && c <= p.to)
-}
+import { physicalBranches } from '~/composables/useRegion'
+const emit = defineEmits(['select'])
 
 const passport = usePassportStore()
 
@@ -94,6 +91,9 @@ const GHOST_WARDS = [5, 9, 3]
   padding: 8px 4px;
   min-height: 84px;
   text-decoration: none;
+  background: none;
+  border: none;
+  font: inherit;
   border-bottom: none;
   &.stamp-slot-empty {
     pointer-events: none;

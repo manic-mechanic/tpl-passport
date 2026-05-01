@@ -1,29 +1,69 @@
+<script setup>
+import { authClient } from '~/lib/auth-client'
+import { usePassportStore } from '~/stores/passport'
+
+const passport = usePassportStore()
+
+const isSignedIn = ref(false)
+const bannerDismissed = ref(false)
+
+onMounted(async () => {
+  bannerDismissed.value = localStorage.getItem('signin_banner_dismissed') === '1'
+  const { data } = await authClient.getSession()
+  isSignedIn.value = !!data
+})
+
+const showBanner = computed(() =>
+  !isSignedIn.value && passport.checkIns.length > 0 && !bannerDismissed.value
+)
+
+const branchSheetOpen = ref(false)
+const activeBranch = ref(null)
+const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
+
+function dismissBanner() {
+  bannerDismissed.value = true
+  localStorage.setItem('signin_banner_dismissed', '1')
+}
+
+function openBranchSheet(branch) {
+  activeBranch.value = branch
+  branchSheetOpen.value = true
+}
+</script>
+
 <template>
   <main class="page-content">
-
     <div class="home-top-bar">
       <img src="/tpl-meta-card.png" class="top-bar-seal" alt="" aria-hidden="true" />
       <p class="top-bar-wordmark">passport<span>:</span></p>
-      <NuxtLink to="/settings" class="top-bar-settings" aria-label="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-          <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-        </svg>
-      </NuxtLink>
+    </div>
+
+    <InstallHelperCard class="home-install-helper" />
+
+    <div v-if="showBanner" class="signin-banner">
+      <div class="signin-banner__body">
+        <p class="signin-banner__text">Save your progress — access your passport on any device</p>
+        <NuxtLink to="/login" class="signin-banner__link">Sign in →</NuxtLink>
+      </div>
+      <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>
     </div>
 
     <PassportCard />
-    <RecentVisits />
+    <RecentVisits @select="openBranchSheet" />
 
     <HomeBadgesStrip />
   </main>
+
+  <BaseSheet v-model:open="branchSheetOpen" :height="branchSheetHeight">
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="home" @open-branch="openBranchSheet" />
+  </BaseSheet>
 </template>
 
 <style scoped>
 main {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
   gap: 18px;
 }
 
@@ -63,16 +103,54 @@ main {
   color: rgba(255, 255, 255, 0.55);
 }
 
-.top-bar-settings {
+
+.signin-banner {
   display: flex;
   align-items: center;
-  color: rgba(255, 255, 255, 0.7);
-  -webkit-tap-highlight-color: transparent;
+  gap: 10px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 22%, transparent);
+  border-radius: var(--radius);
+  margin-top: -8px;
 }
 
-.top-bar-settings svg {
-  width: 22px;
-  height: 22px;
+.home-install-helper {
+  margin-top: -8px;
+}
+
+.signin-banner__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.signin-banner__text {
+  font-size: 0.875rem;
+  color: var(--color-text-mid);
+  line-height: 1.4;
+}
+
+.signin-banner__link {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--tpl-blue);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.signin-banner__dismiss {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 :deep(.badges-strip) {

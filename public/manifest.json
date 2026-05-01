@@ -1,24 +1,26 @@
 {
-  "name": "TPL Passport",
+  "id": "/",
+  "name": "Library Passport",
   "short_name": "Passport",
   "description": "Collect stamps at every Toronto Public Library branch",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f2ede3",
   "theme_color": "#001c71",
   "icons": [
     {
-      "src": "/tpl-meta-card.png",
-      "sizes": "any",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "/tpl-meta-card.png",
-      "sizes": "any",
+      "src": "/icon-512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }

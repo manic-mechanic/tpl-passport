@@ -12,13 +12,13 @@
   --color-bg:       #f2ede3;
   --color-paper:    #faf7f1;
   --color-surface:  #ffffff;
-  --color-border:   #e0d9ca;
-  --color-border-soft: #ece7db;
+  --color-border:   #d4cfc4;
+  --color-border-soft: #e8e3d8;
 
   /* Text */
-  --color-text:        #1a1635;
-  --color-text-mid:    #4a4465;
-  --color-text-muted:  #8c849e;
+  --color-text:        #1a1a1a;
+  --color-text-mid:    #4a4a4a;
+  --color-text-muted:  #767676;
   --color-text-inverse: #ffffff;
 
   /* Interactive */
@@ -32,7 +32,7 @@
   --radius-pill: 100px;
 
   /* Nav */
-  --nav-height: 68px;
+  --nav-height: calc(68px + env(safe-area-inset-bottom));
 
   /* Shadows */
   --shadow-sm:  0 1px 2px rgba(0,28,113,0.06);
@@ -75,12 +75,17 @@ html {
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   scrollbar-gutter: stable;
+  background: var(--color-bg);
+  height: 100%;
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-text);
+  min-height: 100svh;
   min-height: 100dvh;
+  overscroll-behavior-y: none;
+  height: 100%;
   /* Subtle paper grain texture */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
 }
@@ -89,8 +94,17 @@ body {
 .app-shell {
   max-width: 480px;
   margin: 0 auto;
+  min-height: 100svh;
   min-height: 100dvh;
   position: relative;
+  background: var(--color-bg);
+}
+
+#__nuxt {
+  min-height: 100svh;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  height: 100%;
 }
 
 .status-bar-fill {
@@ -108,6 +122,9 @@ body {
 
 .page-content {
   padding: env(safe-area-inset-top) 18px calc(var(--nav-height) + 16px);
+  min-height: 100svh;
+  min-height: 100dvh;
+  background: var(--color-bg);
 }
 
 /* ─── Typography ─────────────────────────────── */
@@ -204,21 +221,19 @@ a { color: var(--color-accent); text-decoration: none; }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    /* Keep brand colours dark — they're used as SURFACES (nav, hero card).
-       --tpl-blue is used for interactive accents (orb, progress fill). */
     --tpl-blue:  #6aaaf8;
     --tpl-navy:  #111850;
     --tpl-teal:  #1a8abf;
-    --color-bg:          #0e1236;
-    --color-paper:       #141840;
-    --color-surface:     #1b1f4e;
-    --color-border:      #2c3170;
-    --color-border-soft: #222758;
-    --color-text:         #ede9f8;
-    --color-text-mid:     #9e9bbf;
-    --color-text-muted:   #6864a0;
-    --color-text-inverse: #0e1236;
-    --color-brand-text:   #d0d8ff;
+    --color-bg:          #121212;
+    --color-paper:       #1a1a1a;
+    --color-surface:     #1e1e1e;
+    --color-border:      #333333;
+    --color-border-soft: #2a2a2a;
+    --color-text:         #f0f0f0;
+    --color-text-mid:     #bbbbbb;
+    --color-text-muted:   #999999;
+    --color-text-inverse: #121212;
+    --color-brand-text:   #e0e0e0;
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
     --shadow:    0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03);
     --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.35);
@@ -234,16 +249,16 @@ a { color: var(--color-accent); text-decoration: none; }
   --tpl-blue:  #6aaaf8;
   --tpl-navy:  #111850;
   --tpl-teal:  #1a8abf;
-  --color-bg:          #0e1236;
-  --color-paper:       #141840;
-  --color-surface:     #1b1f4e;
-  --color-border:      #2c3170;
-  --color-border-soft: #222758;
-  --color-text:         #ede9f8;
-  --color-text-mid:     #9e9bbf;
-  --color-text-muted:   #6864a0;
-  --color-text-inverse: #0e1236;
-  --color-brand-text:   #d0d8ff;
+  --color-bg:          #121212;
+  --color-paper:       #1a1a1a;
+  --color-surface:     #1e1e1e;
+  --color-border:      #333333;
+  --color-border-soft: #2a2a2a;
+  --color-text:         #f0f0f0;
+  --color-text-mid:     #bbbbbb;
+  --color-text-muted:   #999999;
+  --color-text-inverse: #121212;
+  --color-brand-text:   #e0e0e0;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
   --shadow:    0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.35);

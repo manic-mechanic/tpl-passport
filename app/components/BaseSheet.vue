@@ -1,13 +1,13 @@
 <template>
-  <DrawerRoot :open="open" @update:open="$emit('update:open', $event)" :noBodyStyles="true">
+  <DrawerRoot :open="open" :no-body-styles="true" @update:open="$emit('update:open', $event)">
     <DrawerPortal>
       <DrawerOverlay class="sheet-overlay" />
       <DrawerContent class="sheet-content" :style="{ height }" :aria-label="ariaLabel">
-        <div class="sheet-handle-row"><div class="sheet-handle-bar" /></div>
-        <button class="sheet-close" @click="$emit('update:open', false)" aria-label="Close">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="6" y1="6" x2="14" y2="14"/><line x1="14" y1="6" x2="6" y2="14"/>
-          </svg>
+        <div class="sheet-handle-row">
+          <div class="sheet-handle-bar" />
+        </div>
+        <button class="sheet-close" aria-label="Close" @click="$emit('update:open', false)">
+          <IconSheetClose />
         </button>
         <div class="sheet-scroll">
           <slot />
@@ -19,11 +19,12 @@
 
 <script setup>
 import { DrawerRoot, DrawerPortal, DrawerOverlay, DrawerContent } from 'vaul-vue'
+import IconSheetClose from './icons/IconSheetClose.vue';
 
 defineProps({
-  open:      { type: Boolean, required: true },
-  height:    { type: String,  default: 'auto' },
-  ariaLabel: { type: String,  default: '' },
+  open: { type: Boolean, required: true },
+  height: { type: String, default: 'auto' },
+  ariaLabel: { type: String, default: '' },
 })
 defineEmits(['update:open'])
 </script>
@@ -68,10 +69,16 @@ defineEmits(['update:open'])
   background: rgba(0, 0, 0, 0.18);
   border-radius: 2px;
 
-  @media (prefers-color-scheme: dark) { & { background: rgba(255, 255, 255, 0.2); } }
+  @media (prefers-color-scheme: dark) {
+    & {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
 }
 
-:global([data-theme="dark"]) .sheet-handle-bar { background: rgba(255, 255, 255, 0.2); }
+:global([data-theme="dark"]) .sheet-handle-bar {
+  background: rgba(255, 255, 255, 0.2);
+}
 
 .sheet-close {
   position: absolute;
@@ -91,17 +98,33 @@ defineEmits(['update:open'])
   transition: background 0.15s;
   z-index: 1;
 
-  &:active { background: rgba(0, 0, 0, 0.2); }
-  & svg { width: 16px; height: 16px; }
+  &:active {
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  & svg {
+    width: 16px;
+    height: 16px;
+  }
 
   @media (prefers-color-scheme: dark) {
-    & { background: rgba(255, 255, 255, 0.14); }
-    &:active { background: rgba(255, 255, 255, 0.24); }
+    & {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    &:active {
+      background: rgba(255, 255, 255, 0.24);
+    }
   }
 }
 
-:global([data-theme="dark"]) .sheet-close          { background: rgba(255, 255, 255, 0.14); }
-:global([data-theme="dark"]) .sheet-close:active   { background: rgba(255, 255, 255, 0.24); }
+:global([data-theme="dark"]) .sheet-close {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+:global([data-theme="dark"]) .sheet-close:active {
+  background: rgba(255, 255, 255, 0.24);
+}
 
 .sheet-scroll {
   height: calc(100% - 48px);

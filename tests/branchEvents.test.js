@@ -1,60 +1,12 @@
-import { describe, it, expect, vi } from 'vitest'
+// Integration test — verifies the CKAN API returns future-dated records
+// when sorted descending, which was the fix for the bug where limit=200 asc
+// only returned past events for busy branches.
+//
+// Note: the filterToWindow unit tests were removed when branch-events.get.js
+// was refactored to use parallel exact-date CKAN queries (today + tomorrow)
+// instead of client-side window filtering. The route no longer exports
+// filterToWindow.
 
-// Nitro globals must be stubbed before the server module is evaluated.
-// vi.hoisted() runs synchronously before any imports are processed.
-vi.hoisted(() => {
-  globalThis.defineEventHandler = fn => fn
-  globalThis.getQuery = () => ({})
-  globalThis.$fetch = async () => ({ result: { records: [] } })
-})
-
-import { filterToWindow } from '../server/api/branch-events.get.js'
-
-describe('filterToWindow', () => {
-  it('keeps a record dated today', () => {
-    const today = new Date().toISOString().slice(0, 10)
-    expect(filterToWindow([{ StartDateLocal: today }])).toHaveLength(1)
-  })
-
-  it('keeps a record dated tomorrow', () => {
-    const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
-    expect(filterToWindow([{ StartDateLocal: tomorrow }])).toHaveLength(1)
-  })
-
-  it('drops past records', () => {
-    expect(filterToWindow([{ StartDateLocal: '2020-01-01' }])).toHaveLength(0)
-  })
-
-  it('drops records more than one day in the future', () => {
-    expect(filterToWindow([{ StartDateLocal: '2099-12-31' }])).toHaveLength(0)
-  })
-
-  it('handles a mix correctly', () => {
-    const today    = new Date().toISOString().slice(0, 10)
-    const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
-    const records  = [
-      { StartDateLocal: '2020-01-01' },  // past — filtered out
-      { StartDateLocal: today },          // kept
-      { StartDateLocal: tomorrow },       // kept
-      { StartDateLocal: '2099-12-31' },  // too far future — filtered out
-    ]
-    expect(filterToWindow(records)).toHaveLength(2)
-  })
-
-  it('returns events sorted earliest first regardless of input order', () => {
-    const today    = new Date().toISOString().slice(0, 10)
-    const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10)
-    // Simulate desc-sorted input from CKAN (tomorrow first)
-    const records = [{ StartDateLocal: tomorrow }, { StartDateLocal: today }]
-    const result  = filterToWindow(records)
-    expect(result[0].StartDateLocal).toBe(today)
-    expect(result[1].StartDateLocal).toBe(tomorrow)
-  })
-})
-
-// Integration test — hits the real CKAN API.
-// Verifies that sorting desc actually surfaces future-dated records,
-// which is the fix for the bug where limit=200 asc only returned past events.
 describe('CKAN events API (integration)', () => {
   it('returns records with the most future dates first when sorted desc', async () => {
     const RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'

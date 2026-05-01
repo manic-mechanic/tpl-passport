@@ -2,22 +2,22 @@
   <div v-if="branch">
     <div class="branch-hero">
       <div :class="{ 'stamp-ghost': !hasVisited }">
-        <StampShape :branchCode="branch.BranchCode" :wardNo="branch.WardNo" :size="72" />
+        <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" :size="72" />
       </div>
       <div class="branch-title-area">
         <h1>{{ branch.BranchName }}</h1>
         <p v-if="todayHours" class="branch-hours">Today {{ todayHours }}</p>
         <div class="branch-meta">
           <a :href="mapsUrl" target="_blank" rel="noopener" class="meta-item meta-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="meta-icon"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <IconMapPin class="meta-icon" />
             {{ streetAddress }}
           </a>
           <a v-if="branch.Telephone" :href="`tel:${branch.Telephone}`" class="meta-item meta-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="meta-icon"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.8a2 2 0 011.72-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91"/></svg>
+            <IconTelephone class="meta-icon" />
             {{ branch.Telephone }}
           </a>
           <span v-if="hasParking" class="meta-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="meta-icon"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 010 6H9"/></svg>
+            <IconParking class="meta-icon" />
             Parking
           </span>
         </div>
@@ -28,12 +28,7 @@
     </div>
 
     <div class="checkin-area">
-      <NuxtLink
-        v-if="checkinState !== 'blocked'"
-        :to="`/check-in?branch=${branch.BranchCode}`"
-        class="checkin-btn"
-        :class="{ visited: checkinState === 'visited' }"
-      >
+      <NuxtLink v-if="checkinState !== 'blocked'" :to="`/check-in?branch=${branch.BranchCode}`" class="checkin-btn">
         {{ checkinState === 'visited' ? 'Check in again' : 'Check in here' }}
       </NuxtLink>
       <button v-else class="checkin-btn blocked" disabled>
@@ -45,15 +40,33 @@
       <h2 class="detail-heading">Your visits here</h2>
       <ul class="visit-list">
         <li v-for="visit in pastVisitsHere" :key="visit.timestamp" class="visit-row-small">
-          <span class="visit-date">{{ formatVisitDate(visit.timestamp) }}</span>
-          <button
-            v-if="photoUrls[visit.timestamp]"
-            class="visit-photo-btn"
-            @click="lightboxSrc = photoUrls[visit.timestamp]"
+          <div class="visit-row-header">
+            <span class="visit-date">{{ formatVisitDate(visit.timestamp) }}</span>
+            <div class="visit-actions">
+              <label class="visit-action-btn" :title="visit.hasPhoto ? 'Change photo' : 'Add photo'">
+                <IconPhoto class="visit-action-icon" />
+                <input type="file" accept="image/*" class="visit-file-input" @change="onVisitPhotoCapture($event, visit.timestamp)" />
+              </label>
+              <button class="visit-action-btn" :title="editingNote === visit.timestamp ? 'Cancel' : 'Edit note'"
+                      @click="toggleNoteEdit(visit.timestamp)"
+              >
+                <IconNote class="visit-action-icon" />
+              </button>
+            </div>
+          </div>
+          <button v-if="photoUrls[visit.timestamp]" class="visit-photo-btn"
+                  @click="lightboxSrc = photoUrls[visit.timestamp]"
           >
             <img :src="photoUrls[visit.timestamp]" class="visit-photo-thumb" alt="Check-in photo" />
           </button>
-          <span v-if="visit.note" class="visit-note">{{ visit.note }}</span>
+          <template v-if="editingNote === visit.timestamp">
+            <textarea v-model="noteInputs[visit.timestamp]" class="visit-note-input" placeholder="Add a note…" rows="3" />
+            <div class="visit-note-actions">
+              <button class="note-save-btn" @click="saveNote(visit.timestamp)">Save</button>
+              <button class="note-cancel-btn" @click="editingNote = null">Cancel</button>
+            </div>
+          </template>
+          <span v-else-if="visit.note" class="visit-note">{{ visit.note }}</span>
         </li>
       </ul>
     </section>
@@ -77,7 +90,7 @@
         </li>
       </ul>
       <p v-else-if="!eventsPending" class="events-empty">No events today or tomorrow.</p>
-      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more" @click="$posthog?.capture('tpl_link_tapped', { branch_code: props.branch.BranchCode })">All events at this branch ↗</a>
+      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more" @click="trackTplLinkTapped">All events at this branch ↗</a>
     </section>
 
     <section v-if="services.length" class="detail-section">
@@ -87,40 +100,74 @@
       </div>
     </section>
 
+    <section v-if="branchHistoryEntries.length" class="detail-section">
+      <h2 class="detail-heading">Branch History</h2>
+      <template v-if="pastVisitsHere.length === 0">
+        <p class="history-locked">Check in here to start reading this branch's history.</p>
+      </template>
+      <template v-else>
+        <div class="history-row">
+          <div class="history-year-badge">
+            <span class="history-year">{{ branchHistoryEntries[0].year }}</span>
+          </div>
+          <p class="history-detail">{{ branchHistoryEntries[0].detail }}</p>
+        </div>
+        <p class="history-locked">Come back to unlock more history.</p>
+      </template>
+    </section>
+
     <section v-if="nearbyBranches.length" class="detail-section">
       <h2 class="detail-heading">Nearby branches</h2>
-      <div class="nearby-list">
-        <NuxtLink
-          v-for="nb in nearbyBranches"
-          :key="nb.BranchCode"
-          :to="`/branch/${nb.BranchCode}`"
-          class="nearby-row"
-          @click="$posthog?.capture('nearby_branch_tapped', { from: 'branch_page', branch_code: nb.BranchCode })"
-        >
-          <StampShape :branchCode="nb.BranchCode" :wardNo="nb.WardNo" :size="36" />
-          <div class="nearby-info">
-            <span class="nearby-name">{{ nb.BranchName }}</span>
-            <span class="nearby-dist">{{ formatDist(nb.distKm) }} away</span>
-          </div>
-          <svg class="nearby-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </NuxtLink>
-      </div>
+      <NearbyBranchList
+        :branches="nearbyBranches"
+        :original-source="effectiveSource"
+        :navigate-to-branch-page="nearbyAsRoute"
+        from="branch_page"
+        @select="emit('open-branch', $event)"
+      />
     </section>
   </div>
 </template>
 
 <script setup>
 import branchHours from '#data/branch-hours.json'
+import branchHistoryData from '#data/branch-history.json'
 import { usePassportStore } from '~/stores/passport'
-import { getPhotoUrl } from '~/composables/usePhotoStore'
+import { getPhotoUrl, savePhoto } from '~/composables/usePhotoStore'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { compassPoints } from '~/composables/useBadges'
+import { getAuthBase } from '~/lib/config'
+import { formatAudiences, formatEventTime } from '~/composables/useEvents'
+import IconParking from './icons/IconParking.vue'
+import IconTelephone from './icons/IconTelephone.vue'
+import IconMapPin from './icons/IconMapPin.vue'
+import IconChevron from './icons/IconChevron.vue'
+import IconNote from './icons/IconNote.vue'
+import IconPhoto from './icons/IconPhoto.vue'
 
-const props = defineProps({ branch: { type: Object, required: true }, source: { type: String, default: 'explore' } })
-const { $posthog } = useNuxtApp()
+const props = defineProps({
+  branch: { type: Object, required: true },
+  source: { type: String, default: 'explore' },
+  effectiveSource: { type: String, default: '/explore' },
+  nearbyAsRoute: { type: Boolean, default: false },
+})
+const emit = defineEmits(['open-branch'])
 const passport = usePassportStore()
+const { $posthog } = useNuxtApp()
+
+onMounted(() => {
+  $posthog?.capture('branch_viewed', {
+    branch_code: props.branch.BranchCode,
+    branch_name: props.branch.BranchName,
+    district: props.branch.District ?? '',
+    source: props.source,
+  })
+})
+
+function trackTplLinkTapped() {
+  $posthog?.capture('tpl_link_tapped', { branch_code: props.branch.BranchCode })
+}
+
 
 onMounted(() => {
   $posthog?.capture('branch_viewed', {
@@ -145,7 +192,7 @@ const hasParking = computed(() =>
   props.branch.PublicParking && props.branch.PublicParking !== '0' && props.branch.PublicParking !== 0
 )
 
-const hasVisited   = computed(() => passport.hasVisited(props.branch.BranchCode))
+const hasVisited = computed(() => passport.hasVisited(props.branch.BranchCode))
 const checkinState = computed(() => {
   if (passport.hasVisitedToday(props.branch.BranchCode)) return 'blocked'
   if (hasVisited.value) return 'visited'
@@ -153,12 +200,12 @@ const checkinState = computed(() => {
 })
 
 const SERVICE_FLAGS = {
-  KidsStop:             'Kids Stop',
-  LeadingReading:       'Leading to Reading',
-  CLC:                  'Computer Learning Centre',
-  DIH:                  'Digital Innovation Hub',
-  TeenCouncil:          'Teen Council',
-  YouthHub:             'Youth Hub',
+  KidsStop: 'Kids Stop',
+  LeadingReading: 'Leading to Reading',
+  CLC: 'Computer Learning Centre',
+  DIH: 'Digital Innovation Hub',
+  TeenCouncil: 'Teen Council',
+  YouthHub: 'Youth Hub',
   AdultLiteracyProgram: 'Adult Literacy Program',
 }
 const services = computed(() =>
@@ -173,44 +220,15 @@ const { data: rawEvents, pending: eventsPending } = useFetch('/api/branch-events
   transform: data => Array.isArray(data) ? data : [],
 })
 
-const AUDIENCE_MAP = {
-  'Adults (18+)': 'Adults', 'Older Adults': 'Seniors',
-  'Younger Adults (18-24)': 'Ages 18–24', 'Teens (13-17)': 'Teens',
-  'School Age Children (6-12)': 'Kids 6–12', 'Preschool Children (0-5)': 'Ages 0–5',
-}
-const ADULT_GROUPS = new Set(['Adults (18+)', 'Older Adults', 'Younger Adults (18-24)'])
-const KID_GROUPS   = new Set(['Teens (13-17)', 'School Age Children (6-12)', 'Preschool Children (0-5)'])
-
-function formatAudiences(raw) {
-  if (!raw) return ''
-  const groups = raw.split(',').map(a => a.trim())
-  const adults = groups.filter(g => ADULT_GROUPS.has(g))
-  const kids   = groups.filter(g => KID_GROUPS.has(g))
-  if (adults.length >= 1 && kids.length >= 1) return 'All ages'
-  if (adults.length >= 2) return 'Adults'
-  if (kids.length >= 2)   return 'Kids'
-  return groups.map(g => AUDIENCE_MAP[g] ?? g).join(', ')
-}
-
 const events = computed(() =>
   (rawEvents.value ?? []).map(e => ({
     title: e.Title || '(Unnamed event)',
-    date:  e.StartDateLocal ?? '',
-    time:  formatEventTime(e.StartTime),
-    age:   formatAudiences(e.Audiences),
+    date: e.StartDateLocal ?? '',
+    time: formatEventTime(e.StartTime),
+    age: formatAudiences(e.Audiences),
   }))
 )
 
-function formatEventTime(isoDatetime) {
-  if (!isoDatetime) return ''
-  const tIdx = isoDatetime.indexOf('T')
-  if (tIdx === -1) return ''
-  const [h, m] = isoDatetime.slice(tIdx + 1).split(':').map(Number)
-  if (isNaN(h) || isNaN(m)) return ''
-  const suffix = h >= 12 ? 'pm' : 'am'
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-  return `${h12}:${String(m).padStart(2, '0')}${suffix}`
-}
 function formatEventMonth(date) {
   return new Date(date + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short' }).toUpperCase()
 }
@@ -222,7 +240,7 @@ const pastVisitsHere = computed(() =>
   passport.checkIns.filter(c => c.branchCode === props.branch.BranchCode)
 )
 
-const photoUrls   = ref({})
+const photoUrls = ref({})
 const lightboxSrc = ref(null)
 
 watch(pastVisitsHere, async (visits) => {
@@ -240,6 +258,73 @@ onUnmounted(() => {
 function formatVisitDate(iso) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+// Note editing
+const editingNote = ref(null)
+const noteInputs = ref({})
+
+function toggleNoteEdit(timestamp) {
+  if (editingNote.value === timestamp) {
+    editingNote.value = null
+  } else {
+    noteInputs.value[timestamp] = pastVisitsHere.value.find(v => v.timestamp === timestamp)?.note ?? ''
+    editingNote.value = timestamp
+  }
+}
+
+function saveNote(timestamp) {
+  passport.updateNote(timestamp, noteInputs.value[timestamp] ?? '')
+  editingNote.value = null
+}
+
+// Photo adding on existing visits
+
+function compressPhoto(file, maxWidth = 1200, quality = 0.82) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const scale = Math.min(1, maxWidth / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(resolve, 'image/jpeg', quality)
+    }
+    img.src = url
+  })
+}
+
+async function onVisitPhotoCapture(event, timestamp) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  const blob = await compressPhoto(file)
+  await savePhoto(timestamp, blob)
+  const oldUrl = photoUrls.value[timestamp]
+  if (oldUrl) URL.revokeObjectURL(oldUrl)
+  photoUrls.value[timestamp] = URL.createObjectURL(blob)
+  try {
+    const res = await fetch(`${getAuthBase()}/api/upload/photo?ext=jpg`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob,
+    })
+    if (res.ok) {
+      const { publicUrl } = await res.json()
+      if (publicUrl) passport.markCheckInHasPhoto(timestamp, publicUrl)
+    } else {
+      passport.markCheckInHasPhoto(timestamp)
+    }
+  } catch {
+    passport.markCheckInHasPhoto(timestamp)
+  }
+}
+
+// Branch history
+const branchHistoryEntries = computed(() =>
+  branchHistoryData[props.branch.BranchCode] ?? []
+)
 
 const COMPASS_DIR_LABELS = { n: 'North', e: 'East', s: 'South', w: 'West' }
 const compassPointDirection = computed(() => {
@@ -265,13 +350,25 @@ const nearbyBranches = computed(() => {
   padding: 16px 0 14px;
 }
 
-.stamp-ghost { opacity: 0.13; filter: grayscale(1); flex-shrink: 0; }
-
-.branch-title-area {
-  & h1 { font-size: 1.25rem; line-height: 1.2; margin-bottom: 3px; }
+.stamp-ghost {
+  opacity: 0.13;
+  filter: grayscale(1);
+  flex-shrink: 0;
 }
 
-.branch-hours { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 3px; }
+.branch-title-area {
+  & h1 {
+    font-size: 1.25rem;
+    line-height: 1.2;
+    margin-bottom: 3px;
+  }
+}
+
+.branch-hours {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+}
 
 .compass-point-tag {
   display: inline-block;
@@ -283,7 +380,9 @@ const nearbyBranches = computed(() => {
   color: var(--color-success);
 }
 
-.checkin-area { margin: 4px 0 20px; }
+.checkin-area {
+  margin: 4px 0 20px;
+}
 
 .checkin-btn {
   display: flex;
@@ -304,16 +403,16 @@ const nearbyBranches = computed(() => {
   box-shadow: 0 4px 14px rgba(0, 95, 192, 0.32);
   text-decoration: none;
 
-  &:active { transform: scale(0.98); }
-  &.visited {
-    background: transparent;
-    color: var(--color-text-mid);
-    box-shadow: none;
-    border: 1.5px solid var(--color-border);
-    font-size: 0.875rem;
-    padding: 12px;
+  &:active {
+    transform: scale(0.98);
   }
-  &.blocked { background: var(--color-text-muted); box-shadow: none; cursor: default; opacity: 0.7; }
+
+  &.blocked {
+    background: var(--color-text-muted);
+    box-shadow: none;
+    cursor: default;
+    opacity: 0.7;
+  }
 }
 
 .branch-meta {
@@ -332,23 +431,52 @@ const nearbyBranches = computed(() => {
   line-height: 1.4;
 }
 
-.meta-icon { width: 12px; height: 12px; flex-shrink: 0; stroke: var(--color-text-muted); }
+.meta-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  stroke: var(--color-text-muted);
+}
 
 .meta-link {
   color: var(--color-text-muted);
   text-decoration: none;
 
-  &:hover { text-decoration: underline; }
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
-.detail-section { margin-bottom: 24px; }
-.detail-heading { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.detail-section {
+  margin-bottom: 24px;
+}
 
-.tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.detail-heading {
+  font-size: 1rem;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-.events-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
-.event-row { display: flex; align-items: flex-start; gap: 12px; }
+.events-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
 
 .event-date-badge {
   flex-shrink: 0;
@@ -362,12 +490,42 @@ const nearbyBranches = computed(() => {
   align-items: center;
 }
 
-.event-month { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.06em; color: var(--tpl-blue); }
-.event-day   { font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; line-height: 1; color: var(--tpl-navy); font-optical-sizing: auto; }
+.event-month {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--tpl-blue);
+}
 
-.event-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding-top: 2px; }
-.event-title { font-size: 0.875rem; font-weight: 600; color: var(--color-text); line-height: 1.35; }
-.event-meta  { font-size: 0.75rem; color: var(--color-text-muted); }
+.event-day {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tpl-navy);
+  font-optical-sizing: auto;
+}
+
+.event-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 2px;
+}
+
+.event-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.35;
+}
+
+.event-meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
 
 .events-more {
   display: block;
@@ -377,12 +535,23 @@ const nearbyBranches = computed(() => {
   color: var(--tpl-blue);
   text-decoration: none;
 
-  &:hover { text-decoration: underline; }
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
-.events-empty { font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: 8px; }
+.events-empty {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
 
-.visit-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.visit-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
 .visit-row-small {
   display: flex;
@@ -393,8 +562,17 @@ const nearbyBranches = computed(() => {
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-sm);
 
-  & .visit-date { font-size: 0.875rem; font-weight: 600; color: var(--color-text); }
-  & .visit-note { font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.5; }
+  & .visit-date {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  & .visit-note {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
 }
 
 .visit-photo-btn {
@@ -407,7 +585,142 @@ const nearbyBranches = computed(() => {
   margin-top: 8px;
 }
 
-.visit-photo-thumb { width: 100%; max-height: 160px; object-fit: cover; border-radius: var(--radius-sm); display: block; }
+.visit-photo-thumb {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.visit-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.visit-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.visit-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+
+  &:hover { background: var(--color-border-soft); }
+}
+
+.visit-action-icon {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.visit-file-input {
+  display: none;
+}
+
+.visit-note-input {
+  width: 100%;
+  padding: 8px 10px;
+  margin-top: 8px;
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  box-sizing: border-box;
+
+  &:focus { border-color: var(--tpl-blue); }
+}
+
+.visit-note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.note-save-btn {
+  padding: 5px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  background: var(--tpl-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.note-cancel-btn {
+  padding: 5px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  background: none;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.history-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.history-year-badge {
+  flex-shrink: 0;
+  width: 44px;
+  background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-paper));
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 20%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 6px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-year {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--tpl-blue);
+}
+
+.history-detail {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  padding-top: 2px;
+}
+
+.history-locked {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
 
 .lightbox {
   position: fixed;
@@ -420,27 +733,11 @@ const nearbyBranches = computed(() => {
   cursor: pointer;
 }
 
-.lightbox-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-sm); }
-
-.nearby-list { display: flex; flex-direction: column; gap: 8px; }
-
-.nearby-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
+.lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   border-radius: var(--radius-sm);
-  text-decoration: none;
-  color: var(--color-text);
-  transition: background 0.12s;
-
-  &:active { background: var(--color-paper); }
 }
 
-.nearby-info  { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.nearby-name  { font-size: 0.875rem; font-weight: 600; line-height: 1.3; }
-.nearby-dist  { font-size: 0.75rem; color: var(--color-text-muted); }
-.nearby-arrow { width: 16px; height: 16px; flex-shrink: 0; stroke: var(--color-text-muted); }
 </style>

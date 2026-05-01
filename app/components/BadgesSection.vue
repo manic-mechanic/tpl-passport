@@ -1,12 +1,7 @@
 <template>
   <div class="badges-grid">
-    <button
-      v-for="badge in displayBadges"
-      :key="badge.id"
-      class="badge-item"
-      @click="openSheet(badge)"
-    >
-      <BadgeShape :badge="badge" :ctx="badgeCtx" :size="64" />
+    <button v-for="badge in displayBadges" :key="badge.id" class="badge-item" @click="openSheet(badge)">
+      <BadgeShape :badge="badge" :ctx="badgeCtx" :size="64" :content-override="badgeShapeContent(badge)" />
       <span class="badge-name" :class="{ earned: badge.earned(badgeCtx) }">{{ badge.title }}</span>
       <div v-if="showBadgeProgress(badge)" class="badge-progress">
         <div class="prog-bar">
@@ -21,16 +16,14 @@
   <BaseSheet v-model:open="sheetOpen" :height="props.sheetHeight" :aria-label="activeBadge?.title + ' badge detail'">
     <div v-if="activeBadge" class="detail-scroll">
       <div class="detail-badge">
-        <BadgeShape :badge="activeBadge" :ctx="badgeCtx" :size="88" />
+        <BadgeShape :badge="activeBadge" :ctx="badgeCtx" :size="88" :content-override="badgeShapeContent(activeBadge)" />
       </div>
 
       <h2 class="detail-title">{{ activeBadge.title }}</h2>
       <p class="detail-desc">{{ activeBadge.desc }}</p>
 
       <div v-if="activeBadge.earned(badgeCtx)" class="detail-status earned">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 8 6.5 11.5 13 4.5"/>
-        </svg>
+        <IconCheckMark />
         Earned{{ earnedDate(activeBadge) ? ' · ' + earnedDate(activeBadge) : '' }}
       </div>
       <div v-else-if="activeBadge.progress" class="detail-progress">
@@ -42,29 +35,36 @@
 
       <!-- Navigator: compass branches -->
       <div v-if="activeBadge.id === 'navigator'" class="detail-list">
-        <div v-for="[dir, label] in [['n','North'],['e','East'],['s','South'],['w','West']]" :key="dir"
-          class="detail-row" :class="{ done: badgeCtx.visitedBranchCodes.has(compassPoints[dir]) }">
+        <div v-for="[dir, label] in [['n', 'North'], ['e', 'East'], ['s', 'South'], ['w', 'West']]" :key="dir"
+             class="detail-row" :class="{ done: badgeCtx.visitedBranchCodes.has(compassPoints[dir]) }"
+        >
           <span class="detail-check">{{ badgeCtx.visitedBranchCodes.has(compassPoints[dir]) ? '✓' : '·' }}</span>
-          <span class="detail-text"><span class="detail-dir">{{ label }}</span> — {{ branchName(compassPoints[dir]) }}</span>
+          <span class="detail-text"><span class="detail-dir">{{ label }}</span> — {{ branchName(compassPoints[dir])
+          }}</span>
         </div>
       </div>
 
       <!-- Page Turner: one branch per page -->
       <div v-if="activeBadge.id === 'page_turner'" class="detail-list">
-        <div v-for="page in branchesByAlphaPage" :key="page.label"
-          class="detail-row" :class="{ done: page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }">
-          <span class="detail-check">{{ page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' : '·' }}</span>
+        <div v-for="page in branchesByAlphaPage" :key="page.label" class="detail-row"
+             :class="{ done: page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }"
+        >
+          <span class="detail-check">{{ page.branches.some(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' :
+            '·' }}</span>
           <span class="detail-text">{{ page.label }}</span>
         </div>
       </div>
 
       <!-- Page Filler: fill one complete page -->
       <div v-if="activeBadge.id === 'page_filler'" class="detail-list">
-        <div v-for="page in branchesByAlphaPage" :key="page.label"
-          class="detail-row" :class="{ done: page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }">
-          <span class="detail-check">{{ page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' : '·' }}</span>
+        <div v-for="page in branchesByAlphaPage" :key="page.label" class="detail-row"
+             :class="{ done: page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) }"
+        >
+          <span class="detail-check">{{ page.branches.every(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)) ? '✓' :
+            '·' }}</span>
           <span class="detail-text">{{ page.label }}</span>
-          <span class="detail-count">{{ page.branches.filter(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)).length }}/{{ page.branches.length }}</span>
+          <span class="detail-count">{{ page.branches.filter(b => badgeCtx.visitedBranchCodes.has(b.BranchCode)).length
+          }}/{{ page.branches.length }}</span>
         </div>
       </div>
 
@@ -73,7 +73,30 @@
         <div class="detail-row" :class="{ done: activeBadge.earned(badgeCtx) }">
           <span class="detail-check">{{ activeBadge.earned(badgeCtx) ? '✓' : '·' }}</span>
           <span class="detail-text">{{ branchName(badgeCtx.homeBranch) }}</span>
-          <span class="detail-count">{{ badgeCtx.homeVisitCount }}/5 visits</span>
+          <span class="detail-count">{{ badgeCtx.homeVisitCount }} visits</span>
+        </div>
+      </div>
+
+      <div v-if="activeBadge.id === 'day_tripper'" class="detail-list">
+        <div class="detail-row" :class="{ done: activeBadge.earned(badgeCtx) }">
+          <span class="detail-check">{{ activeBadge.earned(badgeCtx) ? '✓' : '·' }}</span>
+          <span class="detail-text">Best day</span>
+          <span class="detail-count">{{ badgeCtx.maxBranchesInOneDay }} branches</span>
+        </div>
+      </div>
+
+      <div v-if="activeBadge.id === 'return_visitor'" class="detail-list">
+        <div class="detail-row" :class="{ done: activeBadge.earned(badgeCtx) }">
+          <span class="detail-check">{{ activeBadge.earned(badgeCtx) ? '✓' : '·' }}</span>
+          <span class="detail-text">{{ returnVisitorBranchName }}</span>
+          <span class="detail-count">{{ badgeCtx.maxNonHomeVisitCount }} visits</span>
+        </div>
+      </div>
+
+      <div v-if="activeBadge.id === 'archivist'" class="detail-list">
+        <div v-for="name in archivistBranchNames" :key="name" class="detail-row" :class="{ done: true }">
+          <span class="detail-check">✓</span>
+          <span class="detail-text">{{ name }}</span>
         </div>
       </div>
     </div>
@@ -83,34 +106,35 @@
 <script setup>
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, useBadgeCtx, compassPoints } from '~/composables/useBadges'
+import IconCheckMark from './icons/IconCheckMark.vue'
 
-const props = defineProps({ sheetHeight: { type: String, default: 'calc(100dvh - var(--nav-height) - 76px)' } })
+const props = defineProps({ sheetHeight: { type: String, default: 'calc(100svh - var(--nav-height) - 76px)' } })
 
 const { $posthog } = useNuxtApp()
 const badgeCtx = useBadgeCtx()
 
 const activeBadge = ref(null)
-const sheetOpen   = ref(false)
+const sheetOpen = ref(false)
 
 function openSheet(badge) {
   activeBadge.value = badge
   sheetOpen.value = true
   $posthog?.capture('badge_detail_viewed', {
-    achievement_id:    badge.id,
+    achievement_id: badge.id,
     achievement_title: badge.title,
-    earned:            badge.earned(badgeCtx.value),
+    earned: badge.earned(badgeCtx.value),
   })
 }
 watch(sheetOpen, open => { if (!open) activeBadge.value = null })
 
 // Column-major display order (2 cols, left col first):
 const DISPLAY_ORDER = [
-  'first',        'day_tripper',
-  'archivist',    'navigator',
-  'explorer',     'familiar_face',
-  'adventurer',   'page_filler',
+  'first', 'day_tripper',
+  'archivist', 'navigator',
+  'explorer', 'familiar_face',
+  'adventurer', 'page_filler',
   'globetrotter', 'page_turner',
-  'complete',     'return_visitor',
+  'complete', 'return_visitor',
 ]
 const displayBadges = DISPLAY_ORDER.map(id => BADGES.find(a => a.id === id)).filter(Boolean)
 
@@ -120,7 +144,8 @@ const nextStampId = computed(() =>
 
 function showBadgeProgress(badge) {
   const ctx = badgeCtx.value
-  if (badge.earned(ctx) || !badge.progress) return false
+  if (!badge.progress) return false
+  if (badge.earned(ctx)) return false
   if (badge.progress(ctx).current === 0) return false
   if (badge.shape === 'octagon') return badge.id === nextStampId.value
   return true
@@ -131,7 +156,26 @@ function badgeProgressPct(badge) {
 }
 function badgeProgressLabel(badge) {
   const { current, total } = badge.progress(badgeCtx.value)
+  if (badge.id === 'day_tripper') return `${current} in a day`
+  if (badge.id === 'archivist') return `${current} documented`
+  if (badge.id === 'familiar_face') return `${current} home visits`
+  if (badge.id === 'return_visitor') return `${current} repeat visits`
   return `${current}/${total}`
+}
+
+function badgeShapeContent(badge) {
+  if (!badge) return ''
+  if (!isActivityBadge(badge)) return ''
+  const ctx = badgeCtx.value
+  if (badge.id === 'day_tripper') return String(ctx.maxBranchesInOneDay)
+  if (badge.id === 'familiar_face') return String(ctx.homeVisitCount)
+  if (badge.id === 'return_visitor') return String(ctx.maxNonHomeVisitCount)
+  if (badge.id === 'archivist') return String(ctx.fullyDocumentedCount)
+  return ''
+}
+
+function isActivityBadge(badge) {
+  return ['day_tripper', 'return_visitor', 'familiar_face', 'archivist'].includes(badge.id)
 }
 
 function earnedDate(badge) {
@@ -142,6 +186,22 @@ function earnedDate(badge) {
 function branchName(code) {
   return physicalBranches.find(b => b.BranchCode === code)?.BranchName ?? code
 }
+
+const returnVisitorBranchName = computed(() => {
+  const entries = Object.entries(badgeCtx.value.branchVisitCounts)
+    .filter(([code]) => code !== badgeCtx.value.homeBranch)
+    .sort((a, b) => b[1] - a[1])
+  if (!entries.length || entries[0][1] <= 0) return 'No branch yet'
+  return branchName(entries[0][0])
+})
+
+const archivistBranchNames = computed(() =>
+  [...new Set(
+    badgeCtx.value.checkIns
+      .filter(c => c.note?.trim() && (c.photoUri || c.hasPhoto))
+      .map(c => branchName(c.branchCode))
+  )]
+)
 </script>
 
 <style scoped>
@@ -184,7 +244,9 @@ function branchName(code) {
   width: 100%;
 
   /* Remove bottom border from the last two items (final row) */
-  &:nth-last-child(-n+2) { border-bottom: none; }
+  &:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
 }
 
 .badge-name {
@@ -195,7 +257,9 @@ function branchName(code) {
   letter-spacing: 0.01em;
   line-height: 1.3;
 
-  &.earned { color: var(--color-text); }
+  &.earned {
+    color: var(--color-text);
+  }
 }
 
 .badge-progress {
@@ -219,7 +283,7 @@ function branchName(code) {
   }
 
   & .prog-text {
-    font-size: 0.5rem;
+    font-size: 0.625rem;
     font-weight: 600;
     color: var(--color-text-muted);
     line-height: 1;
@@ -267,7 +331,12 @@ function branchName(code) {
   &.earned {
     color: var(--color-success);
 
-    & svg { width: 14px; height: 14px; stroke: var(--color-success); flex-shrink: 0; }
+    & svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--color-success);
+      flex-shrink: 0;
+    }
   }
 }
 
@@ -285,7 +354,9 @@ function branchName(code) {
   border-radius: 2px;
   overflow: hidden;
 
-  &.wide { width: 120px; }
+  &.wide {
+    width: 120px;
+  }
 }
 
 .prog-fill {
@@ -317,12 +388,20 @@ function branchName(code) {
   border-radius: 8px;
   color: var(--color-text-muted);
 
-  &.done { color: var(--color-text); }
+  &.done {
+    color: var(--color-text);
+  }
 
-  @media (prefers-color-scheme: dark) { & { background: rgba(255, 255, 255, 0.05); } }
+  @media (prefers-color-scheme: dark) {
+    & {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
 }
 
-:global([data-theme="dark"]) .detail-row { background: rgba(255, 255, 255, 0.05); }
+:global([data-theme="dark"]) .detail-row {
+  background: rgba(255, 255, 255, 0.05);
+}
 
 .detail-check {
   font-size: 0.875rem;
@@ -343,7 +422,9 @@ function branchName(code) {
   line-height: 1.3;
 }
 
-.detail-dir { font-weight: 600; }
+.detail-dir {
+  font-weight: 600;
+}
 
 .detail-count {
   font-size: 0.75rem;

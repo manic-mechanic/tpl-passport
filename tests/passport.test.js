@@ -7,10 +7,13 @@ vi.stubGlobal('localStorage', {
   setItem: () => {},
 })
 
+// Stub Nuxt auto-imports not available in Vitest
+vi.stubGlobal('useRuntimeConfig', () => ({ public: { isDev: true } }))
+
 // import.meta.client is undefined in Vitest (not a browser), so the
 // localStorage hydration branch in the store is skipped automatically.
 
-import { usePassportStore } from '../app/stores/passport.js'
+import { usePassportStore } from '../app/stores/passport'
 
 beforeEach(() => {
   setActivePinia(createPinia())
