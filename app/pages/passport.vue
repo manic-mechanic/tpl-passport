@@ -173,6 +173,10 @@ function visitDate(branchCode) {
 
 onMounted(() => {
   if (!import.meta.client) return
+  $posthog?.capture('passport_viewed', {
+    visit_count:    passport.visitCount,
+    completion_pct: passport.progressPct,
+  })
   if (route.hash === '#extra-credit') {
     activePage.value = EXTRA_CREDIT_IDX
   }

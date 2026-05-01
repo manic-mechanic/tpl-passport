@@ -412,6 +412,10 @@ async function submitChangePassword() {
   }
 }
 
+watch(() => passport.profile.theme, (theme) => {
+  $posthog?.capture('theme_changed', { theme: theme || 'system' })
+})
+
 // Demo mode
 const demoModes = [
   { value: 'empty',     label: 'Empty',    icon: '📖', count: '0 stamps' },

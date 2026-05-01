@@ -169,6 +169,15 @@ function trackTplLinkTapped() {
 }
 
 
+onMounted(() => {
+  $posthog?.capture('branch_viewed', {
+    branch_code: props.branch.BranchCode,
+    branch_name: props.branch.BranchName,
+    district:    props.branch.District ?? '',
+    source:      props.source,
+  })
+})
+
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const todayHours = computed(() => {
   const hours = branchHours[props.branch.BranchCode]
