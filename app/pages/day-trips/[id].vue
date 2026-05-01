@@ -35,7 +35,7 @@
 
   <!-- Branch detail sheet -->
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight">
-    <BranchDetail v-if="activeBranch" :branch="activeBranch" />
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" @open-branch="openSheet" />
   </BaseSheet>
 </template>
 
@@ -60,7 +60,7 @@ const mapsUrl = buildMapsUrl(branchObjects)
 
 const sheetOpen = ref(false)
 const activeBranch = ref(null)
-const sheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
+const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
 function openSheet(branch) {
   activeBranch.value = branch

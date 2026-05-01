@@ -36,10 +36,12 @@ export type AlphaPage = (typeof ALPHA_PAGES)[number] & { branches: Branch[] }
 
 export const branchesByAlphaPage: AlphaPage[] = ALPHA_PAGES.map(page => ({
   ...page,
-  branches: sortedBranches.filter(b => {
-    const c = b.BranchName[0].toUpperCase()
-    return c >= page.from && c <= page.to
-  }),
+  branches: physicalBranches
+    .filter(b => {
+      const c = b.BranchCode[0]?.toUpperCase() ?? ''
+      return c >= page.from && c <= page.to
+    })
+    .sort((a, b) => a.BranchCode.localeCompare(b.BranchCode)),
 }))
 
 // Accepts string or number coords — branch JSON stores Lat/Long as strings,

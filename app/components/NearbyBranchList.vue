@@ -31,7 +31,9 @@ const props = defineProps({
   showDistrict: { type: Boolean, default: false },
   from: { type: String, default: 'checkin_success' },
   originalSource: { type: String, default: null },
+  navigateToBranchPage: { type: Boolean, default: false },
 })
+const emit = defineEmits(['select'])
 
 const router = useRouter()
 
@@ -40,10 +42,14 @@ function navigate(branch) {
     from: props.from,
     branch_code: branch.BranchCode,
   })
-  router.push({
-    path: `/branch/${branch.BranchCode}`,
-    state: { originalSource: props.originalSource },
-  })
+  if (props.navigateToBranchPage) {
+    router.push({
+      path: `/branch/${branch.BranchCode}`,
+      state: { originalSource: props.originalSource },
+    })
+    return
+  }
+  emit('select', branch)
 }
 </script>
 

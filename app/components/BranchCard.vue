@@ -64,8 +64,7 @@ const metaLine = computed(() => {
   const locPart = props.distance
     ? `${props.distance} away`
     : (props.branch.Address?.split(',')[0] ?? '')
-  const statusPart = visited.value ? 'visited' : 'never been'
-  return locPart ? `${locPart} · ${statusPart}` : statusPart
+  return locPart
 })
 </script>
 

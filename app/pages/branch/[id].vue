@@ -7,7 +7,12 @@
           {{ backLabel }}
         </NuxtLink>
       </header>
-      <BranchDetail :branch="branch" :source="source" :effective-source="effectiveSource" />
+      <BranchDetail
+        :branch="branch"
+        :source="source"
+        :effective-source="effectiveSource"
+        :nearby-as-route="true"
+      />
     </template>
     <p v-else class="empty-state">Branch not found.</p>
   </main>

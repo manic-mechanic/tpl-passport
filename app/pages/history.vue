@@ -1,6 +1,10 @@
 <template>
   <main class="page-content">
     <header class="page-header">
+      <button class="back-link" @click="goBack">
+        <IconBack />
+        Passport
+      </button>
       <h1>History</h1>
       <p v-if="passport.checkIns.length" class="sub">
         {{ passport.checkIns.length }} check-in{{ passport.checkIns.length
@@ -41,9 +45,14 @@
           <p class="section-label">{{ label }}</p>
           <ul class="checkin-list">
             <li v-for="visit in items" :key="visit.timestamp">
-              <BranchCard v-if="branchObjectMap[visit.branchCode]" :branch="branchObjectMap[visit.branchCode]"
-                          :meta="formatTime(visit.timestamp)" :has-note="!!visit.note"
-                          :has-photo="!!photoUrls[visit.timestamp]"
+              <BranchCard
+                v-if="branchObjectMap[visit.branchCode]"
+                :branch="branchObjectMap[visit.branchCode]"
+                :meta="formatTime(visit.timestamp)"
+                :has-note="!!visit.note"
+                :has-photo="!!photoUrls[visit.timestamp]"
+                as-button
+                @select="openSheet"
               />
             </li>
           </ul>
@@ -57,6 +66,10 @@
       <p>No check-ins yet.<br>Visit a branch to get started.</p>
     </div>
   </main>
+
+  <BaseSheet v-model:open="sheetOpen" :height="sheetHeight">
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="history" @open-branch="openSheet" />
+  </BaseSheet>
 </template>
 
 <script setup>
@@ -65,9 +78,11 @@ import { physicalBranches } from '~/composables/useRegion'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
 import { localDayKey } from '@tpl-passport/shared'
 import IconClock from '~/components/icons/IconClock.vue'
+import IconBack from '~/components/icons/IconBack.vue'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
+const router = useRouter()
 
 onMounted(() => {
   $posthog?.capture('history_viewed')
@@ -123,6 +138,23 @@ function formatTime(iso) {
     return d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })
   return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
 }
+
+const sheetOpen = ref(false)
+const activeBranch = ref(null)
+const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
+
+function openSheet(branch) {
+  activeBranch.value = branch
+  sheetOpen.value = true
+}
+
+function goBack() {
+  if (window.history.length > 1) {
+    router.back()
+    return
+  }
+  navigateTo('/passport')
+}
 </script>
 
 <style scoped>
@@ -137,6 +169,25 @@ function formatTime(iso) {
   & h1 {
     margin-bottom: 3px;
     color: rgba(255, 255, 255, 0.92);
+  }
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 6px;
+  cursor: pointer;
+
+  & svg {
+    width: 16px;
+    height: 16px;
   }
 }
 

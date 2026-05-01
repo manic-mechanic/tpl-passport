@@ -26,9 +26,10 @@
     </div>
 
     <div v-if="selectedBranch && !showPicker" class="stamp-area">
-      <StampShape :branch-code="selectedBranch.BranchCode" :ward-no="selectedBranch.WardNo" :size="100" />
+      <div :class="{ 'stamp-preview-unvisited': !passport.hasVisited(selectedBranch.BranchCode) }">
+        <StampShape :branch-code="selectedBranch.BranchCode" :ward-no="selectedBranch.WardNo" :size="100" />
+      </div>
       <p class="stamp-name">{{ selectedBranch.BranchName }}</p>
-      <p class="stamp-region">{{ selectedBranch.District }}</p>
       <button v-if="scanned" class="change-branch-btn" @click="scanned = false; selectedCode = ''">
         Change branch
       </button>
@@ -124,7 +125,6 @@
         </div>
         <p class="success-label">Stamp collected!</p>
         <p class="success-branch">{{ result.branchName }}</p>
-        <p class="success-region">{{ result.region }}</p>
         <NuxtLink :to="`/branch/${result.branchCode}`" class="btn-primary">View branch</NuxtLink>
         <label v-if="!photoBlob" class="photo-btn">
           <IconPhoto />
@@ -159,7 +159,7 @@
 
       <div v-if="nearbySuccessBranches.length" class="success-nearby">
         <p class="success-nearby-heading">Also nearby</p>
-        <NearbyBranchList :branches="nearbySuccessBranches" :show-district="true" />
+        <NearbyBranchList :branches="nearbySuccessBranches" :navigate-to-branch-page="true" />
       </div>
     </div>
   </BaseSheet>
@@ -341,7 +341,7 @@ async function savePhotoToDevice() {
 const checkInCompleted = ref(false)
 
 const successSheetOpen = ref(false)
-const successSheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
+const successSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
 const result = ref(null)
 watch(result, val => { if (val) successSheetOpen.value = true })
@@ -776,6 +776,11 @@ onUnmounted(() => {
   margin: 4px 0 28px;
 }
 
+.stamp-preview-unvisited {
+  opacity: 0.24;
+  filter: grayscale(1);
+}
+
 .stamp-name {
   font-family: var(--font-display);
   font-size: 1rem;
@@ -783,12 +788,6 @@ onUnmounted(() => {
   color: var(--color-text);
   text-align: center;
   font-optical-sizing: auto;
-}
-
-.stamp-region {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  font-weight: 600;
 }
 
 .change-branch-btn {
@@ -989,12 +988,6 @@ onUnmounted(() => {
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-text-mid);
-}
-
-.success-region {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  margin-bottom: 8px;
 }
 
 .btn-primary {

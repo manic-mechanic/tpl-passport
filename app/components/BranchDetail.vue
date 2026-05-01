@@ -28,9 +28,7 @@
     </div>
 
     <div class="checkin-area">
-      <NuxtLink v-if="checkinState !== 'blocked'" :to="`/check-in?branch=${branch.BranchCode}`" class="checkin-btn"
-                :class="{ visited: checkinState === 'visited' }"
-      >
+      <NuxtLink v-if="checkinState !== 'blocked'" :to="`/check-in?branch=${branch.BranchCode}`" class="checkin-btn">
         {{ checkinState === 'visited' ? 'Check in again' : 'Check in here' }}
       </NuxtLink>
       <button v-else class="checkin-btn blocked" disabled>
@@ -120,7 +118,13 @@
 
     <section v-if="nearbyBranches.length" class="detail-section">
       <h2 class="detail-heading">Nearby branches</h2>
-      <NearbyBranchList :branches="nearbyBranches" :original-source="effectiveSource" from="branch_page" />
+      <NearbyBranchList
+        :branches="nearbyBranches"
+        :original-source="effectiveSource"
+        :navigate-to-branch-page="nearbyAsRoute"
+        from="branch_page"
+        @select="emit('open-branch', $event)"
+      />
     </section>
   </div>
 </template>
@@ -145,7 +149,9 @@ const props = defineProps({
   branch: { type: Object, required: true },
   source: { type: String, default: 'explore' },
   effectiveSource: { type: String, default: '/explore' },
+  nearbyAsRoute: { type: Boolean, default: false },
 })
+const emit = defineEmits(['open-branch'])
 const passport = usePassportStore()
 const { $posthog } = useNuxtApp()
 
@@ -390,15 +396,6 @@ const nearbyBranches = computed(() => {
 
   &:active {
     transform: scale(0.98);
-  }
-
-  &.visited {
-    background: transparent;
-    color: var(--color-text-mid);
-    box-shadow: none;
-    border: 1.5px solid var(--color-border);
-    font-size: 0.875rem;
-    padding: 12px;
   }
 
   &.blocked {

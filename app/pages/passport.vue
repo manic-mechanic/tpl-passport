@@ -82,7 +82,7 @@
             <span class="page-count">{{ extraCreditEarned }}/{{ BADGES.length }}</span>
           </div>
         </div>
-        <BadgesSection :sheet-height="sheetHeight" />
+        <BadgesSection :sheet-height="badgeSheetHeight" />
 
         <nav class="page-turner" aria-label="Navigate pages">
           <button class="turner-btn prev" @click="goToPage(EXTRA_CREDIT_IDX - 1)">
@@ -97,7 +97,7 @@
 
   <!-- Stamp detail sheet -->
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight" :aria-label="activeStamp?.BranchName + ' stamp detail'">
-    <BranchDetail v-if="activeStamp" :branch="activeStamp" source="passport" />
+    <BranchDetail v-if="activeStamp" :branch="activeStamp" source="passport" @open-branch="openSheet" />
   </BaseSheet>
 </template>
 
@@ -133,7 +133,10 @@ const stickyHeight = ref(156)  // sticky block height — drives page-header-row
 const pageHeaderHeight = ref(68) // h1 row height — drives sheet top edge
 
 const sheetHeight = computed(() =>
-  `calc(100dvh - var(--nav-height) - ${pageHeaderHeight.value}px)`
+  `calc(100svh - var(--nav-height) - ${pageHeaderHeight.value}px)`
+)
+const badgeSheetHeight = computed(() =>
+  `min(560px, calc(100svh - var(--nav-height) - ${pageHeaderHeight.value}px))`
 )
 
 function remeasure() {
@@ -267,24 +270,13 @@ onUnmounted(() => {
 .passport-book {
   padding-bottom: 24px;
   margin: 0 -18px;
+  background: var(--color-bg);
 }
 
 /* ── Each alpha "page" — full-bleed section ── */
 .passport-page {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--color-paper);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.04);
-
-  @media (prefers-color-scheme: dark) {
-    & {
-      background: rgba(255, 255, 255, 0.04);
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.2);
-    }
-  }
-}
-
-:global([data-theme="dark"]) .passport-page {
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 /* ── Page header row — sticky within its section ── */
@@ -388,13 +380,13 @@ onUnmounted(() => {
   font-size: 0.75rem;
   font-weight: 500;
   text-align: center;
-  color: var(--color-text-mid);
+  color: var(--color-text);
   line-height: 1.3;
   max-width: 160px;
 
   &.unseen {
     color: var(--color-text-muted);
-    opacity: 0.65;
+    opacity: 0.82;
   }
 }
 

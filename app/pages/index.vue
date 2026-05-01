@@ -17,9 +17,18 @@ const showBanner = computed(() =>
   !isSignedIn.value && passport.checkIns.length > 0 && !bannerDismissed.value
 )
 
+const branchSheetOpen = ref(false)
+const activeBranch = ref(null)
+const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
+
 function dismissBanner() {
   bannerDismissed.value = true
   localStorage.setItem('signin_banner_dismissed', '1')
+}
+
+function openBranchSheet(branch) {
+  activeBranch.value = branch
+  branchSheetOpen.value = true
 }
 </script>
 
@@ -41,17 +50,21 @@ function dismissBanner() {
     </div>
 
     <PassportCard />
-    <RecentVisits />
+    <RecentVisits @select="openBranchSheet" />
 
     <HomeBadgesStrip />
   </main>
+
+  <BaseSheet v-model:open="branchSheetOpen" :height="branchSheetHeight">
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="home" @open-branch="openBranchSheet" />
+  </BaseSheet>
 </template>
 
 <style scoped>
 main {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  min-height: 100svh;
   gap: 18px;
 }
 

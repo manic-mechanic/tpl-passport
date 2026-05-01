@@ -96,11 +96,16 @@ describe('branchesByAlphaPage', () => {
     }
   })
 
-  it('branches on each page are sorted alphabetically', () => {
+  it('branches on each page are sorted by BranchCode', () => {
     for (const page of branchesByAlphaPage) {
       for (let i = 1; i < page.branches.length; i++) {
-        expect(page.branches[i - 1].BranchName.localeCompare(page.branches[i].BranchName)).toBeLessThanOrEqual(0)
+        expect(page.branches[i - 1].BranchCode.localeCompare(page.branches[i].BranchCode)).toBeLessThanOrEqual(0)
       }
     }
+  })
+
+  it('places branches based on BranchCode initials', () => {
+    const clPage = branchesByAlphaPage.find(page => page.branches.some(b => b.BranchCode === 'CL'))
+    expect(clPage?.label).toBe('A – C')
   })
 })

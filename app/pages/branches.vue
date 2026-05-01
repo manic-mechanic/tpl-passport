@@ -27,26 +27,9 @@
         >
           Visited
         </button>
-        <span class="pill-divider" />
-        <button class="sort-tab" :class="{ 'sort-tab-active': byDistrict }"
-                @click="byDistrict = !byDistrict"
-        >
-          District
-        </button>
       </div>
     </div>
-
-    <template v-if="byDistrict">
-      <div v-for="district in visibleDistricts" :key="district" class="region-group">
-        <p class="section-label">{{ district }}</p>
-        <ul class="branch-list">
-          <li v-for="branch in byRegion[district]" :key="branch.BranchCode">
-            <BranchCard :branch="branch" as-button @select="openSheet" />
-          </li>
-        </ul>
-      </div>
-    </template>
-    <ul v-else class="branch-list">
+    <ul class="branch-list">
       <li v-for="branch in filteredBranches" :key="branch.BranchCode">
         <BranchCard :branch="branch" as-button @select="openSheet" />
       </li>
@@ -55,13 +38,13 @@
 
   <!-- Branch detail sheet -->
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight">
-    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="explore" />
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="explore" @open-branch="openSheet" />
   </BaseSheet>
 </template>
 
 <script setup>
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, DISTRICT_ORDER } from '~/composables/useRegion'
+import { physicalBranches } from '~/composables/useRegion'
 import IconSearch from '~/components/icons/IconSearch.vue'
 import IconBack from '~/components/icons/IconBack.vue'
 
@@ -70,7 +53,6 @@ const passport = usePassportStore()
 
 const query = ref('')
 const visitFilter = ref(null)
-const byDistrict = ref(false)
 
 // Debounced search tracking — fires on pause, not every keystroke
 let searchTimer = null
@@ -83,10 +65,6 @@ watch(query, (val) => {
 
 watch(visitFilter, (val) => {
   $posthog?.capture('explore_filter_changed', { filter: val ?? 'az' })
-})
-
-watch(byDistrict, (val) => {
-  $posthog?.capture('explore_filter_changed', { filter: val ? 'region' : 'az' })
 })
 
 const filteredBranches = computed(() => {
@@ -104,23 +82,10 @@ const filteredBranches = computed(() => {
   return [...list].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
 })
 
-const byRegion = computed(() => {
-  const map = {}
-  for (const d of DISTRICT_ORDER) map[d] = []
-  for (const b of filteredBranches.value) {
-    if (b.District) map[b.District]?.push(b)
-  }
-  return map
-})
-
-const visibleDistricts = computed(() =>
-  DISTRICT_ORDER.filter(d => byRegion.value[d]?.length > 0)
-)
-
 // Sheet
 const sheetOpen = ref(false)
 const activeBranch = ref(null)
-const sheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
+const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
 function openSheet(branch) {
   activeBranch.value = branch
@@ -213,13 +178,6 @@ function openSheet(branch) {
   display: none;
 }
 
-.pill-divider {
-  width: 1px;
-  height: 18px;
-  background: var(--color-border);
-  flex-shrink: 0;
-}
-
 .sort-tab {
   flex-shrink: 0;
   padding: 6px 12px;
@@ -238,10 +196,6 @@ function openSheet(branch) {
     border-color: var(--tpl-navy);
     color: #fff;
   }
-}
-
-.region-group {
-  margin-bottom: 24px;
 }
 
 .branch-list {
