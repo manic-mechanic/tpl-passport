@@ -60,7 +60,7 @@
       <div v-else class="badge-suggestions">
         <div v-for="s in badgeSuggestions" :key="s.id" class="suggestion-card">
           <div class="suggestion-badge" :class="s.shape" :style="{ background: badgeBg(s.id) }">
-            <span v-if="s.label" class="suggestion-badge-label">{{ s.label }}</span>
+            <span v-if="s.displayLabel" class="suggestion-badge-label">{{ s.displayLabel }}</span>
           </div>
           <div class="suggestion-body">
             <div class="suggestion-header">
@@ -125,15 +125,28 @@
 
     <!-- What's On -->
     <section v-show="activeTab === 'events'" class="explore-section">
-      <div v-if="eventsLoading" class="geo-state">
+      <div v-if="eventsLoading && sortedEvents.length === 0" class="geo-state">
         <span class="geo-spinner" />
         <span>Loading events…</span>
       </div>
       <p v-else-if="eventsError" class="geo-denied">Could not load events.</p>
-      <p v-else-if="sortedEvents.length === 0" class="geo-denied">No upcoming events in the next 7 days.</p>
       <div v-else class="events-list">
+        <div class="events-controls">
+          <button class="events-filter-btn" :class="{ active: !isManualDaySelection }" @click="resetToToday">
+            Today
+          </button>
+          <input
+            v-model="selectedEventsDate"
+            class="events-date-input"
+            type="date"
+            :min="availableEventDays[0] ?? selectedEventsDate"
+            :max="availableEventDays[availableEventDays.length - 1] ?? selectedEventsDate"
+            @change="onEventsDateChange"
+          >
+        </div>
+        <p v-if="eventsInView.length === 0" class="geo-denied">No events for the selected day.</p>
         <div
-          v-for="event in sortedEvents"
+          v-for="event in eventsInView"
           :key="event.id"
           class="event-row"
           :class="{ 'event-row-clickable': event.branch }"
@@ -153,6 +166,9 @@
           </div>
           <IconChevron v-if="event.branch" class="event-chevron" />
         </div>
+        <button v-if="canLoadMoreDays" class="events-load-more" @click="loadMoreDays">
+          Load more days
+        </button>
       </div>
     </section>
 
@@ -164,7 +180,7 @@
 
   <!-- Branch detail sheet -->
   <BaseSheet v-model:open="branchSheetOpen" :height="branchSheetHeight">
-    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="explore" />
+    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="explore" @open-branch="openBranchSheet" />
   </BaseSheet>
 </template>
 
@@ -174,6 +190,7 @@ import { physicalBranches, haversineKm, formatDist, buildMapsUrl } from '~/compo
 import routesData from '#data/routes.json'
 import { BADGES, useBadgeCtx, badgeBg } from '~/composables/useBadges'
 import { formatAudiences, formatEventTime } from '~/composables/useEvents'
+import { localDayKey } from '@tpl-passport/shared'
 import IconSearch from '~/components/icons/IconSearch.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -275,9 +292,13 @@ function formatEventDateParts(dateStr) {
   }
 }
 
-const { data: eventsData, pending: eventsLoading, error: eventsError } = useFetch('/api/all-events', {
-  default: () => [],
-  transform: records => (Array.isArray(records) ? records : []).map(raw => {
+const eventsData = ref([])
+const eventsLoading = ref(false)
+const eventsError = ref(null)
+const loadedEventOffsets = ref([])
+const MAX_EVENT_DAYS = 7
+
+function eventFromRaw(raw) {
     const locationName = raw.LocationName ?? raw.Location ?? ''
     return {
       id: raw._id,
@@ -288,11 +309,30 @@ const { data: eventsData, pending: eventsLoading, error: eventsError } = useFetc
       locationName,
       branch: branchByShortName.get(locationName.toLowerCase()) ?? null,
     }
-  }),
-})
+}
+
+async function fetchEventsWindow(offset, days) {
+  eventsLoading.value = true
+  eventsError.value = null
+  try {
+    const records = await $fetch('/api/all-events', { query: { offset, days } })
+    const mapped = (Array.isArray(records) ? records : []).map(eventFromRaw)
+    const next = new Map(eventsData.value.map(event => [event.id, event]))
+    for (const event of mapped) next.set(event.id, event)
+    eventsData.value = [...next.values()]
+    loadedEventOffsets.value = [...new Set([
+      ...loadedEventOffsets.value,
+      ...Array.from({ length: days }, (_, i) => offset + i).filter(i => i >= 0 && i < MAX_EVENT_DAYS),
+    ])]
+  } catch (error) {
+    eventsError.value = error
+  } finally {
+    eventsLoading.value = false
+  }
+}
 
 const sortedEvents = computed(() => {
-  const evs = eventsData.value ?? []
+  const evs = eventsData.value
   if (!userLat.value || !userLng.value) return evs
   return [...evs].sort((a, b) => {
     if (a.date !== b.date) return a.date < b.date ? -1 : 1
@@ -303,6 +343,73 @@ const sortedEvents = computed(() => {
   })
 })
 
+const selectedEventsDate = ref(localDayKey(new Date()) ?? '')
+const isManualDaySelection = ref(false)
+const visibleEventDayCount = ref(1)
+const todayDay = computed(() => localDayKey(new Date()) ?? '')
+
+function dayAtOffset(offset) {
+  const day = new Date()
+  day.setDate(day.getDate() + offset)
+  return localDayKey(day)
+}
+
+function offsetForDay(dayKey) {
+  if (!dayKey || !todayDay.value) return null
+  const base = new Date(`${todayDay.value}T00:00:00`)
+  const target = new Date(`${dayKey}T00:00:00`)
+  return Math.round((target.getTime() - base.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+const availableEventDays = computed(() =>
+  Array.from({ length: MAX_EVENT_DAYS }, (_, i) => dayAtOffset(i)).filter(Boolean)
+)
+
+const visibleEventDays = computed(() =>
+  availableEventDays.value.slice(0, visibleEventDayCount.value)
+)
+
+const eventsInView = computed(() => {
+  if (isManualDaySelection.value && selectedEventsDate.value) {
+    return sortedEvents.value.filter(event => event.date === selectedEventsDate.value)
+  }
+  return sortedEvents.value.filter(event => visibleEventDays.value.includes(event.date))
+})
+
+const canLoadMoreDays = computed(() =>
+  !isManualDaySelection.value && visibleEventDayCount.value < MAX_EVENT_DAYS
+)
+
+async function ensureOffsetLoaded(offset) {
+  if (offset < 0 || offset >= MAX_EVENT_DAYS) return
+  if (loadedEventOffsets.value.includes(offset)) return
+  await fetchEventsWindow(offset, 1)
+}
+
+async function resetToToday() {
+  selectedEventsDate.value = todayDay.value
+  isManualDaySelection.value = false
+  visibleEventDayCount.value = 1
+  await ensureOffsetLoaded(0)
+}
+
+async function loadMoreDays() {
+  const nextOffset = visibleEventDayCount.value
+  visibleEventDayCount.value += 1
+  await ensureOffsetLoaded(nextOffset)
+}
+
+async function onEventsDateChange() {
+  isManualDaySelection.value = true
+  const offset = offsetForDay(selectedEventsDate.value)
+  if (offset === null) return
+  await ensureOffsetLoaded(offset)
+}
+
+onMounted(() => {
+  ensureOffsetLoaded(0)
+})
+
 // ── Badge Suggestions ─────────────────────────────────────────────────
 const badgeCtx = useBadgeCtx()
 
@@ -310,11 +417,19 @@ const badgeSuggestions = computed(() => {
   const ctx = badgeCtx.value
   return BADGES
     .filter(a => !a.earned(ctx))
-    .map(a => ({ id: a.id, title: a.title, shape: a.shape, label: a.label ?? null, ...a.suggest(ctx) }))
+    .map(a => ({ id: a.id, title: a.title, shape: a.shape, displayLabel: suggestionBadgeLabel(a, ctx), ...a.suggest(ctx) }))
     .filter(s => s.message)
     .sort((a, b) => b.pct - a.pct)
     .slice(0, 3)
 })
+
+function suggestionBadgeLabel(badge, ctx) {
+  if (badge.id === 'day_tripper') return String(ctx.maxBranchesInOneDay)
+  if (badge.id === 'familiar_face') return String(ctx.homeVisitCount)
+  if (badge.id === 'return_visitor') return String(ctx.maxNonHomeVisitCount)
+  if (badge.id === 'archivist') return String(ctx.fullyDocumentedCount)
+  return badge.label ?? null
+}
 
 // ── Suggested Routes ─────────────────────────────────────────────────
 const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
@@ -332,7 +447,7 @@ const routesWithProgress = computed(() =>
 // ── Sheets ────────────────────────────────────────────────────────────
 const branchSheetOpen = ref(false)
 const activeBranch = ref(null)
-const branchSheetHeight = 'calc(100dvh - var(--nav-height) - 60px)'
+const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
 function openBranchSheet(branch) {
   activeBranch.value = branch
@@ -833,6 +948,43 @@ function openBranchSheet(branch) {
   gap: 8px;
 }
 
+.events-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.events-filter-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  cursor: pointer;
+
+  &.active {
+    background: var(--tpl-navy);
+    border-color: var(--tpl-navy);
+    color: #fff;
+  }
+}
+
+.events-date-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
 .event-row {
   display: flex;
   align-items: center;
@@ -925,5 +1077,18 @@ function openBranchSheet(branch) {
   height: 14px;
   stroke: var(--color-text-muted);
   flex-shrink: 0;
+}
+
+.events-load-more {
+  margin-top: 6px;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-mid);
 }
 </style>
