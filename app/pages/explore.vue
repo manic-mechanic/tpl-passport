@@ -191,6 +191,7 @@ import routesData from '#data/routes.json'
 import { BADGES, useBadgeCtx, badgeBg } from '~/composables/useBadges'
 import { formatAudiences, formatEventTime } from '~/composables/useEvents'
 import { localDayKey } from '@tpl-passport/shared'
+import { reportError } from '~/lib/reportError'
 import IconSearch from '~/components/icons/IconSearch.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -326,6 +327,12 @@ async function fetchEventsWindow(offset, days) {
     ])]
   } catch (error) {
     eventsError.value = error
+    reportError(error, {
+      area: 'events',
+      operation: 'all_events_window_fetch',
+      offset,
+      days,
+    })
   } finally {
     eventsLoading.value = false
   }
