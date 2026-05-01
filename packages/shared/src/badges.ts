@@ -53,7 +53,7 @@ export function maxNonHomeVisitCount(counts: Record<string, number>, homeBranch:
 }
 
 export function fullyDocumentedCount(checkIns: CheckIn[]) {
-  return checkIns.filter(c => c.note?.trim() && c.photoUri).length
+  return checkIns.filter(c => c.note?.trim() && (c.photoUri || c.hasPhoto)).length
 }
 
 const fmtDate = (ts: string) =>

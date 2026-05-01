@@ -7,7 +7,7 @@
     </template>
     <template v-else-if="badge.id === 'page_turner'" />
     <span v-else class="badge-content" :style="{ fontSize: contentFontSize }">
-      {{ badge.stat ? badge.stat(ctx) : badge.label }}
+      {{ contentText }}
     </span>
   </div>
 </template>
@@ -20,6 +20,7 @@ const props = defineProps({
   badge: { type: Object, required: true },
   ctx: { type: Object, required: true },
   size: { type: Number, default: 64 },
+  contentOverride: { type: String, default: '' },
 })
 
 const PAGE_TURNER_COLORS = ['#e07832', '#52cc84', '#1898c0', '#d44545', '#8f5fe0']
@@ -29,6 +30,8 @@ const contentFontSize = computed(() => {
   if (props.size <= 48) return '0.75rem'
   return '1rem'
 })
+
+const contentText = computed(() => props.contentOverride || (props.badge.stat ? props.badge.stat(props.ctx) : props.badge.label))
 
 // navigator and page_turner use inline gradient styles; all others use a color class or locked.
 const colorClass = computed(() => {

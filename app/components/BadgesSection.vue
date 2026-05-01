@@ -1,7 +1,7 @@
 <template>
   <div class="badges-grid">
     <button v-for="badge in displayBadges" :key="badge.id" class="badge-item" @click="openSheet(badge)">
-      <BadgeShape :badge="badge" :ctx="badgeCtx" :size="64" />
+      <BadgeShape :badge="badge" :ctx="badgeCtx" :size="64" :content-override="badgeShapeContent(badge)" />
       <span class="badge-name" :class="{ earned: badge.earned(badgeCtx) }">{{ badge.title }}</span>
       <div v-if="showBadgeProgress(badge)" class="badge-progress">
         <div class="prog-bar">
@@ -16,7 +16,7 @@
   <BaseSheet v-model:open="sheetOpen" :height="props.sheetHeight" :aria-label="activeBadge?.title + ' badge detail'">
     <div v-if="activeBadge" class="detail-scroll">
       <div class="detail-badge">
-        <BadgeShape :badge="activeBadge" :ctx="badgeCtx" :size="88" />
+        <BadgeShape :badge="activeBadge" :ctx="badgeCtx" :size="88" :content-override="badgeShapeContent(activeBadge)" />
       </div>
 
       <h2 class="detail-title">{{ activeBadge.title }}</h2>
@@ -73,7 +73,30 @@
         <div class="detail-row" :class="{ done: activeBadge.earned(badgeCtx) }">
           <span class="detail-check">{{ activeBadge.earned(badgeCtx) ? '✓' : '·' }}</span>
           <span class="detail-text">{{ branchName(badgeCtx.homeBranch) }}</span>
-          <span class="detail-count">{{ badgeCtx.homeVisitCount }}/5 visits</span>
+          <span class="detail-count">{{ badgeCtx.homeVisitCount }} visits</span>
+        </div>
+      </div>
+
+      <div v-if="activeBadge.id === 'day_tripper'" class="detail-list">
+        <div class="detail-row" :class="{ done: activeBadge.earned(badgeCtx) }">
+          <span class="detail-check">{{ activeBadge.earned(badgeCtx) ? '✓' : '·' }}</span>
+          <span class="detail-text">Best day</span>
+          <span class="detail-count">{{ badgeCtx.maxBranchesInOneDay }} branches</span>
+        </div>
+      </div>
+
+      <div v-if="activeBadge.id === 'return_visitor'" class="detail-list">
+        <div class="detail-row" :class="{ done: activeBadge.earned(badgeCtx) }">
+          <span class="detail-check">{{ activeBadge.earned(badgeCtx) ? '✓' : '·' }}</span>
+          <span class="detail-text">{{ returnVisitorBranchName }}</span>
+          <span class="detail-count">{{ badgeCtx.maxNonHomeVisitCount }} visits</span>
+        </div>
+      </div>
+
+      <div v-if="activeBadge.id === 'archivist'" class="detail-list">
+        <div v-for="name in archivistBranchNames" :key="name" class="detail-row" :class="{ done: true }">
+          <span class="detail-check">✓</span>
+          <span class="detail-text">{{ name }}</span>
         </div>
       </div>
     </div>
@@ -85,7 +108,7 @@ import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, useBadgeCtx, compassPoints } from '~/composables/useBadges'
 import IconCheckMark from './icons/IconCheckMark.vue'
 
-const props = defineProps({ sheetHeight: { type: String, default: 'calc(100dvh - var(--nav-height) - 76px)' } })
+const props = defineProps({ sheetHeight: { type: String, default: 'calc(100svh - var(--nav-height) - 76px)' } })
 
 const { $posthog } = useNuxtApp()
 const badgeCtx = useBadgeCtx()
@@ -121,7 +144,8 @@ const nextStampId = computed(() =>
 
 function showBadgeProgress(badge) {
   const ctx = badgeCtx.value
-  if (badge.earned(ctx) || !badge.progress) return false
+  if (!badge.progress) return false
+  if (badge.earned(ctx)) return false
   if (badge.progress(ctx).current === 0) return false
   if (badge.shape === 'octagon') return badge.id === nextStampId.value
   return true
@@ -132,7 +156,26 @@ function badgeProgressPct(badge) {
 }
 function badgeProgressLabel(badge) {
   const { current, total } = badge.progress(badgeCtx.value)
+  if (badge.id === 'day_tripper') return `${current} in a day`
+  if (badge.id === 'archivist') return `${current} documented`
+  if (badge.id === 'familiar_face') return `${current} home visits`
+  if (badge.id === 'return_visitor') return `${current} repeat visits`
   return `${current}/${total}`
+}
+
+function badgeShapeContent(badge) {
+  if (!badge) return ''
+  if (!isActivityBadge(badge)) return ''
+  const ctx = badgeCtx.value
+  if (badge.id === 'day_tripper') return String(ctx.maxBranchesInOneDay)
+  if (badge.id === 'familiar_face') return String(ctx.homeVisitCount)
+  if (badge.id === 'return_visitor') return String(ctx.maxNonHomeVisitCount)
+  if (badge.id === 'archivist') return String(ctx.fullyDocumentedCount)
+  return ''
+}
+
+function isActivityBadge(badge) {
+  return ['day_tripper', 'return_visitor', 'familiar_face', 'archivist'].includes(badge.id)
 }
 
 function earnedDate(badge) {
@@ -143,6 +186,22 @@ function earnedDate(badge) {
 function branchName(code) {
   return physicalBranches.find(b => b.BranchCode === code)?.BranchName ?? code
 }
+
+const returnVisitorBranchName = computed(() => {
+  const entries = Object.entries(badgeCtx.value.branchVisitCounts)
+    .filter(([code]) => code !== badgeCtx.value.homeBranch)
+    .sort((a, b) => b[1] - a[1])
+  if (!entries.length || entries[0][1] <= 0) return 'No branch yet'
+  return branchName(entries[0][0])
+})
+
+const archivistBranchNames = computed(() =>
+  [...new Set(
+    badgeCtx.value.checkIns
+      .filter(c => c.note?.trim() && (c.photoUri || c.hasPhoto))
+      .map(c => branchName(c.branchCode))
+  )]
+)
 </script>
 
 <style scoped>
@@ -224,7 +283,7 @@ function branchName(code) {
   }
 
   & .prog-text {
-    font-size: 0.5rem;
+    font-size: 0.625rem;
     font-weight: 600;
     color: var(--color-text-muted);
     line-height: 1;

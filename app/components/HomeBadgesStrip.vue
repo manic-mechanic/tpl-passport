@@ -13,7 +13,7 @@
         class="badge-tile"
         :title="badge.desc"
       >
-        <BadgeShape :badge="badge" :ctx="ctx" :size="40" />
+        <BadgeShape :badge="badge" :ctx="ctx" :size="40" :content-override="badgeShapeContent(badge)" />
         <span class="badge-name">{{ badge.title }}</span>
         <div v-if="badge.progress && !badge.earned(ctx)" class="badge-prog">
           <div class="prog-bar">
@@ -75,6 +75,20 @@ function progPct(badge) {
 function progText(badge) {
   const { current, total } = badge.progress(ctx.value)
   return `${current}/${total}`
+}
+
+function isActivityBadge(badge) {
+  return ['day_tripper', 'return_visitor', 'familiar_face', 'archivist'].includes(badge.id)
+}
+
+function badgeShapeContent(badge) {
+  if (!isActivityBadge(badge)) return ''
+  const c = ctx.value
+  if (badge.id === 'day_tripper') return String(c.maxBranchesInOneDay)
+  if (badge.id === 'familiar_face') return String(c.homeVisitCount)
+  if (badge.id === 'return_visitor') return String(c.maxNonHomeVisitCount)
+  if (badge.id === 'archivist') return String(c.fullyDocumentedCount)
+  return ''
 }
 </script>
 

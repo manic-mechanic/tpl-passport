@@ -326,3 +326,23 @@ describe('badge: return_visitor', () => {
     expect(badge('return_visitor').earned(ctx({ checkIns, homeBranch: 'AG' }))).toBe(true)
   })
 })
+
+describe('badge progress counts for activity badges', () => {
+  it('computes current counts for day_tripper, familiar_face, return_visitor, archivist', () => {
+    const checkIns = [
+      { branchCode: 'AG', timestamp: '2024-01-01T10:00:00.000Z', note: 'A', hasPhoto: true },
+      { branchCode: 'HP', timestamp: '2024-01-01T11:00:00.000Z', note: '' },
+      { branchCode: 'HP', timestamp: '2024-01-02T11:00:00.000Z', note: '' },
+      { branchCode: 'HP', timestamp: '2024-01-03T11:00:00.000Z', note: '' },
+      { branchCode: 'AG', timestamp: '2024-01-04T10:00:00.000Z', note: '' },
+      { branchCode: 'AG', timestamp: '2024-01-05T10:00:00.000Z', note: '' },
+      { branchCode: 'AG', timestamp: '2024-01-06T10:00:00.000Z', note: '' },
+      { branchCode: 'AG', timestamp: '2024-01-07T10:00:00.000Z', note: '' },
+    ]
+    const c = ctx({ checkIns, homeBranch: 'AG' })
+    expect(badge('day_tripper').progress(c).current).toBe(2)
+    expect(badge('familiar_face').progress(c).current).toBe(5)
+    expect(badge('return_visitor').progress(c).current).toBe(3)
+    expect(badge('archivist').progress(c).current).toBe(1)
+  })
+})

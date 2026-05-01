@@ -45,6 +45,7 @@ export interface CheckIn {
   branchCode: string
   timestamp: string // ISO string
   note: string
+  hasPhoto?: boolean
   photoUri?: string // local file:// path (anonymous) or R2 https:// URL (authenticated)
 }
 
