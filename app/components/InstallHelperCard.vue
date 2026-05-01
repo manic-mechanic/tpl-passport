@@ -18,6 +18,16 @@
   >
     <div class="install-sheet">
       <h2 class="install-sheet-title">{{ installGuide.title }}</h2>
+      <div v-if="installGuide.platform === 'ios'" class="ios-steps-preview">
+        <div class="ios-shot">
+          <span class="ios-shot-label">1. Tap Share</span>
+          <span class="ios-shot-icon">⬆︎</span>
+        </div>
+        <div class="ios-shot">
+          <span class="ios-shot-label">2. Add to Home Screen</span>
+          <span class="ios-shot-icon">＋</span>
+        </div>
+      </div>
       <ol class="install-step-list">
         <li v-for="step in installGuide.steps" :key="step" class="install-step">
           {{ step }}
@@ -35,14 +45,21 @@ const { $posthog } = useNuxtApp()
 const deferredInstallEvent = ref(null)
 const isInstalled = ref(false)
 const showInstallSheet = ref(false)
-const installGuide = ref({ title: 'Install this app', steps: [] })
+const installGuide = ref({ title: 'Install this app', platform: 'other', steps: [] })
+const isAndroidGuide = computed(() => installGuide.value.platform === 'android')
 
 const canPromptInstall = computed(() => Boolean(deferredInstallEvent.value))
-const installActionLabel = computed(() => (canPromptInstall.value ? 'Install' : 'How to install'))
+const installActionLabel = computed(() => {
+  if (canPromptInstall.value) return 'Install'
+  if (isAndroidGuide.value) return 'Install'
+  return 'How to install'
+})
 const installHint = computed(() =>
   canPromptInstall.value
     ? 'Install in one tap on this device.'
-    : 'We will show quick install steps for your browser.',
+    : isAndroidGuide.value
+      ? 'Tap Install to open Android install steps.'
+      : 'We will show quick install steps for your browser.',
 )
 
 function refreshInstallState() {
@@ -134,6 +151,39 @@ onBeforeUnmount(() => {
 
 .install-sheet {
   padding-top: 8px;
+
+  & .ios-steps-preview {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  & .ios-shot {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+  }
+
+  & .ios-shot-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-mid);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  & .ios-shot-icon {
+    font-size: 1rem;
+    color: var(--tpl-blue);
+  }
 
   & .install-sheet-title {
     font-size: 1rem;

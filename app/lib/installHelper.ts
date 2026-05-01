@@ -1,5 +1,6 @@
 type InstallGuide = {
   title: string
+  platform: 'ios' | 'android' | 'desktop' | 'other'
   steps: string[]
 }
 
@@ -20,6 +21,7 @@ export function getInstallGuide(userAgent: string): InstallGuide {
   if (isIos) {
     return {
       title: 'Install on iPhone or iPad',
+      platform: 'ios',
       steps: [
         ...(isSafari ? [] : ['Open this app in Safari.']),
         'Tap the Share button in the browser toolbar.',
@@ -31,6 +33,7 @@ export function getInstallGuide(userAgent: string): InstallGuide {
   if (isAndroid && isFirefox) {
     return {
       title: 'Install in Firefox on Android',
+      platform: 'android',
       steps: [
         'Open the browser menu.',
         'Tap "Install" or "Add app to Home Screen".',
@@ -42,6 +45,7 @@ export function getInstallGuide(userAgent: string): InstallGuide {
   if (isAndroid && isSamsungInternet) {
     return {
       title: 'Install in Samsung Internet',
+      platform: 'android',
       steps: [
         'Open the browser menu.',
         'Tap "Install app".',
@@ -53,6 +57,7 @@ export function getInstallGuide(userAgent: string): InstallGuide {
   if (isAndroid) {
     return {
       title: 'Install on Android',
+      platform: 'android',
       steps: [
         'Open the browser menu.',
         'Tap "Install app" or "Add to Home screen".',
@@ -64,6 +69,7 @@ export function getInstallGuide(userAgent: string): InstallGuide {
   if (isDesktopSafari) {
     return {
       title: 'Install in Safari on Mac',
+      platform: 'desktop',
       steps: [
         'Open the Share menu in Safari.',
         'Choose "Add to Dock".',
@@ -75,6 +81,7 @@ export function getInstallGuide(userAgent: string): InstallGuide {
   if (isChromiumDesktop) {
     return {
       title: 'Install on desktop',
+      platform: 'desktop',
       steps: [
         'Click the install icon in the address bar.',
         'Or open the browser menu and choose "Install app".',
@@ -85,6 +92,7 @@ export function getInstallGuide(userAgent: string): InstallGuide {
 
   return {
     title: 'Install this app',
+    platform: 'other',
     steps: [
       'Open your browser menu.',
       'Look for "Install app" or "Add to Home Screen".',

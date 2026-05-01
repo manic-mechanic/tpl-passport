@@ -80,6 +80,9 @@ const showCover = ref(false)
 const isSignedIn = ref(false)
 
 onMounted(async () => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  }
   setTimeout(() => { showCover.value = false }, 900)
 
   // Sync auth → passport on every app load.

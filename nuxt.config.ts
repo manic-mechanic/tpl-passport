@@ -21,7 +21,7 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#001c71', media: '(prefers-color-scheme: light)' },
         { name: 'theme-color', content: '#111850', media: '(prefers-color-scheme: dark)' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
-        { name: 'apple-mobile-web-app-title', content: 'TPL Passport' },
+        { name: 'apple-mobile-web-app-title', content: 'Library Passport' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
       ],
       link: [
@@ -35,6 +35,7 @@ export default defineNuxtConfig({
         // PWA
         { rel: 'manifest', href: '/manifest.json' },
         { rel: 'icon', type: 'image/png', href: '/tpl-meta-card.png' },
+        { rel: 'shortcut icon', href: '/favicon.ico' },
         { rel: 'apple-touch-icon', href: '/tpl-meta-card.png' },
       ],
     },
