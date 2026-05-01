@@ -94,6 +94,35 @@ watch(() => passport.profile.homeBranch, () => {
   $posthog?.capture('home_branch_changed')
 })
 
+// ── Achievement tracking ─────────────────────────────────────────────
+const badgeCtx = useBadgeCtx()
+let earnedOnMount = null
+
+onMounted(() => {
+  earnedOnMount = new Set(BADGES.filter(b => b.earned(badgeCtx.value)).map(b => b.id))
+})
+
+watch(badgeCtx, (ctx) => {
+  if (!earnedOnMount) return
+  for (const badge of BADGES) {
+    if (badge.earned(ctx) && !earnedOnMount.has(badge.id)) {
+      $posthog?.capture('achievement_unlocked', {
+        achievement_id: badge.id,
+        achievement_title: badge.title,
+      })
+      earnedOnMount.add(badge.id)
+    }
+  }
+}, { deep: true })
+
+// ── Home branch change tracking ──────────────────────────────────────
+const homeBranchReady = ref(false)
+
+watch(() => passport.profile.homeBranch, () => {
+  if (!homeBranchReady.value) return
+  $posthog?.capture('home_branch_changed')
+})
+
 // Theme watcher — applies data-theme to <html> for manual toggle
 watchEffect(() => {
   if (!import.meta.client) return
