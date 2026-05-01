@@ -33,9 +33,38 @@
 
         <div class="field">
           <label class="field-label" for="password">Password</label>
-          <input id="password" v-model="password" type="password" class="field-input" placeholder="••••••••"
-                 autocomplete="current-password" required
-          />
+          <div class="password-wrap">
+            <input
+              id="password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              class="field-input"
+              placeholder="••••••••"
+              :autocomplete="mode === 'signin' ? 'current-password' : 'new-password'"
+              required
+            >
+            <button type="button" class="password-toggle" @click="showPassword = !showPassword">
+              {{ showPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="mode === 'signup'" class="field">
+          <label class="field-label" for="confirm-password">Confirm password</label>
+          <div class="password-wrap">
+            <input
+              id="confirm-password"
+              v-model="confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              class="field-input"
+              placeholder="••••••••"
+              autocomplete="new-password"
+              required
+            >
+            <button type="button" class="password-toggle" @click="showConfirmPassword = !showConfirmPassword">
+              {{ showConfirmPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
         </div>
 
         <p v-if="error" class="error-msg">{{ error }}</p>
@@ -73,6 +102,9 @@ const mode = ref('signin')
 const name = ref(passport.profile.name ?? '')
 const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 const error = ref('')
 const loading = ref(false)
 const googleLoading = ref(false)
@@ -104,6 +136,10 @@ async function syncAfterSignIn(userName) {
 
 async function submitEmail() {
   error.value = ''
+  if (mode.value === 'signup' && password.value !== confirmPassword.value) {
+    error.value = 'Passwords do not match.'
+    return
+  }
   loading.value = true
   try {
     if (mode.value === 'signin') {
@@ -130,6 +166,12 @@ async function submitEmail() {
       $posthog?.capture('sign_up_completed', { method: 'email', name_set: !!name.value })
     }
     navigateTo('/')
+  } catch (e) {
+    error.value = 'Sign-in failed. Please try again.'
+    reportError(e, {
+      area: 'auth',
+      operation: mode.value === 'signin' ? 'signin_email' : 'signup_email',
+    })
   } finally {
     loading.value = false
   }
@@ -155,10 +197,11 @@ async function signInWithGoogle() {
 
 <style scoped>
 .login-page {
-  min-height: 100dvh;
-  padding: 0 16px 40px;
+  min-height: 100svh;
+  padding: 0 16px calc(var(--nav-height) + 16px);
   max-width: 480px;
   margin: 0 auto;
+  background: var(--color-bg);
 }
 
 .login-header {
@@ -271,6 +314,24 @@ async function signInWithGoogle() {
   &:focus {
     border-color: var(--tpl-blue);
   }
+}
+
+.password-wrap {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: var(--tpl-blue);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  padding: 4px;
 }
 
 .field-optional {
