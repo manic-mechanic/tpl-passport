@@ -2,6 +2,7 @@ import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
 import { pushCheckIn, patchCheckInPhoto } from '~/composables/useCheckInSync'
+import { canSyncToServer } from '~/composables/useAuthState'
 import { loadPassportState, savePassportState } from '~/lib/passportStorage'
 import { localDayKey } from '@tpl-passport/shared'
 import type { PassportCheckIn, PassportProfile } from '~/types/passport'
@@ -89,7 +90,8 @@ export const usePassportStore = defineStore('passport', () => {
 
     const timestamp = new Date().toISOString()
     checkIns.value.unshift({ branchCode, timestamp, note })
-    void pushCheckIn({ branchCode, timestamp, note })  // fire-and-forget
+    // Fire-and-forget. Signed-out check-ins stay local until sign-in sync.
+    if (canSyncToServer()) void pushCheckIn({ branchCode, timestamp, note })
     return timestamp
   }
 
@@ -97,7 +99,8 @@ export const usePassportStore = defineStore('passport', () => {
     const ci = checkIns.value.find(c => c.timestamp === timestamp)
     if (!ci) return
     ci.note = note
-    void pushCheckIn({ ...ci })  // re-push full check-in so server note is updated
+    // Re-push the full check-in so the server note is updated.
+    if (canSyncToServer()) void pushCheckIn({ ...ci })
   }
 
   // Sets hasPhoto: true on the check-in matching the given timestamp.

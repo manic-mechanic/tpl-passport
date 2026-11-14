@@ -1,5 +1,5 @@
 <script setup>
-import { useAuthKnown, useSignedIn } from '~/composables/useAccountSync'
+import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 import { usePassportStore } from '~/stores/passport'
 
 const passport = usePassportStore()

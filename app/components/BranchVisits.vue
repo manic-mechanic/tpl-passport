@@ -43,7 +43,7 @@
 import { usePassportStore } from '~/stores/passport'
 import { getPhotoUrl, savePhoto } from '~/composables/usePhotoStore'
 import { compressPhoto, uploadCheckInPhoto } from '~/lib/checkInPhoto'
-import { canUploadPhotos } from '~/composables/useAccountSync'
+import { canSyncToServer } from '~/composables/useAuthState'
 import IconNote from './icons/IconNote.vue'
 import IconPhoto from './icons/IconPhoto.vue'
 
@@ -106,7 +106,7 @@ async function onVisitPhotoCapture(event, timestamp) {
   if (oldUrl) URL.revokeObjectURL(oldUrl)
   photoUrls.value[timestamp] = URL.createObjectURL(blob)
   passport.markCheckInHasPhoto(timestamp)
-  if (canUploadPhotos()) {
+  if (canSyncToServer()) {
     const publicUrl = await uploadCheckInPhoto(blob)
     if (publicUrl) passport.markCheckInHasPhoto(timestamp, publicUrl)
   }

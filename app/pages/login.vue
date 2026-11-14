@@ -91,7 +91,8 @@ import { authClient } from '~/lib/auth-client'
 import { usePassportStore } from '~/stores/passport'
 import { pushProfile } from '~/composables/useProfileSync'
 import { reportError } from '~/lib/reportError'
-import { syncAccount, useSignedIn } from '~/composables/useAccountSync'
+import { syncAccount } from '~/composables/useAccountSync'
+import { useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()

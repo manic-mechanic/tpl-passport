@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { ref } from 'vue'
 
 // Stub localStorage — not available in Node test environment
 vi.stubGlobal('localStorage', {
@@ -9,6 +10,15 @@ vi.stubGlobal('localStorage', {
 
 // Stub Nuxt auto-imports not available in Vitest
 vi.stubGlobal('useRuntimeConfig', () => ({ public: { isDev: true } }))
+const nuxtState = {}
+vi.stubGlobal('useState', (key, init) => (nuxtState[key] ??= ref(init())))
+
+// Record server pushes instead of making network requests.
+const { pushCheckIn } = vi.hoisted(() => ({ pushCheckIn: vi.fn(async () => true) }))
+vi.mock('../app/composables/useCheckInSync', () => ({
+  pushCheckIn,
+  patchCheckInPhoto: vi.fn(async () => true),
+}))
 
 // import.meta.client is undefined in Vitest (not a browser), so the
 // localStorage hydration branch in the store is skipped automatically.
@@ -17,6 +27,38 @@ import { usePassportStore } from '../app/stores/passport'
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  for (const key of Object.keys(nuxtState)) delete nuxtState[key]
+  pushCheckIn.mockClear()
+})
+
+describe('server sync on check-in', () => {
+  function setAuth(known, signedIn) {
+    useState('auth:known', () => false).value = known
+    useState('auth:signedIn', () => false).value = signedIn
+  }
+
+  it('does not push when the user is known to be signed out', () => {
+    setAuth(true, false)
+    const passport = usePassportStore()
+    const ts = passport.checkIn('AG', 'hi')
+    passport.updateNote(ts, 'edited')
+    expect(pushCheckIn).not.toHaveBeenCalled()
+    expect(passport.checkIns).toHaveLength(1)
+  })
+
+  it('pushes when signed in', () => {
+    setAuth(true, true)
+    const passport = usePassportStore()
+    const ts = passport.checkIn('AG', 'hi')
+    passport.updateNote(ts, 'edited')
+    expect(pushCheckIn).toHaveBeenCalledTimes(2)
+  })
+
+  it('pushes before the session check has finished', () => {
+    setAuth(false, false)
+    usePassportStore().checkIn('AG')
+    expect(pushCheckIn).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('checkIn', () => {

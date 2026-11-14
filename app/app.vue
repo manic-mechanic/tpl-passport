@@ -27,7 +27,8 @@ import { usePassportStore } from '~/stores/passport'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 import { authClient } from '~/lib/auth-client'
 import { reportError } from '~/lib/reportError'
-import { syncAccount, useAuthKnown, useSignedIn } from '~/composables/useAccountSync'
+import { syncAccount } from '~/composables/useAccountSync'
+import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
