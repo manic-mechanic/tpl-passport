@@ -12,22 +12,7 @@ import { uploadCheckInPhoto } from '~/lib/checkInPhoto'
 import { reportError } from '~/lib/reportError'
 import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
 import { reconcileProfile } from '~/lib/profileSyncMerge'
-
-// Whether the user is signed in. Only meaningful once useAuthKnown() is true;
-// app.vue sets both after its getSession() call on load.
-export function useSignedIn() {
-  return useState<boolean>('auth:signedIn', () => false)
-}
-
-export function useAuthKnown() {
-  return useState<boolean>('auth:known', () => false)
-}
-
-// Upload photos unless we know the user is signed out. Before the session
-// check finishes we try anyway: a signed-out upload just gets a 401.
-export function canUploadPhotos(): boolean {
-  return useSignedIn().value || !useAuthKnown().value
-}
+import { useSignedIn } from '~/composables/useAuthState'
 
 // Make sure everything on this device is on the server: merge with the server
 // list, push local-only and merged records, and upload photos that only exist

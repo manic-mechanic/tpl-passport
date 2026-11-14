@@ -89,7 +89,7 @@
 import { usePassportStore } from '~/stores/passport'
 import { storeToRefs } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
-import { useSignedIn } from '~/composables/useAccountSync'
+import { useSignedIn } from '~/composables/useAuthState'
 
 // boring-avatars beam algorithm (inlined — package utilities not exported at runtime)
 function _hash(name) {

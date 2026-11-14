@@ -108,6 +108,7 @@
 <script setup>
 import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm } from '~/composables/useRegion'
+import { shouldSkipLocationCheck } from '~/lib/locationCheck'
 import { FEATURES } from '~/composables/useFeatureFlags'
 import IconVisited from '~/components/icons/IconVisited.vue'
 import IconQR from '~/components/icons/IconQR.vue'
@@ -196,8 +197,13 @@ async function doCheckIn() {
     source: scanned.value ? 'qr_scan' : prefilled ? 'branch_page' : 'nav_button',
   })
 
-  const config = useRuntimeConfig()
-  if (!passport.profile.bypassLocationFence && !config.public.bypassGeofence) {
+  const { public: { isDev, bypassGeofence } } = useRuntimeConfig()
+  const skipLocationCheck = shouldSkipLocationCheck({
+    isDev: !!isDev,
+    bypassGeofence: !!bypassGeofence,
+    profileBypass: !!passport.profile.bypassLocationFence,
+  })
+  if (!skipLocationCheck) {
     locationStatus.value = 'checking'
     try {
       const pos = await getPosition()

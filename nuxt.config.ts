@@ -55,7 +55,8 @@ export default defineNuxtConfig({
   // Dev-only features (demo mode, location fence bypass, QR scanner).
   // On by default only under `nuxt dev`; production builds default to off.
   // Set NUXT_PUBLIC_IS_DEV=true on preview/tester deployments to turn them on.
-  // Set NUXT_PUBLIC_BYPASS_GEOFENCE=true to allow check-ins from any location (e.g. for testers).
+  // Set NUXT_PUBLIC_BYPASS_GEOFENCE=true to allow check-ins from any location (e.g. for testers);
+  // it only takes effect when isDev is on, so it can't switch off the check in production.
   runtimeConfig: {
     public: {
       isDev: process.env.NODE_ENV !== 'production',
