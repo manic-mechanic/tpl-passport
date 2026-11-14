@@ -24,6 +24,7 @@ vi.mock('../app/composables/useCheckInSync', () => ({
 // localStorage hydration branch in the store is skipped automatically.
 
 import { usePassportStore } from '../app/stores/passport'
+import { checkInDayKey } from '@tpl-passport/shared'
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -294,9 +295,10 @@ describe('loadDemoState', () => {
 
   it('demo check-ins never land on today', async () => {
     const passport = usePassportStore()
-    const todayPrefix = new Date().toISOString().slice(0, 10)
+    // "Today" is the library day, the same rule hasVisitedToday uses.
+    const today = checkInDayKey(new Date())
     await passport.loadDemoState('completed')
-    const todayVisits = passport.checkIns.filter(c => c.timestamp.startsWith(todayPrefix))
+    const todayVisits = passport.checkIns.filter(c => checkInDayKey(c.timestamp) === today)
     expect(todayVisits).toHaveLength(0)
   })
 })

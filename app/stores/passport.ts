@@ -4,7 +4,7 @@ import { physicalBranches } from '~/composables/useRegion'
 import { pushCheckIn, patchCheckInPhoto } from '~/composables/useCheckInSync'
 import { canSyncToServer } from '~/composables/useAuthState'
 import { loadPassportState, savePassportState } from '~/lib/passportStorage'
-import { localDayKey } from '@tpl-passport/shared'
+import { checkInDayKey } from '@tpl-passport/shared'
 import type { PassportCheckIn, PassportProfile } from '~/types/passport'
 
 type DemoMode = 'empty' | 'mid' | 'completed'
@@ -50,12 +50,14 @@ export const usePassportStore = defineStore('passport', () => {
 
   const hasVisited = (branchCode: string) => visitedBranchCodes.value.has(branchCode)
 
+  // "Today" is the library's day (Toronto time), the same rule the server
+  // uses, whatever time zone this device is set to.
   const hasVisitedToday = (branchCode: string) => {
-    const today = localDayKey(new Date())
+    const today = checkInDayKey(new Date())
     if (!today) return false
     return checkIns.value.some(
       c => c.branchCode === branchCode &&
-           localDayKey(c.timestamp) === today
+           checkInDayKey(c.timestamp) === today
     )
   }
 

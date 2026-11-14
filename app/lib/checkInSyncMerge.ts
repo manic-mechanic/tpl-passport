@@ -1,4 +1,4 @@
-import { localDayKey } from '@tpl-passport/shared'
+import { checkInDayKey } from '@tpl-passport/shared'
 import type { PassportCheckIn } from '~/types/passport'
 
 function timestampMs(value: string): number {
@@ -7,7 +7,7 @@ function timestampMs(value: string): number {
 }
 
 function branchDayKey(checkIn: PassportCheckIn): string {
-  return `${checkIn.branchCode}|${localDayKey(checkIn.timestamp)}`
+  return `${checkIn.branchCode}|${checkInDayKey(checkIn.timestamp)}`
 }
 
 // Merges server and local check-ins.
