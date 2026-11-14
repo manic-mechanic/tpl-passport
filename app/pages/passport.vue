@@ -259,8 +259,8 @@ onUnmounted(() => {
   }
 
   &.active {
-    color: var(--tpl-navy);
-    border-bottom-color: var(--tpl-navy);
+    color: var(--color-brand-text);
+    border-bottom-color: var(--color-brand-text);
   }
 
   /* Completed — subtle warm tint */
@@ -427,7 +427,7 @@ onUnmounted(() => {
   -webkit-tap-highlight-color: transparent;
 
   &:active {
-    color: var(--tpl-navy);
+    color: var(--color-brand-text);
   }
 
   & svg {

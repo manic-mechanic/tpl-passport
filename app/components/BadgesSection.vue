@@ -384,7 +384,7 @@ const archivistBranchNames = computed(() =>
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--color-tint);
   border-radius: 8px;
   color: var(--color-text-muted);
 
@@ -392,16 +392,8 @@ const archivistBranchNames = computed(() =>
     color: var(--color-text);
   }
 
-  @media (prefers-color-scheme: dark) {
-    & {
-      background: rgba(255, 255, 255, 0.05);
-    }
-  }
 }
 
-:global([data-theme="dark"]) .detail-row {
-  background: rgba(255, 255, 255, 0.05);
-}
 
 .detail-check {
   font-size: 0.875rem;

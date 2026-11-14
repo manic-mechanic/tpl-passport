@@ -66,19 +66,10 @@ defineEmits(['update:open'])
 .sheet-handle-bar {
   width: 36px;
   height: 4px;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--color-sheet-handle);
   border-radius: 2px;
-
-  @media (prefers-color-scheme: dark) {
-    & {
-      background: rgba(255, 255, 255, 0.2);
-    }
-  }
 }
 
-:global([data-theme="dark"]) .sheet-handle-bar {
-  background: rgba(255, 255, 255, 0.2);
-}
 
 .sheet-close {
   position: absolute;
@@ -87,7 +78,7 @@ defineEmits(['update:open'])
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--color-sheet-close);
   border: none;
   cursor: pointer;
   color: var(--color-text);
@@ -99,32 +90,16 @@ defineEmits(['update:open'])
   z-index: 1;
 
   &:active {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--color-sheet-close-active);
   }
 
   & svg {
     width: 16px;
     height: 16px;
   }
-
-  @media (prefers-color-scheme: dark) {
-    & {
-      background: rgba(255, 255, 255, 0.14);
-    }
-
-    &:active {
-      background: rgba(255, 255, 255, 0.24);
-    }
-  }
 }
 
-:global([data-theme="dark"]) .sheet-close {
-  background: rgba(255, 255, 255, 0.14);
-}
 
-:global([data-theme="dark"]) .sheet-close:active {
-  background: rgba(255, 255, 255, 0.24);
-}
 
 .sheet-scroll {
   height: calc(100% - 48px);

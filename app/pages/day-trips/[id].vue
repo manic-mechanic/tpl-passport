@@ -120,7 +120,7 @@ function openSheet(branch) {
   gap: 7px;
   padding: 10px 16px;
   background: var(--tpl-blue);
-  color: #fff;
+  color: var(--color-text-inverse);
   border-radius: var(--radius-pill);
   font-size: 0.875rem;
   font-weight: 600;

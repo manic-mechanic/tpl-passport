@@ -89,7 +89,7 @@
 import { usePassportStore } from '~/stores/passport'
 import { storeToRefs } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
-import { authClient } from '~/lib/auth-client'
+import { useSignedIn } from '~/composables/useAccountSync'
 
 // boring-avatars beam algorithm (inlined — package utilities not exported at runtime)
 function _hash(name) {
@@ -153,11 +153,7 @@ function getBeamData(name) {
 
 const passport = usePassportStore()
 
-const isSignedIn = ref(false)
-onMounted(async () => {
-  const { data } = await authClient.getSession()
-  isSignedIn.value = !!data
-})
+const isSignedIn = useSignedIn()
 const { progressPct, overallPct } = storeToRefs(passport)
 
 const totalBranches = physicalBranches.length
@@ -191,12 +187,12 @@ const mrzLine2 = computed(() => {
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-md);
-  border-left: 1px solid var(--tpl-blue);
-  border-right: 1px solid var(--tpl-blue);
+  border-left: 1px solid var(--color-band);
+  border-right: 1px solid var(--color-band);
 }
 
 .card-top {
-  background: var(--tpl-blue);
+  background: var(--color-band);
   padding: 12px 18px 10px;
 }
 
@@ -378,7 +374,7 @@ const mrzLine2 = computed(() => {
 }
 
 .mrz {
-  background: var(--tpl-blue);
+  background: var(--color-band);
   padding: 8px 18px 10px;
   display: flex;
   align-items: center;

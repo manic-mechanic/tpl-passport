@@ -16,55 +16,20 @@
             <span class="account-email">{{ session.user.email }}</span>
           </div>
 
-          <template v-if="!isGoogleAccount">
-            <div class="setting-row">
-              <span class="setting-label">Email</span>
-              <button class="inline-open" @click="toggleChangeEmail">
-                {{ showChangeEmail ? 'Close' : 'Change email' }}
-              </button>
-            </div>
-            <div v-if="showChangeEmail" class="inline-form">
-              <input v-model="newEmail" class="inline-input" type="email" placeholder="New email address"
-                     autocomplete="email" autocapitalize="none"
-              >
-              <p v-if="emailError" class="inline-error">{{ emailError }}</p>
-              <div class="inline-actions">
-                <button class="inline-cancel" @click="cancelChangeEmail">Cancel</button>
-                <button class="inline-save" :disabled="emailSaving" @click="submitChangeEmail">
-                  {{ emailSaving ? 'Saving…' : 'Update' }}
-                </button>
-              </div>
-            </div>
-
-            <div class="setting-row">
-              <span class="setting-label">Password</span>
-              <button class="inline-open" @click="toggleChangePassword">
-                {{ showChangePassword ? 'Close' : 'Change password' }}
-              </button>
-            </div>
-            <div v-if="showChangePassword" class="inline-form">
-              <input v-model="currentPassword" class="inline-input" type="password" placeholder="Current password"
-                     autocomplete="current-password"
-              >
-              <input v-model="newPassword" class="inline-input" type="password" placeholder="New password"
-                     autocomplete="new-password"
-              >
-              <input v-model="confirmPassword" class="inline-input" type="password" placeholder="Confirm new password"
-                     autocomplete="new-password"
-              >
-              <p v-if="passwordError" class="inline-error">{{ passwordError }}</p>
-              <div class="inline-actions">
-                <button class="inline-cancel" @click="cancelChangePassword">Cancel</button>
-                <button class="inline-save" :disabled="passwordSaving" @click="submitChangePassword">
-                  {{ passwordSaving ? 'Saving…' : 'Update' }}
-                </button>
-              </div>
-            </div>
-          </template>
+          <SettingsCredentialForms
+            v-if="!isGoogleAccount"
+            :current-email="session.user.email"
+            @toast="showToast"
+          />
           <p v-else class="provider-note">Signed in with Google — email and password are managed by Google.</p>
 
           <div class="setting-row">
-            <button class="signout-btn" @click="signOut">Sign out</button>
+            <div>
+              <button class="signout-btn" :disabled="signingOut" @click="signOut">
+                {{ signingOut ? 'Syncing…' : 'Sign out' }}
+              </button>
+              <p class="setting-hint">Your passport stays in your account and is removed from this device.</p>
+            </div>
           </div>
         </template>
         <div v-else class="setting-row">
@@ -224,12 +189,12 @@
 </template>
 
 <script setup>
-import * as Sentry from '@sentry/nuxt'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
 import { pushProfile } from '~/composables/useProfileSync'
 import { isRunningStandalone } from '~/lib/installHelper'
+import { signOutAndClear } from '~/composables/useAccountSync'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -272,6 +237,14 @@ function onAppInstalled() {
 // Profile editing
 const profileName = ref(passport.profile.name ?? '')
 const profileHomeBranch = ref(passport.profile.homeBranch ?? '')
+
+// The account sync in app.vue can finish after this page mounts (e.g. when
+// opening /settings directly). Keep the read-only view in step with the store.
+watch(() => [passport.profile.name, passport.profile.homeBranch], ([name, homeBranch]) => {
+  if (profileEditing.value) return
+  profileName.value = name ?? ''
+  profileHomeBranch.value = homeBranch ?? ''
+})
 const profileSaving = ref(false)
 
 function showToast(text, kind = 'success') {
@@ -301,120 +274,24 @@ function cancelProfileEdit() {
   profileEditing.value = false
 }
 
+const signingOut = ref(false)
+
 async function signOut() {
-  await authClient.signOut()
-  $posthog?.capture('signed_out')
-  $posthog?.reset()
-  Sentry.setUser(null)
+  signingOut.value = true
+  try {
+    const result = await signOutAndClear()
+    if (!result.ok) {
+      showToast(result.reason, 'error')
+      return
+    }
+  } finally {
+    signingOut.value = false
+  }
   session.value = null
+  profileName.value = ''
+  profileHomeBranch.value = ''
+  profileEditing.value = true
 }
-
-// Change email
-const showChangeEmail = ref(false)
-const newEmail = ref('')
-const emailError = ref('')
-const emailSaving = ref(false)
-
-function toggleChangeEmail() {
-  showChangeEmail.value = !showChangeEmail.value
-  newEmail.value = ''
-  emailError.value = ''
-}
-
-function cancelChangeEmail() {
-  showChangeEmail.value = false
-  newEmail.value = ''
-  emailError.value = ''
-}
-
-async function submitChangeEmail() {
-  const trimmed = newEmail.value.trim()
-  if (!trimmed) { emailError.value = 'Enter a new email address.'; return }
-  if (trimmed === session.value?.user?.email) { emailError.value = 'That is already your current email.'; return }
-  emailError.value = ''
-  emailSaving.value = true
-  try {
-    const { error } = await authClient.changeEmail({ newEmail: trimmed })
-    if (error) {
-      emailError.value = error.message ?? 'Something went wrong.'
-    } else {
-      showChangeEmail.value = false
-      newEmail.value = ''
-      $posthog?.capture('email_changed')
-      showToast('Email updated.')
-    }
-  } finally {
-    emailSaving.value = false
-  }
-}
-
-// Change password
-const showChangePassword = ref(false)
-const currentPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
-const passwordError = ref('')
-const passwordSaving = ref(false)
-
-function toggleChangePassword() {
-  showChangePassword.value = !showChangePassword.value
-  currentPassword.value = ''
-  newPassword.value = ''
-  confirmPassword.value = ''
-  passwordError.value = ''
-}
-
-function cancelChangePassword() {
-  showChangePassword.value = false
-  currentPassword.value = ''
-  newPassword.value = ''
-  confirmPassword.value = ''
-  passwordError.value = ''
-}
-
-async function submitChangePassword() {
-  if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
-    passwordError.value = 'All fields are required.'
-    return
-  }
-  if (newPassword.value !== confirmPassword.value) {
-    passwordError.value = 'New passwords do not match.'
-    return
-  }
-  if (newPassword.value.length < 8) {
-    passwordError.value = 'Password must be at least 8 characters.'
-    return
-  }
-  passwordError.value = ''
-  passwordSaving.value = true
-  try {
-    const { error } = await authClient.changePassword({
-      currentPassword: currentPassword.value,
-      newPassword: newPassword.value,
-    })
-    if (error) {
-      passwordError.value =
-        error.code === 'CREDENTIAL_ACCOUNT_NOT_FOUND'
-          ? 'No password on this account (signed in with Google).'
-          : error.code === 'INVALID_PASSWORD'
-            ? 'Current password is incorrect.'
-            : (error.message ?? 'Something went wrong.')
-    } else {
-      $posthog?.capture('password_changed')
-      showChangePassword.value = false
-      currentPassword.value = ''
-      newPassword.value = ''
-      confirmPassword.value = ''
-      showToast('Password updated.')
-    }
-  } finally {
-    passwordSaving.value = false
-  }
-}
-
-watch(() => passport.profile.theme, (theme) => {
-  $posthog?.capture('theme_changed', { theme: theme || 'system' })
-})
 
 // Demo mode
 const demoModes = [
@@ -529,89 +406,6 @@ function setDemo(mode) {
   background: none;
   border: none;
   padding: 0;
-}
-
-/* ── Account — inline forms ───────────────────── */
-.setting-row-action {
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-
-  &:active { opacity: 0.7; }
-}
-
-.setting-chevron {
-  font-size: 1.1rem;
-  color: var(--color-text-muted);
-  transition: transform 0.15s;
-  display: inline-block;
-
-  &.open { transform: rotate(90deg); }
-}
-
-.inline-form {
-  padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--color-border-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--color-bg);
-}
-
-.inline-input {
-  width: 100%;
-  font-size: 1rem;
-  font-family: var(--font-body);
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 9px 12px;
-  outline: none;
-  box-sizing: border-box;
-
-  &:focus { border-color: var(--tpl-blue); }
-  &::placeholder { color: var(--color-text-muted); }
-}
-
-.inline-error {
-  font-size: 0.75rem;
-  color: #c0392b;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.inline-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.inline-cancel {
-  flex: 1;
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: var(--font-body);
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 10px;
-  cursor: pointer;
-}
-
-.inline-save {
-  flex: 1;
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: var(--font-body);
-  color: #fff;
-  background: var(--tpl-blue);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 10px;
-  cursor: pointer;
-
-  &:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
 .inline-open {

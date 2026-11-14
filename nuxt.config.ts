@@ -53,15 +53,20 @@ export default defineNuxtConfig({
   },
 
   // Dev-only features (demo mode, location fence bypass, QR scanner).
-  // Set NUXT_PUBLIC_IS_DEV=false in the production Vercel project settings.
+  // On by default only under `nuxt dev`; production builds default to off.
+  // Set NUXT_PUBLIC_IS_DEV=true on preview/tester deployments to turn them on.
   // Set NUXT_PUBLIC_BYPASS_GEOFENCE=true to allow check-ins from any location (e.g. for testers).
   runtimeConfig: {
     public: {
-      isDev: true,
+      isDev: process.env.NODE_ENV !== 'production',
       bypassGeofence: false,
       authBase: 'https://auth.librarypassport.ca',
       posthogKey: '',
       posthogHost: 'https://us.i.posthog.com',
+      // Overridden at runtime by NUXT_PUBLIC_SENTRY_DSN.
+      sentry: {
+        dsn: '',
+      },
     }
   },
 
@@ -72,10 +77,4 @@ export default defineNuxtConfig({
       authToken: process.env.SENTRY_AUTH_TOKEN,
     }
   },
-
-  vite: {
-    server: {
-      allowedHosts: ['nonprotesting-rochel-carpingly.ngrok-free.dev']
-    }
-  }
 })

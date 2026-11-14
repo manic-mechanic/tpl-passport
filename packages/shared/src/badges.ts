@@ -8,7 +8,9 @@ import { localDayKey } from './date'
 
 export const compassPoints = (() => {
   const geo = physicalBranches.filter(b => b.Lat != null && b.Long != null)
-  let n = geo[0], s = geo[0], e = geo[0], w = geo[0]
+  const first = geo[0]
+  if (!first) return { n: '', s: '', e: '', w: '' }
+  let n = first, s = first, e = first, w = first
   for (const b of geo) {
     if (parseFloat(b.Lat) > parseFloat(n.Lat)) n = b
     if (parseFloat(b.Lat) < parseFloat(s.Lat)) s = b
@@ -176,7 +178,7 @@ export const BADGES: Badge[] = [
       return {
         pct:      visitedPageCount / branchesByAlphaPage.length,
         message:  `Visit a branch on ${emptyPages.length} more page${emptyPages.length === 1 ? '' : 's'}`,
-        branches: emptyPages.slice(0, 3).map(p => p.branches[0]),
+        branches: emptyPages.slice(0, 3).flatMap(p => (p.branches[0] ? [p.branches[0]] : [])),
       }
     } },
 
@@ -222,8 +224,8 @@ export const BADGES: Badge[] = [
         })
         .filter(p => p.pct < 1)
         .sort((a, b) => b.pct - a.pct)
-      if (!pages.length) return { pct: 1, message: '', branches: [] }
       const best = pages[0]
+      if (!best) return { pct: 1, message: '', branches: [] }
       const unvisited = best.page.branches.filter(b => !ctx.visitedBranchCodes.has(b.BranchCode))
       return {
         pct:      best.pct,

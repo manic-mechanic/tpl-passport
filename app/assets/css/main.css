@@ -49,6 +49,17 @@
   /* Brand text — navy in light mode (used for the app title etc.) */
   --color-brand-text: var(--tpl-navy);
 
+  /* Theme-dependent surfaces and effects. Components use these instead of
+     their own dark-mode overrides so Light / Auto / Dark all stay in sync. */
+  --color-tint:              rgba(0, 0, 0, 0.03);
+  --color-sheet-handle:      rgba(0, 0, 0, 0.18);
+  --color-sheet-close:       rgba(0, 0, 0, 0.1);
+  --color-sheet-close-active: rgba(0, 0, 0, 0.2);
+  --shadow-accent:        0 4px 12px color-mix(in srgb, var(--tpl-blue) 32%, transparent);
+  --shadow-accent-strong: 0 4px 12px rgba(0, 95, 192, 0.45);
+  /* Blue band behind white text (passport card header and MRZ strip) */
+  --color-band: var(--tpl-blue);
+
   /* Semantic status */
   --color-success: #1a7a3c;
   --color-error:   #c0392b;
@@ -242,6 +253,13 @@ a { color: var(--color-accent); text-decoration: none; }
     --badge-locked-bg:       rgba(255,255,255,0.1);
     --badge-globetrotter-bg: radial-gradient(circle, #4a90e2 0%, #1a3fa0 100%);
     --badge-complete-bg:     radial-gradient(circle, #2868cc 0%, #0a2080 100%);
+    --color-tint:              rgba(255, 255, 255, 0.05);
+    --color-sheet-handle:      rgba(255, 255, 255, 0.2);
+    --color-sheet-close:       rgba(255, 255, 255, 0.14);
+    --color-sheet-close-active: rgba(255, 255, 255, 0.24);
+    --shadow-accent:        none;
+    --shadow-accent-strong: none;
+    --color-band:           #1f5aa8;
   }
 }
 
@@ -267,6 +285,13 @@ a { color: var(--color-accent); text-decoration: none; }
   --badge-locked-bg:       rgba(255,255,255,0.1);
   --badge-globetrotter-bg: radial-gradient(circle, #4a90e2 0%, #1a3fa0 100%);
   --badge-complete-bg:     radial-gradient(circle, #2868cc 0%, #0a2080 100%);
+  --color-tint:              rgba(255, 255, 255, 0.05);
+  --color-sheet-handle:      rgba(255, 255, 255, 0.2);
+  --color-sheet-close:       rgba(255, 255, 255, 0.14);
+  --color-sheet-close-active: rgba(255, 255, 255, 0.24);
+  --shadow-accent:        none;
+  --shadow-accent-strong: none;
+  --color-band:           #1f5aa8;
 }
 
 /* ─── Page transitions ───────────────────────── */

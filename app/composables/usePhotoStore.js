@@ -2,7 +2,7 @@
 // Keyed by check-in timestamp string (ISO 8601) — matches the timestamp
 // stored in the Pinia checkIns array, so no extra ID needed.
 //
-// Migration path to Supabase: read blob → upload to Storage → deletePhoto().
+// Signed-in users also get a hosted copy via /api/upload/photo on the auth server.
 
 const DB_NAME    = 'tpl-passport-photos'
 const STORE_NAME = 'photos'
@@ -59,4 +59,33 @@ export async function deletePhoto(key) {
     tx.oncomplete = resolve
     tx.onerror    = (e) => reject(e.target.error)
   })
+}
+
+// Remove every stored photo (used on sign-out).
+export async function clearPhotos() {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    tx.objectStore(STORE_NAME).clear()
+    tx.oncomplete = resolve
+    tx.onerror    = (e) => reject(e.target.error)
+  })
+}
+
+// Returns the stored photo Blob, or null if none exists.
+export async function getPhotoBlob(key) {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(key)
+    request.onsuccess = (e) => resolve(e.target.result ?? null)
+    request.onerror   = (e) => reject(e.target.error)
+  })
+}
+
+// Re-keys a stored photo (used when a duplicate check-in is merged into another).
+export async function movePhoto(fromKey, toKey) {
+  const blob = await getPhotoBlob(fromKey)
+  if (!blob) return
+  await savePhoto(toKey, blob)
+  await deletePhoto(fromKey)
 }
