@@ -64,6 +64,9 @@ export default defineNuxtConfig({
       authBase: 'https://auth.librarypassport.ca',
       posthogKey: '',
       posthogHost: 'https://us.i.posthog.com',
+      // Vercel deployment environment (production / preview / development),
+      // captured at build time so the browser can tag Sentry events with it.
+      vercelEnv: process.env.VERCEL_ENV ?? '',
       // Overridden at runtime by NUXT_PUBLIC_SENTRY_DSN.
       sentry: {
         dsn: '',
