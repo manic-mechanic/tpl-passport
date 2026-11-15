@@ -88,10 +88,6 @@ onMounted(() => {
   $posthog?.capture('history_viewed')
 })
 
-onMounted(() => {
-  $posthog?.capture('history_viewed')
-})
-
 const branchObjectMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
 
 const memoriesOnly = ref(false)

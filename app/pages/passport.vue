@@ -113,13 +113,6 @@ const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const route = useRoute()
 
-onMounted(() => {
-  $posthog?.capture('passport_viewed', {
-    visit_count: passport.visitCount,
-    completion_pct: passport.overallPct,
-  })
-})
-
 const EXTRA_CREDIT_IDX = branchesByAlphaPage.length  // index of Extra Credit tab (= 5)
 const ALL_PAGES = [...branchesByAlphaPage.map(p => p.label), 'Extra Credit']
 
@@ -173,9 +166,12 @@ function visitDate(branchCode) {
 
 onMounted(() => {
   if (!import.meta.client) return
+  // completion_pct is the headline % on the passport card (visits and
+  // documentation); visit_pct is visits alone (the progress bar).
   $posthog?.capture('passport_viewed', {
     visit_count:    passport.visitCount,
-    completion_pct: passport.progressPct,
+    completion_pct: passport.overallPct,
+    visit_pct:      passport.progressPct,
   })
   if (route.hash === '#extra-credit') {
     activePage.value = EXTRA_CREDIT_IDX
