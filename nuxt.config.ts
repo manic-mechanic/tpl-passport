@@ -74,11 +74,24 @@ export default defineNuxtConfig({
     }
   },
 
+  // Generate client source maps for Sentry without linking them from the
+  // public JS (no sourceMappingURL comment). The Sentry module uploads them
+  // and then deletes them, so they are never served from the site.
+  sourcemap: {
+    client: 'hidden',
+  },
+
   sentry: {
-    sourceMapsUploadOptions: {
-      org: 'great-north-special',
-      project: 'javascript-vue',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-    }
+    org: 'great-north-special',
+    project: 'javascript-vue',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sourcemaps: {
+      // Client maps in Nitro's public output: .output/public locally,
+      // .vercel/output/static on Vercel.
+      filesToDeleteAfterUpload: [
+        '.output/public/**/*.map',
+        '.vercel/output/static/**/*.map',
+      ],
+    },
   },
 })

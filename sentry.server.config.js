@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
 import { sentryEnvironment } from './app/lib/sentryEnvironment'
+import { sentryDataCollection } from './app/lib/sentryDataCollection'
 
 Sentry.init({
   dsn: process.env.NUXT_PUBLIC_SENTRY_DSN,
@@ -7,5 +8,6 @@ Sentry.init({
     vercelEnv: process.env.VERCEL_ENV,
     isDev: process.env.NUXT_PUBLIC_IS_DEV === 'true' || process.env.NODE_ENV !== 'production',
   }),
+  dataCollection: sentryDataCollection,
   tracesSampleRate: 0.2,
 })
