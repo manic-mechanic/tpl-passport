@@ -25,7 +25,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Nuxt 4.6 requires Node ^22.22.3 || ^24.15.0. Matches the
+          # Vercel project's Node 24.x setting.
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
