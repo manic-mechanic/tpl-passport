@@ -19,6 +19,18 @@ export default [
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   {
+    // vue-eslint-parser handles the SFC; delegate <script> blocks to the
+    // TypeScript parser so `<script setup lang="ts">` (type imports, generic
+    // defineProps/defineEmits) parses. Plain `<script>` still parses as JS.
+    files: ['**/*.vue'],
+    languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
+        extraFileExtensions: ['.vue'],
+      },
+    },
+  },
+  {
     files: ['**/*.{js,mjs,cjs,ts,vue}'],
     languageOptions: {
       ecmaVersion: 'latest',

@@ -38,10 +38,10 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { usePassportStore } from '~/stores/passport'
 
-const props = defineProps({ branchCode: { type: String, required: true } })
+const props = defineProps<{ branchCode: string }>()
 const passport = usePassportStore()
 
 const BRANCH_CHALLENGES = [

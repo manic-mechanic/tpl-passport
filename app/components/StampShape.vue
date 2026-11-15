@@ -12,17 +12,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { getStampColor, getStampShape, getStampFont, getStampRotation, getStampOpacity } from '~/composables/useStamp'
 
-const props = defineProps({
-  branchCode: { type: String, required: true },
-  wardNo:     { type: [Number, String], required: true },
+const props = withDefaults(defineProps<{
+  branchCode: string
+  wardNo: number | string
   // If provided, overrides the natural shape dimensions with a fixed square of this px size
-  size:       { type: Number, default: null },
+  size?: number | null
+}>(), {
+  size: null,
 })
 
-const shape      = computed(() => getStampShape(props.branchCode))
+// getStampShape indexes by hash % length, so it always returns a shape.
+const shape      = computed(() => getStampShape(props.branchCode)!)
 const font       = computed(() => getStampFont(props.branchCode))
 const rotation   = computed(() => getStampRotation(props.branchCode))
 const inkOpacity = computed(() => getStampOpacity(props.branchCode))

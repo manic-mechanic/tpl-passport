@@ -17,16 +17,19 @@
   </DrawerRoot>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { DrawerRoot, DrawerPortal, DrawerOverlay, DrawerContent } from 'vaul-vue'
 import IconSheetClose from './icons/IconSheetClose.vue';
 
-defineProps({
-  open: { type: Boolean, required: true },
-  height: { type: String, default: 'auto' },
-  ariaLabel: { type: String, default: '' },
+withDefaults(defineProps<{
+  open: boolean
+  height?: string
+  ariaLabel?: string
+}>(), {
+  height: 'auto',
+  ariaLabel: '',
 })
-defineEmits(['update:open'])
+defineEmits<{ 'update:open': [open: boolean] }>()
 </script>
 
 <style scoped>
