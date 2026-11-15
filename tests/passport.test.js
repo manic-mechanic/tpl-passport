@@ -301,6 +301,29 @@ describe('loadDemoState', () => {
     const todayVisits = passport.checkIns.filter(c => checkInDayKey(c.timestamp) === today)
     expect(todayVisits).toHaveLength(0)
   })
+
+  // Evening in Toronto is already the next day in UTC, and DST change days
+  // are 23 or 25 hours long. None of these may put a demo visit on today.
+  it.each([
+    '2026-11-15T00:30:00Z',
+    '2026-11-15T04:59:00Z',
+    '2026-11-15T15:00:00Z',
+    '2026-03-08T07:30:00Z',
+    '2026-11-01T05:30:00Z',
+  ])('demo check-ins never land on today at %s', async (now) => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(now))
+    try {
+      for (const mode of ['mid', 'completed']) {
+        const passport = usePassportStore()
+        await passport.loadDemoState(mode)
+        const today = checkInDayKey(new Date())
+        expect(passport.checkIns.filter(c => checkInDayKey(c.timestamp) === today)).toHaveLength(0)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('toggleChallenge / hasCompletedChallenge', () => {
