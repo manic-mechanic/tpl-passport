@@ -2,7 +2,7 @@
 
 import { physicalBranches, branchesByAlphaPage } from './region'
 import type { CheckIn, Branch } from './types'
-import { localDayKey } from './date'
+import { checkInDayKey } from './date'
 
 // ─── Compass points (furthest branch in each cardinal direction) ──────────────
 
@@ -27,7 +27,7 @@ export const compassBranches = new Set(Object.values(compassPoints))
 export function maxBranchesInOneDay(checkIns: CheckIn[]) {
   const byDay: Record<string, Set<string>> = {}
   for (const c of checkIns) {
-    const day = localDayKey(c.timestamp)
+    const day = checkInDayKey(c.timestamp)
     if (!day) continue
     if (!byDay[day]) byDay[day] = new Set()
     byDay[day].add(c.branchCode)
@@ -190,7 +190,7 @@ export const BADGES: Badge[] = [
       const sorted = [...ctx.checkIns].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
       const byDay: Record<string, Set<string>> = {}
       for (const ci of sorted) {
-        const day = localDayKey(ci.timestamp)
+        const day = checkInDayKey(ci.timestamp)
         if (!day) continue
         if (!byDay[day]) byDay[day] = new Set()
         byDay[day].add(ci.branchCode)

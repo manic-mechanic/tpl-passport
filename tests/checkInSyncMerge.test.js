@@ -105,3 +105,22 @@ describe('reconcileCheckIns same-day duplicates', () => {
     expect(localOnly).toHaveLength(1)
   })
 })
+
+describe('reconcileCheckIns uses the library day', () => {
+  it('treats an evening visit as the same Toronto day even when the UTC date differs', () => {
+    // 9am EST and 8pm EST on Nov 14; the second is Nov 15 in UTC.
+    const server = [{ branchCode: 'AN', timestamp: '2026-11-14T14:00:00.000Z', note: '' }]
+    const local = [{ branchCode: 'AN', timestamp: '2026-11-15T01:00:00.000Z', note: '' }]
+    const { merged, localOnly } = reconcileCheckIns(server, local)
+    expect(localOnly).toHaveLength(0)
+    expect(merged).toHaveLength(1)
+  })
+
+  it('keeps an evening visit and the next morning as separate days', () => {
+    // 8pm EST Nov 14 (Nov 15 UTC) and 10am EST Nov 15.
+    const server = [{ branchCode: 'AN', timestamp: '2026-11-15T01:00:00.000Z', note: '' }]
+    const local = [{ branchCode: 'AN', timestamp: '2026-11-15T15:00:00.000Z', note: '' }]
+    const { localOnly } = reconcileCheckIns(server, local)
+    expect(localOnly).toHaveLength(1)
+  })
+})

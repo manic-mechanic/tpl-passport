@@ -50,7 +50,11 @@ export async function fetchCheckIns(): Promise<PassportCheckIn[] | null> {
   }
 }
 
-// Resolves to true when the server accepted the check-in.
+// Resolves to true when the server saved the check-in. The server keeps one
+// check-in per branch per library day: if another check-in (e.g. from another
+// device) already holds that day, it replies with duplicateOf and this one was
+// not saved. That resolves to false, so sign-out waits until the next sync
+// merges it into the kept check-in.
 export async function pushCheckIn(checkIn: PassportCheckIn): Promise<boolean> {
   try {
     const res = await fetch(`${getAuthBase()}/api/checkins`, {
@@ -68,8 +72,10 @@ export async function pushCheckIn(checkIn: PassportCheckIn): Promise<boolean> {
         branchCode: checkIn.branchCode,
         timestamp: checkIn.timestamp,
       })
+      return false
     }
-    return res.ok
+    const data = await res.json().catch(() => null) as { duplicateOf?: string | null } | null
+    return !data?.duplicateOf
   } catch (error) {
     reportError(error, {
       area: 'sync',

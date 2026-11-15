@@ -35,3 +35,24 @@ describe('isSameLocalDay', () => {
     )).toBe(false)
   })
 })
+
+import { checkInDayKey, dayRangeUtc, BRANCH_TIME_ZONE } from '@tpl-passport/shared'
+
+describe('checkInDayKey', () => {
+  it('uses the library day in Toronto, not UTC or the device zone', () => {
+    expect(BRANCH_TIME_ZONE).toBe('America/Toronto')
+    // 8pm EST on Nov 14 is 01:00 UTC on Nov 15.
+    expect(checkInDayKey('2026-11-15T01:00:00.000Z')).toBe('2026-11-14')
+    // 8:30pm EDT on Jul 1 is 00:30 UTC on Jul 2.
+    expect(checkInDayKey('2026-07-02T00:30:00.000Z')).toBe('2026-07-01')
+  })
+})
+
+describe('dayRangeUtc', () => {
+  it('gives the UTC bounds of a Toronto day, including DST changes', () => {
+    expect(dayRangeUtc('2026-11-14')).toEqual({ start: '2026-11-14T05:00:00.000Z', end: '2026-11-15T05:00:00.000Z' })
+    expect(dayRangeUtc('2026-03-08')).toEqual({ start: '2026-03-08T05:00:00.000Z', end: '2026-03-09T04:00:00.000Z' })
+    expect(dayRangeUtc('2026-11-01')).toEqual({ start: '2026-11-01T04:00:00.000Z', end: '2026-11-02T05:00:00.000Z' })
+    expect(dayRangeUtc('bad')).toBeNull()
+  })
+})
