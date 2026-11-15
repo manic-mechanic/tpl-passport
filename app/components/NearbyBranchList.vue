@@ -18,7 +18,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { formatDist } from '~/composables/useRegion'
 import IconChevron from './icons/IconChevron.vue';
 import { usePassportStore } from '~/stores/passport'
@@ -26,18 +27,25 @@ import { usePassportStore } from '~/stores/passport'
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
-const props = defineProps({
-  branches: { type: Array, required: true },
-  showDistrict: { type: Boolean, default: false },
-  from: { type: String, default: 'checkin_success' },
-  originalSource: { type: String, default: null },
-  navigateToBranchPage: { type: Boolean, default: false },
+type NearbyBranch = Branch & { distKm: number }
+
+const props = withDefaults(defineProps<{
+  branches: NearbyBranch[]
+  showDistrict?: boolean
+  from?: string
+  originalSource?: string | null
+  navigateToBranchPage?: boolean
+}>(), {
+  showDistrict: false,
+  from: 'checkin_success',
+  originalSource: null,
+  navigateToBranchPage: false,
 })
-const emit = defineEmits(['select'])
+const emit = defineEmits<{ select: [branch: NearbyBranch] }>()
 
 const router = useRouter()
 
-function navigate(branch) {
+function navigate(branch: NearbyBranch) {
   $posthog?.capture('nearby_branch_tapped', {
     from: props.from,
     branch_code: branch.BranchCode,
