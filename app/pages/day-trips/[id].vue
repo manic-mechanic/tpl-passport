@@ -39,7 +39,8 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { physicalBranches, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
 import IconBack from '~/components/icons/IconBack.vue'
@@ -55,16 +56,16 @@ if (!trip) {
   throw createError({ status: 404, statusText: 'Route not found', fatal: true })
 }
 
-const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
-const branchObjects = trip.branches.map(code => branchesByCode[code]).filter(Boolean)
+const branchesByCode: Record<string, Branch | undefined> = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
+const branchObjects = trip.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
 
 const mapsUrl = buildMapsUrl(branchObjects)
 
 const sheetOpen = ref(false)
-const activeBranch = ref(null)
+const activeBranch = ref<Branch | null>(null)
 const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
-function openSheet(branch) {
+function openSheet(branch: Branch) {
   activeBranch.value = branch
   sheetOpen.value = true
 }

@@ -81,7 +81,7 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import * as Sentry from '@sentry/nuxt'
 import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { authClient } from '~/lib/auth-client'
@@ -95,7 +95,7 @@ const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const signedIn = useSignedIn()
 
-const mode = ref('signin')
+const mode = ref<'signin' | 'signup'>('signin')
 const name = ref(passport.profile.name ?? '')
 const email = ref('')
 const password = ref('')
@@ -120,7 +120,7 @@ async function submitEmail() {
         password: password.value,
         callbackURL: '/',
       })
-      if (err) { error.value = err.message; return }
+      if (err) { error.value = err.message ?? ''; return }
       signedIn.value = true
       await syncAccount(data?.user?.name ?? '')
       Sentry.setUser({ id: data.user.id })
@@ -132,7 +132,7 @@ async function submitEmail() {
         password: password.value,
         callbackURL: '/',
       })
-      if (err) { error.value = err.message; return }
+      if (err) { error.value = err.message ?? ''; return }
       signedIn.value = true
       if (!passport.profile.name && name.value) passport.profile.name = name.value
       await pushProfile({ name: name.value, homeBranch: null })
