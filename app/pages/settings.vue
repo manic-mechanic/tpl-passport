@@ -217,7 +217,7 @@ onMounted(async () => {
   try {
     if (typeof authClient.listAccounts === 'function') {
       const { data: accounts } = await authClient.listAccounts()
-      isGoogleAccount.value = Array.isArray(accounts) && accounts.some(account => account.provider === 'google')
+      isGoogleAccount.value = Array.isArray(accounts) && accounts.some(account => account.providerId === 'google')
     }
   } catch {
     isGoogleAccount.value = false
