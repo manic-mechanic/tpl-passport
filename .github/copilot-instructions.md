@@ -47,6 +47,7 @@ Use npm scripts from `package.json`:
 - Use `app/lib/config.ts` (`AUTH_BASE` / `getAuthBase()`) as the single source for auth service base URL; avoid hardcoded endpoint strings.
 - `user_profile` is source of truth for `name` and `homeBranch`; use `useProfileSync` endpoints rather than auth user profile mutation.
 - Feature rollout uses code-level flags in `app/composables/useFeatureFlags.js` (not env toggles) for unfinished features.
+- New components use `<script setup lang="ts">` with type-based `defineProps<...>()` / `defineEmits<...>()` (`withDefaults` for defaults). Existing plain `<script setup>` files are being converted incrementally; keep each conversion behaviour-neutral.
 - Styling rules from `CLAUDE.md` are strict and should be preserved:
   - No BEM naming.
   - Scoped style nesting with `&`.
