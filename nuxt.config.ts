@@ -1,4 +1,7 @@
+import { readdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+
+const rootDir = fileURLToPath(new URL('.', import.meta.url))
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -67,6 +70,10 @@ export default defineNuxtConfig({
       // Vercel deployment environment (production / preview / development),
       // captured at build time so the browser can tag Sentry events with it.
       vercelEnv: process.env.VERCEL_ENV ?? '',
+      // Vercel's target environment, which is a custom environment's own name
+      // (VERCEL_ENV is 'preview' for those). Sentry's v11 bundler plugins tag
+      // deploys with it, so events use it too.
+      vercelTargetEnv: process.env.VERCEL_TARGET_ENV ?? '',
       // Overridden at runtime by NUXT_PUBLIC_SENTRY_DSN.
       sentry: {
         dsn: '',
@@ -74,11 +81,45 @@ export default defineNuxtConfig({
     }
   },
 
+  // Generate client source maps for Sentry without linking them from the
+  // public JS (no sourceMappingURL comment). The Sentry module uploads them
+  // and then deletes them, so they are never served from the site. Server
+  // maps are uploaded too and stay in the server bundle, which isn't public.
+  sourcemap: {
+    client: 'hidden',
+    server: true,
+  },
+
+  hooks: {
+    // Guard against shipping client source maps: if the Nitro preset's public
+    // dir isn't covered by sentry.sourcemaps.filesToDeleteAfterUpload, fail
+    // the build instead of serving the maps.
+    'nitro:init'(nitro) {
+      if (nitro.options.dev) return
+      nitro.hooks.hook('compiled', async () => {
+        const publicDir = nitro.options.output.publicDir
+        const files = await readdir(publicDir, { recursive: true })
+        const maps = files.filter(file => file.endsWith('.map'))
+        if (maps.length > 0) {
+          throw new Error(`${maps.length} source map(s) left in ${publicDir}. Add it to sentry.sourcemaps.filesToDeleteAfterUpload in nuxt.config.ts.`)
+        }
+      })
+    },
+  },
+
   sentry: {
-    sourceMapsUploadOptions: {
-      org: 'great-north-special',
-      project: 'javascript-vue',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-    }
+    org: 'great-north-special',
+    project: 'javascript-vue',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sourcemaps: {
+      // Client maps in Nitro's public output: .output/public locally,
+      // .vercel/output/static on Vercel. Anchored to the project root so the
+      // build's cwd doesn't matter. The `compiled` hook below fails the build
+      // if a preset writes them anywhere else.
+      filesToDeleteAfterUpload: [
+        `${rootDir}.output/public/**/*.map`,
+        `${rootDir}.vercel/output/static/**/*.map`,
+      ],
+    },
   },
 })

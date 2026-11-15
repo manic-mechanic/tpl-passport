@@ -9,6 +9,12 @@ describe('sentryEnvironment', () => {
     expect(sentryEnvironment({ vercelEnv: 'development', isDev: true })).toBe('development')
   })
 
+  it('prefers the Vercel target environment, including custom ones', () => {
+    expect(sentryEnvironment({ vercelEnv: 'preview', vercelTargetEnv: 'staging', isDev: false })).toBe('staging')
+    expect(sentryEnvironment({ vercelEnv: 'production', vercelTargetEnv: 'production', isDev: false })).toBe('production')
+    expect(sentryEnvironment({ vercelEnv: 'preview', vercelTargetEnv: '', isDev: false })).toBe('preview')
+  })
+
   it('falls back to isDev off Vercel', () => {
     expect(sentryEnvironment({ vercelEnv: '', isDev: false })).toBe('production')
     expect(sentryEnvironment({ vercelEnv: undefined, isDev: true })).toBe('development')
