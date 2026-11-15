@@ -27,6 +27,7 @@ import { usePassportStore } from '~/stores/passport'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 import { authClient } from '~/lib/auth-client'
 import { reportError } from '~/lib/reportError'
+import { isAuthReachableFrom } from '~/lib/authReachability'
 import { syncAccount } from '~/composables/useAccountSync'
 import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 
@@ -82,7 +83,9 @@ onMounted(async () => {
   try {
     data = (await authClient.getSession()).data
   } catch (error) {
-    reportError(error, { area: 'auth', operation: 'get_session' })
+    if (isAuthReachableFrom(window.location.hostname)) {
+      reportError(error, { area: 'auth', operation: 'get_session' })
+    }
   }
   isSignedIn.value = !!data
   authKnown.value = true
