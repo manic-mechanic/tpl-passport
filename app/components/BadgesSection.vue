@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import type { Badge } from '@tpl-passport/shared'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
-import { BADGES, useBadgeCtx, compassPoints } from '~/composables/useBadges'
+import { BADGES, BADGE_DISPLAY_ORDER, activityBadgeStat, useBadgeCtx, compassPoints } from '~/composables/useBadges'
 import IconCheckMark from './icons/IconCheckMark.vue'
 
 const props = withDefaults(defineProps<{ sheetHeight?: string }>(), {
@@ -131,15 +131,7 @@ function openSheet(badge: Badge) {
 watch(sheetOpen, open => { if (!open) activeBadge.value = null })
 
 // Column-major display order (2 cols, left col first):
-const DISPLAY_ORDER = [
-  'first', 'day_tripper',
-  'archivist', 'navigator',
-  'explorer', 'familiar_face',
-  'adventurer', 'page_filler',
-  'globetrotter', 'page_turner',
-  'complete', 'return_visitor',
-]
-const displayBadges = DISPLAY_ORDER.map(id => BADGES.find(a => a.id === id)).filter((b): b is Badge => !!b)
+const displayBadges = BADGE_DISPLAY_ORDER.map(id => BADGES.find(a => a.id === id)).filter((b): b is Badge => !!b)
 
 const nextStampId = computed(() =>
   BADGES.find(a => a.shape === 'octagon' && !a.earned(badgeCtx.value))?.id ?? null
@@ -169,18 +161,7 @@ function badgeProgressLabel(badge: Badge) {
 }
 
 function badgeShapeContent(badge: Badge | null) {
-  if (!badge) return ''
-  if (!isActivityBadge(badge)) return ''
-  const ctx = badgeCtx.value
-  if (badge.id === 'day_tripper') return String(ctx.maxBranchesInOneDay)
-  if (badge.id === 'familiar_face') return String(ctx.homeVisitCount)
-  if (badge.id === 'return_visitor') return String(ctx.maxNonHomeVisitCount)
-  if (badge.id === 'archivist') return String(ctx.fullyDocumentedCount)
-  return ''
-}
-
-function isActivityBadge(badge: Badge) {
-  return ['day_tripper', 'return_visitor', 'familiar_face', 'archivist'].includes(badge.id)
+  return badge ? (activityBadgeStat(badge, badgeCtx.value) ?? '') : ''
 }
 
 function earnedDate(badge: Badge) {

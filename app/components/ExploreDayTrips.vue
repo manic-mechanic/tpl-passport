@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, buildMapsUrl } from '~/composables/useRegion'
+import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -79,8 +79,6 @@ const MODES: { id: TransportMode, label: string, icon: string }[] = [
 ]
 
 // ── Suggested Routes ─────────────────────────────────────────────────
-const branchesByCode: Record<string, Branch | undefined> = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
-
 const routesWithProgress = computed(() =>
   routesData
     .filter(r => r.mode === activeMode.value)

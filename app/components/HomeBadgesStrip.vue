@@ -31,7 +31,7 @@ import type { Badge } from '@tpl-passport/shared'
 
 type ProgressBadge = Badge & { progress: NonNullable<Badge['progress']> }
 const hasProgress = (badge: Badge): badge is ProgressBadge => !!badge.progress
-import { BADGES, useBadgeCtx } from '~/composables/useBadges'
+import { BADGES, activityBadgeStat, useBadgeCtx } from '~/composables/useBadges'
 
 const ctx = useBadgeCtx()
 
@@ -84,18 +84,8 @@ function progText(badge: Badge) {
   return `${current}/${total}`
 }
 
-function isActivityBadge(badge: Badge) {
-  return ['day_tripper', 'return_visitor', 'familiar_face', 'archivist'].includes(badge.id)
-}
-
 function badgeShapeContent(badge: Badge) {
-  if (!isActivityBadge(badge)) return ''
-  const c = ctx.value
-  if (badge.id === 'day_tripper') return String(c.maxBranchesInOneDay)
-  if (badge.id === 'familiar_face') return String(c.homeVisitCount)
-  if (badge.id === 'return_visitor') return String(c.maxNonHomeVisitCount)
-  if (badge.id === 'archivist') return String(c.fullyDocumentedCount)
-  return ''
+  return activityBadgeStat(badge, ctx.value) ?? ''
 }
 </script>
 

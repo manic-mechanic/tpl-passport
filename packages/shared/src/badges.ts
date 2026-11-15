@@ -128,6 +128,20 @@ export interface Badge {
   suggest: (ctx: BadgeCtx) => { pct: number; message: string; branches: Branch[] }
 }
 
+// ─── Activity badge stat ──────────────────────────────────────────────────────
+
+// The live number shown inside an activity badge's shape (e.g. "3" for Day
+// Tripper = most branches visited in one day). null for badges without one.
+export function activityBadgeStat(badge: Pick<Badge, 'id'>, ctx: BadgeCtx): string | null {
+  switch (badge.id) {
+    case 'day_tripper':    return String(ctx.maxBranchesInOneDay)
+    case 'familiar_face':  return String(ctx.homeVisitCount)
+    case 'return_visitor': return String(ctx.maxNonHomeVisitCount)
+    case 'archivist':      return String(ctx.fullyDocumentedCount)
+    default:               return null
+  }
+}
+
 // ─── Display order (column-major, matching web BadgesSection.vue) ─────────────
 
 export const BADGE_DISPLAY_ORDER = [

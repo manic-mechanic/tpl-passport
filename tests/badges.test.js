@@ -9,6 +9,9 @@ import {
   branchVisitCounts,
   homeVisitCount,
   maxNonHomeVisitCount,
+  activityBadgeStat,
+  BADGE_DISPLAY_ORDER,
+  branchesByCode,
 } from '@tpl-passport/shared'
 
 // Helper: build a minimal ctx with sensible defaults
@@ -344,5 +347,34 @@ describe('badge progress counts for activity badges', () => {
     expect(badge('familiar_face').progress(c).current).toBe(5)
     expect(badge('return_visitor').progress(c).current).toBe(3)
     expect(badge('archivist').progress(c).current).toBe(1)
+  })
+})
+
+describe('activityBadgeStat', () => {
+  it('returns the live stat for each activity badge', () => {
+    const c = { ...ctx(), maxBranchesInOneDay: 3, homeVisitCount: 5, maxNonHomeVisitCount: 2, fullyDocumentedCount: 7 }
+    expect(activityBadgeStat({ id: 'day_tripper' }, c)).toBe('3')
+    expect(activityBadgeStat({ id: 'familiar_face' }, c)).toBe('5')
+    expect(activityBadgeStat({ id: 'return_visitor' }, c)).toBe('2')
+    expect(activityBadgeStat({ id: 'archivist' }, c)).toBe('7')
+  })
+
+  it('returns null for badges without a stat', () => {
+    expect(activityBadgeStat({ id: 'first' }, ctx())).toBeNull()
+    expect(activityBadgeStat({ id: 'navigator' }, ctx())).toBeNull()
+  })
+})
+
+describe('BADGE_DISPLAY_ORDER', () => {
+  it('lists every badge exactly once', () => {
+    expect([...BADGE_DISPLAY_ORDER].sort()).toEqual(BADGES.map(b => b.id).sort())
+  })
+})
+
+describe('branchesByCode', () => {
+  it('maps every physical branch by its code', () => {
+    expect(Object.keys(branchesByCode)).toHaveLength(physicalBranches.length)
+    for (const b of physicalBranches) expect(branchesByCode[b.BranchCode]).toBe(b)
+    expect(branchesByCode['NOT-A-BRANCH']).toBeUndefined()
   })
 })

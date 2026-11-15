@@ -44,10 +44,10 @@
         <section v-for="[label, items] in grouped" :key="label" class="history-group">
           <p class="section-label">{{ label }}</p>
           <ul class="checkin-list">
-            <li v-for="visit in items" :key="visit.timestamp">
+            <li v-for="{ visit, branch } in items" :key="visit.timestamp">
               <BranchCard
-                v-if="branchObjectMap[visit.branchCode]"
-                :branch="branchObjectMap[visit.branchCode]!"
+                v-if="branch"
+                :branch="branch"
                 :meta="formatTime(visit.timestamp)"
                 :has-note="!!visit.note"
                 :has-photo="!!photoUrls[visit.timestamp]"
@@ -76,7 +76,7 @@
 import type { Branch } from '@tpl-passport/shared'
 import type { PassportCheckIn } from '~/types/passport'
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches } from '~/composables/useRegion'
+import { branchesByCode } from '~/composables/useRegion'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
 import { localDayKey } from '@tpl-passport/shared'
 import IconClock from '~/components/icons/IconClock.vue'
@@ -90,7 +90,11 @@ onMounted(() => {
   $posthog?.capture('history_viewed')
 })
 
-const branchObjectMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
+// A check-in with the branch it was at (undefined if the code isn't a known branch).
+interface HistoryEntry {
+  visit: PassportCheckIn
+  branch: Branch | undefined
+}
 
 const memoriesOnly = ref(false)
 
@@ -108,14 +112,15 @@ const grouped = computed(() => {
 
   const source = memoriesOnly.value ? passport.checkIns.filter(isMemory) : passport.checkIns
 
-  const buckets: Record<'Today' | 'Yesterday' | 'This week' | 'Older', PassportCheckIn[]> = { 'Today': [], 'Yesterday': [], 'This week': [], 'Older': [] }
+  const buckets: Record<'Today' | 'Yesterday' | 'This week' | 'Older', HistoryEntry[]> = { 'Today': [], 'Yesterday': [], 'This week': [], 'Older': [] }
   for (const visit of source) {
+    const entry = { visit, branch: branchesByCode[visit.branchCode] }
     const d = new Date(visit.timestamp)
     const ds = localDayKey(d)
-    if (ds === todayStr) buckets['Today'].push(visit)
-    else if (ds === yesterdayStr) buckets['Yesterday'].push(visit)
-    else if (d > weekAgo) buckets['This week'].push(visit)
-    else buckets['Older'].push(visit)
+    if (ds === todayStr) buckets['Today'].push(entry)
+    else if (ds === yesterdayStr) buckets['Yesterday'].push(entry)
+    else if (d > weekAgo) buckets['This week'].push(entry)
+    else buckets['Older'].push(entry)
   }
   return Object.entries(buckets).filter(([, items]) => items.length > 0)
 })
