@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import type { Badge, BadgeCtx, Branch } from '@tpl-passport/shared'
-import { BADGES, useBadgeCtx, badgeBg } from '~/composables/useBadges'
+import { BADGES, activityBadgeStat, useBadgeCtx, badgeBg } from '~/composables/useBadges'
 
 // Extra Credit tab: the three unearned badges the user is closest to.
 defineEmits<{ 'open-branch': [branch: Branch] }>()
@@ -47,11 +47,7 @@ const badgeSuggestions = computed(() => {
 })
 
 function suggestionBadgeLabel(badge: Badge, ctx: BadgeCtx) {
-  if (badge.id === 'day_tripper') return String(ctx.maxBranchesInOneDay)
-  if (badge.id === 'familiar_face') return String(ctx.homeVisitCount)
-  if (badge.id === 'return_visitor') return String(ctx.maxNonHomeVisitCount)
-  if (badge.id === 'archivist') return String(ctx.fullyDocumentedCount)
-  return badge.label ?? null
+  return activityBadgeStat(badge, ctx) ?? badge.label ?? null
 }
 
 </script>

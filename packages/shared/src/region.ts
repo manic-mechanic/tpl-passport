@@ -5,6 +5,9 @@ import type { Branch } from './types'
 
 export const physicalBranches: Branch[] = (branchData as Branch[]).filter(b => b.PhysicalBranch === 1)
 export const sortedBranches: Branch[] = [...physicalBranches].sort((a, b) => a.BranchName.localeCompare(b.BranchName))
+// Physical branches keyed by BranchCode.
+export const branchesByCode: Record<string, Branch | undefined> =
+  Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
 
 export const DISTRICT_ORDER = [
   'Etobicoke-York',
