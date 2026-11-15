@@ -18,19 +18,26 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import branchData from '#data/branch-info.json'
 import IconBack from '~/components/icons/IconBack.vue'
 
 const route = useRoute()
 const router = useRouter()
 
-const branch = computed(() => branchData.find(b => b.BranchCode === route.params.id))
+const branch = computed(() => (branchData as Branch[]).find(b => b.BranchCode === route.params.id))
 
-const histBack = computed(() => router.options.history.state?.back ?? '')
-const histOriginalSource = computed(() => router.options.history.state?.originalSource ?? null)
+const histBack = computed(() => {
+  const back = router.options.history.state?.back
+  return typeof back === 'string' ? back : ''
+})
+const histOriginalSource = computed(() => {
+  const original = router.options.history.state?.originalSource
+  return typeof original === 'string' ? original : null
+})
 
-function resolveNav(path) {
+function resolveNav(path: string) {
   if (!path || path === '/') return { to: '/',          label: 'Home'      }
   if (path.startsWith('/history'))   return { to: path,        label: 'History'   }
   if (path.startsWith('/passport'))  return { to: path,        label: 'Passport'  }

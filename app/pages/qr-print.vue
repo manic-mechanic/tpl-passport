@@ -37,7 +37,7 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import IconBack from '~/components/icons/IconBack.vue'
 import IconSearch from '~/components/icons/IconSearch.vue'
 import { physicalBranches } from '~/composables/useRegion'
@@ -54,12 +54,12 @@ const filteredBranches = computed(() => {
 })
 
 // Check-in URL encoded into the QR code
-function checkinUrl(branchCode) {
+function checkinUrl(branchCode: string) {
   return `${window.location.origin}/check-in?branch=${branchCode}`
 }
 
 // QR image via qrserver.com — free, no API key, widely used
-function qrUrl(branchCode) {
+function qrUrl(branchCode: string) {
   const data = encodeURIComponent(checkinUrl(branchCode))
   return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${data}`
 }
