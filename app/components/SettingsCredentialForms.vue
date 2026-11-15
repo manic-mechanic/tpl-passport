@@ -44,15 +44,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { authClient } from '~/lib/auth-client'
 
 // Change-email and change-password rows for email/password accounts.
 // Emits `toast` with a success message for the settings page to show.
-const props = defineProps({
-  currentEmail: { type: String, default: '' },
+const props = withDefaults(defineProps<{ currentEmail?: string }>(), {
+  currentEmail: '',
 })
-const emit = defineEmits(['toast'])
+const emit = defineEmits<{ toast: [message: string] }>()
 
 const { $posthog } = useNuxtApp()
 

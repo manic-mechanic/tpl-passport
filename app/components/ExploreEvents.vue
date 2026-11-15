@@ -46,7 +46,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { physicalBranches, haversineKm } from '~/composables/useRegion'
 import { formatAudiences, formatEventTime } from '~/composables/useEvents'
 import { localDayKey } from '@tpl-passport/shared'
@@ -55,18 +56,46 @@ import IconChevron from '~/components/icons/IconChevron.vue'
 
 // What's On tab: upcoming events across all branches, loaded a day at a time.
 // When the user's location is known, events on the same day are sorted by distance.
-const props = defineProps({
-  userLat: { type: Number, default: null },
-  userLng: { type: Number, default: null },
+const props = withDefaults(defineProps<{
+  userLat?: number | null
+  userLng?: number | null
+}>(), {
+  userLat: null,
+  userLng: null,
 })
-defineEmits(['open-branch'])
+defineEmits<{ 'open-branch': [branch: Branch] }>()
+
+// One record from /api/all-events. Field names vary between feed versions.
+interface RawEvent {
+  _id: string | number
+  LocationName?: string
+  Location?: string
+  EventName?: string
+  'Event Name'?: string
+  Title?: string
+  StartDateLocal: string
+  StartTime?: string
+  Audiences?: string
+  AgeGroup?: string
+  'Age Group'?: string
+}
+
+interface ExploreEvent {
+  id: string | number
+  title: string
+  date: string
+  time: string
+  audiences: string
+  locationName: string
+  branch: Branch | null
+}
 
 // ── Events (What's On) ───────────────────────────────────────────────
 const branchByShortName = new Map(
   physicalBranches.map(b => [b.BranchName.replace(/ Branch$/i, '').toLowerCase(), b])
 )
 
-function formatEventDateParts(dateStr) {
+function formatEventDateParts(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00')
   return {
     day: d.getDate(),
@@ -75,13 +104,13 @@ function formatEventDateParts(dateStr) {
   }
 }
 
-const eventsData = ref([])
+const eventsData = ref<ExploreEvent[]>([])
 const eventsLoading = ref(false)
-const eventsError = ref(null)
-const loadedEventOffsets = ref([])
+const eventsError = ref<unknown>(null)
+const loadedEventOffsets = ref<number[]>([])
 const MAX_EVENT_DAYS = 7
 
-function eventFromRaw(raw) {
+function eventFromRaw(raw: RawEvent): ExploreEvent {
     const locationName = raw.LocationName ?? raw.Location ?? ''
     return {
       id: raw._id,
@@ -94,12 +123,12 @@ function eventFromRaw(raw) {
     }
 }
 
-async function fetchEventsWindow(offset, days) {
+async function fetchEventsWindow(offset: number, days: number) {
   eventsLoading.value = true
   eventsError.value = null
   try {
-    const records = await $fetch('/api/all-events', { query: { offset, days } })
-    const mapped = (Array.isArray(records) ? records : []).map(eventFromRaw)
+    const records: unknown = await $fetch('/api/all-events', { query: { offset, days } })
+    const mapped = (Array.isArray(records) ? records as RawEvent[] : []).map(eventFromRaw)
     const next = new Map(eventsData.value.map(event => [event.id, event]))
     for (const event of mapped) next.set(event.id, event)
     eventsData.value = [...next.values()]
@@ -122,11 +151,12 @@ async function fetchEventsWindow(offset, days) {
 
 const sortedEvents = computed(() => {
   const evs = eventsData.value
-  if (!props.userLat || !props.userLng) return evs
+  const { userLat, userLng } = props
+  if (!userLat || !userLng) return evs
   return [...evs].sort((a, b) => {
     if (a.date !== b.date) return a.date < b.date ? -1 : 1
-    const aDist = a.branch ? haversineKm(props.userLat, props.userLng, a.branch.Lat, a.branch.Long) : 999
-    const bDist = b.branch ? haversineKm(props.userLat, props.userLng, b.branch.Lat, b.branch.Long) : 999
+    const aDist = a.branch ? haversineKm(userLat, userLng, a.branch.Lat, a.branch.Long) : 999
+    const bDist = b.branch ? haversineKm(userLat, userLng, b.branch.Lat, b.branch.Long) : 999
     if (Math.abs(aDist - bDist) > 2) return aDist - bDist
     return (a.time ?? '') < (b.time ?? '') ? -1 : 1
   })
@@ -137,13 +167,13 @@ const isManualDaySelection = ref(false)
 const visibleEventDayCount = ref(1)
 const todayDay = computed(() => localDayKey(new Date()) ?? '')
 
-function dayAtOffset(offset) {
+function dayAtOffset(offset: number) {
   const day = new Date()
   day.setDate(day.getDate() + offset)
   return localDayKey(day)
 }
 
-function offsetForDay(dayKey) {
+function offsetForDay(dayKey: string) {
   if (!dayKey || !todayDay.value) return null
   const base = new Date(`${todayDay.value}T00:00:00`)
   const target = new Date(`${dayKey}T00:00:00`)
@@ -151,7 +181,7 @@ function offsetForDay(dayKey) {
 }
 
 const availableEventDays = computed(() =>
-  Array.from({ length: MAX_EVENT_DAYS }, (_, i) => dayAtOffset(i)).filter(Boolean)
+  Array.from({ length: MAX_EVENT_DAYS }, (_, i) => dayAtOffset(i)).filter((d): d is string => !!d)
 )
 
 const visibleEventDays = computed(() =>
@@ -169,7 +199,7 @@ const canLoadMoreDays = computed(() =>
   !isManualDaySelection.value && visibleEventDayCount.value < MAX_EVENT_DAYS
 )
 
-async function ensureOffsetLoaded(offset) {
+async function ensureOffsetLoaded(offset: number) {
   if (offset < 0 || offset >= MAX_EVENT_DAYS) return
   if (loadedEventOffsets.value.includes(offset)) return
   await fetchEventsWindow(offset, 1)
