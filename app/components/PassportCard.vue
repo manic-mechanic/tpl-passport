@@ -85,30 +85,30 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { usePassportStore } from '~/stores/passport'
 import { storeToRefs } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
 import { useSignedIn } from '~/composables/useAuthState'
 
 // boring-avatars beam algorithm (inlined — package utilities not exported at runtime)
-function _hash(name) {
+function _hash(name: string) {
   let h = 0
   for (let i = 0; i < name.length; i++) { h = Math.imul(h, 31) + name.charCodeAt(i) | 0 }
   return Math.abs(h)
 }
-function _unit(n, range, idx) {
+function _unit(n: number, range: number, idx?: number) {
   const v = n % range
   return idx !== undefined && Math.floor(n / 10 ** idx) % 10 % 2 === 0 ? -v : v
 }
-function _color(n, colors) { return colors[n % colors.length] }
-function _bool(n, idx) { return Math.floor(n / 10 ** idx) % 10 % 2 === 0 }
-function _contrast(hex) {
+function _color(n: number, colors: string[]) { return colors[n % colors.length]! }
+function _bool(n: number, idx: number) { return Math.floor(n / 10 ** idx) % 10 % 2 === 0 }
+function _contrast(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16)
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000000' : '#ffffff'
 }
 
-function branchNameForCode(code) {
+function branchNameForCode(code: string) {
   return physicalBranches.find(b => b.BranchCode === code)?.BranchName ?? code
 }
 
@@ -126,7 +126,7 @@ const AVATAR_COLORS = [
 ]
 const S = 36
 
-function getBeamData(name) {
+function getBeamData(name: string) {
   const n = _hash(name || 'TPL Passport')
   const wrapperColor = _color(n, AVATAR_COLORS)
   const wx = _unit(n, 10, 1)
