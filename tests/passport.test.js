@@ -312,6 +312,9 @@ describe('loadDemoState', () => {
     '2026-11-01T06:30:00Z', // 01:30 EST, after fall back
     '2026-11-02T04:59:00Z', // 23:59 EST, end of the 25-hour day
     '2026-11-02T03:30:00Z', // 22:30 EST, day after fall back
+    '2026-11-15T00:30:00Z', // 19:30 EST
+    '2026-11-15T04:59:00Z', // 23:59 EST
+    '2026-11-15T15:00:00Z', // 10:00 EST
   ]
 
   describe.each(['mid', 'completed'])('%s demo check-ins never land on today', (mode) => {

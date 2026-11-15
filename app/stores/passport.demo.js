@@ -15,7 +15,7 @@
 // the demo buttons will appear but loadDemoState() will be a no-op — test
 // demo state locally with `npm run dev` or from a preview branch instead.
 
-import { BRANCH_TIME_ZONE, checkInDayKey, dayRangeUtc } from '@tpl-passport/shared'
+import { checkInDayKey, dayRangeUtc } from '@tpl-passport/shared'
 import { physicalBranches } from '~/composables/useRegion'
 
 const DEMO_NOTES = [
@@ -31,23 +31,22 @@ const DEMO_NOTES = [
   'The teen section had some surprisingly good graphic novels',
 ]
 
-// ISO timestamp `daysBack` library days before today (BRANCH_TIME_ZONE, the
-// day hasVisitedToday and the badges use), at `hour`:`minute` into that day.
-// Built from the library's day key rather than stepping a Date in UTC or the
-// device's zone, so "1 day ago" is never today in Toronto at any UTC time.
-// Keep hour < 23 so the result stays inside 23-hour DST days.
-function libraryDaysAgo(daysBack, hour = 12, minute = 0) {
+// ISO timestamp at hour:minute (library time) on the library day `n` days
+// before today. Days are counted in BRANCH_TIME_ZONE, the same rule
+// hasVisitedToday uses, so n >= 1 never lands on today in any time zone.
+function libraryDaysAgo(n, hour = 12, minute = 0) {
   const [y, m, d] = checkInDayKey(new Date()).split('-').map(Number)
-  const target = new Date(Date.UTC(y, m - 1, d - daysBack)).toISOString().slice(0, 10)
-  const { start } = dayRangeUtc(target, BRANCH_TIME_ZONE)
-  return new Date(Date.parse(start) + (hour * 60 + minute) * 60_000).toISOString()
+  const dayKey = new Date(Date.UTC(y, m - 1, d - n)).toISOString().slice(0, 10)
+  const start = Date.parse(dayRangeUtc(dayKey).start)
+  return new Date(start + (hour * 60 + minute) * 60_000).toISOString()
 }
 
 // Spread visits evenly backward from today, one per branch, newest first.
 function makeCheckIns(codes, totalDaysSpan) {
   return codes.map((branchCode, i) => {
     const daysBack = Math.max(1, Math.round((i / codes.length) * totalDaysSpan))
-    return { branchCode, timestamp: libraryDaysAgo(daysBack, 10 + (i % 8), (i * 7) % 60), note: '' }
+    const timestamp = libraryDaysAgo(daysBack, 10 + (i % 8), (i * 7) % 60)
+    return { branchCode, timestamp, note: '' }
   })
 }
 
