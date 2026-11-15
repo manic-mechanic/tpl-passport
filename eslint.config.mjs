@@ -13,7 +13,6 @@ export default [
       '.playwright-mcp/**',
       'plans/**',
       'reference/**',
-      'drizzle/**',
     ],
   },
   js.configs.recommended,

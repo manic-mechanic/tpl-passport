@@ -32,7 +32,7 @@ Open the app on your phone for the best experience — it's designed as a mobile
 
 - **Nuxt 4** (SPA mode — `ssr: false`)
 - **Pinia** for state, persisted to `localStorage`
-- **Better Auth + Turso (libSQL)** — email/password and Google OAuth; cross-device sync
+- **Auth service at auth.librarypassport.ca** — sign-in (email/password and Google) and cross-device sync go through the separate auth service; the app uses the Better Auth Vue client
 - **Vercel** for hosting
 
 Branch and route data is static JSON in `packages/shared/data/`, sourced from the [Toronto Open Data](https://open.toronto.ca/) portal.

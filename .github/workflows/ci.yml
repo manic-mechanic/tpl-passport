@@ -55,12 +55,6 @@ jobs:
           HOST: 127.0.0.1
           PORT: '4173'
           NUXT_PUBLIC_IS_DEV: 'true'
-          BETTER_AUTH_URL: http://127.0.0.1:4173
-          BETTER_AUTH_SECRET: ci-local-secret
-          TURSO_DATABASE_URL: libsql://example.com
-          TURSO_AUTH_TOKEN: ci-local-token
-          GOOGLE_CLIENT_ID: ci-local-google-id
-          GOOGLE_CLIENT_SECRET: ci-local-google-secret
         run: node .output/server/index.mjs > /tmp/nuxt-server.log 2>&1 &
 
       - name: Wait for app
