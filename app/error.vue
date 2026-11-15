@@ -1,9 +1,6 @@
 <template>
   <main class="error-page">
-    <div class="brand">
-      <img src="/tpl-meta.png" class="tpl-logo" alt="Toronto Public Library" />
-      <span class="brand-title">passport<span class="brand-colon">:</span></span>
-    </div>
+    <BrandMark />
 
     <div class="error-card card">
       <p class="error-code">{{ isNotFound ? '404' : 'Error' }}</p>
@@ -13,7 +10,11 @@
           ? 'This page isn’t in the passport. It may have moved, or the link may be wrong.'
           : 'An unexpected error stopped this page from loading. Your passport is saved on this device.' }}
       </p>
-      <button type="button" class="btn-primary" @click="goHome">Back to your passport</button>
+      <button v-if="isNotFound" type="button" class="btn-primary" @click="goHome">Back to your passport</button>
+      <template v-else>
+        <button type="button" class="btn-primary" @click="retry">Try again</button>
+        <button type="button" class="btn-secondary" @click="goHome">Back to your passport</button>
+      </template>
     </div>
   </main>
 </template>
@@ -30,6 +31,12 @@ useHead({ title: () => `${isNotFound.value ? 'Page not found' : 'Error'} · Libr
 function goHome() {
   clearError({ redirect: '/' })
 }
+
+// Full reload of the current URL, so a transient failure gets a clean start
+// rather than re-rendering the same broken state.
+function retry() {
+  window.location.reload()
+}
 </script>
 
 <style scoped>
@@ -44,31 +51,6 @@ function goHome() {
   flex-direction: column;
   justify-content: center;
   gap: 20px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tpl-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-.brand-title {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-brand-text);
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
-}
-
-.brand-colon {
-  color: var(--tpl-blue);
 }
 
 .error-card {
@@ -100,16 +82,27 @@ function goHome() {
   margin-bottom: 20px;
 }
 
-.btn-primary {
+.btn-primary,
+.btn-secondary {
   width: 100%;
   padding: 16px;
   font-size: 1rem;
   font-weight: 700;
   font-family: var(--font-body);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.btn-primary {
   color: var(--color-text-inverse);
   background: var(--tpl-blue);
   border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+}
+
+.btn-secondary {
+  margin-top: 10px;
+  color: var(--tpl-blue);
+  background: transparent;
+  border: 1px solid var(--color-border);
 }
 </style>

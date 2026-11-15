@@ -2,10 +2,7 @@
   <main class="login-page">
     <header class="login-header">
       <NuxtLink to="/settings" class="back-link">← Back</NuxtLink>
-      <div class="brand">
-        <img src="/tpl-meta.png" class="tpl-logo" alt="Toronto Public Library" />
-        <span class="brand-title">passport<span class="brand-colon">:</span></span>
-      </div>
+      <BrandMark class="login-brand" />
       <p class="brand-tagline">Sign in to save your progress</p>
     </header>
 
@@ -196,30 +193,8 @@ async function signInWithGoogle() {
   margin-bottom: 20px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.login-brand {
   margin-bottom: 6px;
-}
-
-.tpl-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-.brand-title {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-brand-text);
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
-}
-
-.brand-colon {
-  color: var(--tpl-blue);
 }
 
 .brand-tagline {
