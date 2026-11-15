@@ -17,7 +17,7 @@
           <input type="file" accept="image/*" class="photo-input" @change="onPhotoCapture" />
         </label>
         <template v-if="photoBlob">
-          <img :src="photoPreview" class="success-photo-preview" alt="Check-in photo" />
+          <img :src="photoPreview ?? undefined" class="success-photo-preview" alt="Check-in photo" />
           <button class="save-photo-btn" @click="savePhotoToDevice">
             <IconSave />
             Save photo
@@ -50,7 +50,7 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm } from '~/composables/useRegion'
 import { BADGES, buildBadgeCtx, useBadgeCtx } from '~/composables/useBadges'
@@ -61,9 +61,15 @@ import IconPhoto from '~/components/icons/IconPhoto.vue'
 import IconSave from '~/components/icons/IconSave.vue'
 import IconSuccessCheck from '~/components/icons/IconSuccessCheck.vue'
 
-// result: { timestamp, branchCode, branchName, region, wardNo } | null.
 // The sheet opens when a result is set and clears it when closed.
-const result = defineModel('result', { type: Object, default: null })
+export interface CheckInResult {
+  timestamp: string
+  branchCode: string
+  branchName: string
+  region: string
+  wardNo: number
+}
+const result = defineModel<CheckInResult | null>('result', { default: null })
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -72,8 +78,8 @@ const authKnown = useAuthKnown()
 
 const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 const open = ref(false)
-const photoPreview = ref(null)  // object URL — revoked when sheet closes / photo changes
-const photoBlob = ref(null)  // compressed JPEG blob, kept for save-to-device
+const photoPreview = ref<string | null>(null)  // object URL — revoked when sheet closes / photo changes
+const photoBlob = ref<Blob | null>(null)  // compressed JPEG blob, kept for save-to-device
 
 function clearPhoto() {
   if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
@@ -94,8 +100,8 @@ const showSignInNudge = computed(() =>
   authKnown.value && !signedIn.value && passport.checkIns.length === 1
 )
 
-async function onPhotoCapture(event) {
-  const file = event.target.files?.[0]
+async function onPhotoCapture(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   const blob = await compressPhoto(file)
   if (!blob) return
@@ -111,7 +117,7 @@ async function onPhotoCapture(event) {
         if (publicUrl) passport.markCheckInHasPhoto(ts, publicUrl)
       })
     }
-    $posthog?.capture('photo_taken', { branch_code: result.value.branchCode })
+    $posthog?.capture('photo_taken', { branch_code: result.value?.branchCode })
   }
 }
 
@@ -134,8 +140,9 @@ async function savePhotoToDevice() {
 // Badges that this check-in newly earned.
 const badgeCtx = useBadgeCtx()
 const newBadges = computed(() => {
-  if (!result.value) return []
-  const prevCheckIns = passport.checkIns.filter(c => c.timestamp !== result.value.timestamp)
+  const res = result.value
+  if (!res) return []
+  const prevCheckIns = passport.checkIns.filter(c => c.timestamp !== res.timestamp)
   const ctxBefore = buildBadgeCtx({
     checkIns: prevCheckIns,
     visitedBranchCodes: new Set(prevCheckIns.map(c => c.branchCode)),
@@ -146,11 +153,12 @@ const newBadges = computed(() => {
 })
 
 const nearbyBranches = computed(() => {
-  if (!result.value) return []
-  const current = sortedBranches.find(b => b.BranchCode === result.value.branchCode)
+  const res = result.value
+  if (!res) return []
+  const current = sortedBranches.find(b => b.BranchCode === res.branchCode)
   if (!current?.Lat || !current?.Long) return []
   return sortedBranches
-    .filter(b => b.BranchCode !== result.value.branchCode)
+    .filter(b => b.BranchCode !== res.branchCode)
     .map(b => ({ ...b, distKm: haversineKm(current.Lat, current.Long, b.Lat, b.Long) }))
     .sort((a, b) => a.distKm - b.distKm)
     .slice(0, 2)

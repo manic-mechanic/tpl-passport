@@ -1,4 +1,4 @@
-type InstallGuide = {
+export type InstallGuide = {
   title: string
   platform: 'ios' | 'android' | 'desktop' | 'other'
   steps: string[]

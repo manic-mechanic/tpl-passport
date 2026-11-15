@@ -42,7 +42,8 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import IconSearch from '~/components/icons/IconSearch.vue'
@@ -52,10 +53,10 @@ const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 const query = ref('')
-const visitFilter = ref(null)
+const visitFilter = ref<'visited' | 'unvisited' | null>(null)
 
 // Debounced search tracking — fires on pause, not every keystroke
-let searchTimer = null
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 watch(query, (val) => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
@@ -84,10 +85,10 @@ const filteredBranches = computed(() => {
 
 // Sheet
 const sheetOpen = ref(false)
-const activeBranch = ref(null)
+const activeBranch = ref<Branch | null>(null)
 const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
-function openSheet(branch) {
+function openSheet(branch: Branch) {
   activeBranch.value = branch
   sheetOpen.value = true
 }

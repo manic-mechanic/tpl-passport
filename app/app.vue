@@ -21,7 +21,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import * as Sentry from '@sentry/nuxt'
 import { usePassportStore } from '~/stores/passport'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
@@ -36,7 +36,7 @@ const passport = usePassportStore()
 
 // ── Achievement tracking ─────────────────────────────────────────────
 const badgeCtx = useBadgeCtx()
-let earnedOnMount = null
+let earnedOnMount: Set<string> | null = null
 
 onMounted(() => {
   earnedOnMount = new Set(BADGES.filter(b => b.earned(badgeCtx.value)).map(b => b.id))
@@ -79,7 +79,7 @@ onMounted(async () => {
   // Sync auth → passport on every app load.
   // Covers: returning signed-in users, Google OAuth redirects (full page reload).
   // If the auth server can't be reached, carry on as signed out.
-  let data = null
+  let data: typeof authClient.$Infer.Session | null = null
   try {
     data = (await authClient.getSession()).data
   } catch (error) {

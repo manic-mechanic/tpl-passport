@@ -79,7 +79,8 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import IconSearch from '~/components/icons/IconSearch.vue'
@@ -89,7 +90,7 @@ const passport = usePassportStore()
 
 // ── Tab state ────────────────────────────────────────────────────────
 const route = useRoute()
-const activeTab = ref(
+const activeTab = ref<'routes' | 'events' | 'working-toward' | 'near-me'>(
   route.query.tab === 'routes' ? 'routes'
     : route.query.tab === 'events' ? 'events'
       : route.query.tab === 'working-toward' ? 'working-toward'
@@ -101,9 +102,9 @@ watch(activeTab, (tab) => {
 })
 
 // ── Near Me ──────────────────────────────────────────────────────────
-const userLat = ref(null)
-const userLng = ref(null)
-const geoStatus = ref('loading') // 'loading' | 'ready' | 'denied'
+const userLat = ref<number | null>(null)
+const userLng = ref<number | null>(null)
+const geoStatus = ref<'loading' | 'ready' | 'denied'>('loading')
 const geoDeniedMessage = computed(() =>
   navigator?.geolocation
     ? 'Allow location access to see branches near you.'
@@ -126,16 +127,19 @@ onMounted(() => {
 })
 
 const nearMeBranches = computed(() => {
-  if (geoStatus.value !== 'ready') return []
+  const lat = userLat.value
+  const lng = userLng.value
+  if (geoStatus.value !== 'ready' || lat === null || lng === null) return []
   const withDistance = physicalBranches
     .map(b => ({
       branch: b,
-      km: haversineKm(userLat.value, userLng.value, b.Lat, b.Long),
+      km: haversineKm(lat, lng, b.Lat, b.Long),
       visited: passport.hasVisited(b.BranchCode),
     }))
     .sort((a, b) => a.km - b.km)
 
   const nearest = withDistance[0]
+  if (!nearest) return []
   const unvisited = withDistance
     .filter(item => !item.visited && item.branch.BranchCode !== nearest.branch.BranchCode)
     .slice(0, 4)
@@ -145,10 +149,10 @@ const nearMeBranches = computed(() => {
 
 // ── Sheets ────────────────────────────────────────────────────────────
 const branchSheetOpen = ref(false)
-const activeBranch = ref(null)
+const activeBranch = ref<Branch | null>(null)
 const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
-function openBranchSheet(branch) {
+function openBranchSheet(branch: Branch) {
   activeBranch.value = branch
   branchSheetOpen.value = true
 }
