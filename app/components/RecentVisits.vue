@@ -16,8 +16,8 @@
         <StampShape :branch-code="branch.BranchCode" :ward-no="branch.WardNo" :size="44" />
         <span class="stamp-label">{{ branch.BranchName }}</span>
       </button>
-      <div v-for="i in placeholderCount" :key="`empty-${i}`" class="stamp-slot stamp-slot-empty">
-        <StampShape :branch-code="GHOST_CODES[(i - 1) % GHOST_CODES.length]" :ward-no="GHOST_WARDS[(i - 1) % GHOST_WARDS.length]" :size="44" />
+      <div v-for="ghost in GHOSTS.slice(0, placeholderCount)" :key="ghost.code" class="stamp-slot stamp-slot-empty">
+        <StampShape :branch-code="ghost.code" :ward-no="ghost.ward" :size="44" />
       </div>
     </div>
 
@@ -27,18 +27,19 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
-const emit = defineEmits(['select'])
+const emit = defineEmits<{ select: [branch: Branch] }>()
 
 const passport = usePassportStore()
 
 // Most recently visited unique branches, newest first, up to 6.
 // Relies on checkIns being newest-first — the store prepends with unshift() on each check-in.
 const recentBranches = computed(() => {
-  const seen = new Set()
-  const result = []
+  const seen = new Set<string>()
+  const result: Branch[] = []
   for (const ci of passport.checkIns) {
     if (seen.has(ci.branchCode)) continue
     seen.add(ci.branchCode)
@@ -52,8 +53,11 @@ const recentBranches = computed(() => {
 const placeholderCount = computed(() => Math.max(0, 3 - recentBranches.value.length))
 
 // Fake codes that hash to shape indices 0/1/2 — square, soft-square, circle
-const GHOST_CODES = ['GH4', 'GH5', 'GH1']
-const GHOST_WARDS = [5, 9, 3]
+const GHOSTS = [
+  { code: 'GH4', ward: 5 },
+  { code: 'GH5', ward: 9 },
+  { code: 'GH1', ward: 3 },
+]
 </script>
 
 <style scoped>

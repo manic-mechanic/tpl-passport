@@ -12,15 +12,19 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Badge, BadgeCtx } from '@tpl-passport/shared'
 import { branchesByAlphaPage } from '~/composables/useRegion'
 import IconCompassRose from '~/components/icons/IconCompassRose.vue'
 
-const props = defineProps({
-  badge: { type: Object, required: true },
-  ctx: { type: Object, required: true },
-  size: { type: Number, default: 64 },
-  contentOverride: { type: String, default: '' },
+const props = withDefaults(defineProps<{
+  badge: Badge
+  ctx: BadgeCtx
+  size?: number
+  contentOverride?: string
+}>(), {
+  size: 64,
+  contentOverride: '',
 })
 
 const PAGE_TURNER_COLORS = ['#e07832', '#52cc84', '#1898c0', '#d44545', '#8f5fe0']
@@ -31,7 +35,7 @@ const contentFontSize = computed(() => {
   return '1rem'
 })
 
-const contentText = computed(() => props.contentOverride || (props.badge.stat ? props.badge.stat(props.ctx) : props.badge.label))
+const contentText = computed(() => props.contentOverride || props.badge.label)
 
 // navigator and page_turner use inline gradient styles; all others use a color class or locked.
 const colorClass = computed(() => {

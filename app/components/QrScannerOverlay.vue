@@ -22,20 +22,23 @@
   </Teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import jsQR from 'jsqr'
 import IconClose from '~/components/icons/IconClose.vue'
 
 // Camera QR scanner. Emits `scanned` with the branch code from a branch QR
 // URL (?branch=CODE), or `error` with a user-facing message.
 const active = defineModel('active', { type: Boolean, default: false })
-const emit = defineEmits(['scanned', 'error'])
+const emit = defineEmits<{
+  scanned: [branchCode: string]
+  error: [message: string]
+}>()
 
-const videoEl = ref(null)
-const scanCanvas = ref(null)
-let stream = null
-let rafId = null
-let ctx = null  // canvas 2d context — hoisted so it's not re-fetched every frame
+const videoEl = ref<HTMLVideoElement | null>(null)
+const scanCanvas = ref<HTMLCanvasElement | null>(null)
+let stream: MediaStream | null = null
+let rafId: number | null = null
+let ctx: CanvasRenderingContext2D | null = null  // canvas 2d context — hoisted so it's not re-fetched every frame
 
 watch(active, (isActive) => {
   if (isActive) void start()
@@ -57,9 +60,9 @@ async function start() {
     videoEl.value.srcObject = stream
     await videoEl.value.play()
     // Set canvas dimensions once — videoWidth/Height are fixed for a given camera stream
-    scanCanvas.value.width = videoEl.value.videoWidth
-    scanCanvas.value.height = videoEl.value.videoHeight
-    ctx = scanCanvas.value.getContext('2d')
+    scanCanvas.value!.width = videoEl.value.videoWidth
+    scanCanvas.value!.height = videoEl.value.videoHeight
+    ctx = scanCanvas.value!.getContext('2d')
     rafId = requestAnimationFrame(scanLoop)
   } catch {
     if (!active.value) return
@@ -72,7 +75,7 @@ async function start() {
 function scanLoop() {
   const video = videoEl.value
   const canvas = scanCanvas.value
-  if (!video || !canvas || !active.value) return
+  if (!video || !canvas || !ctx || !active.value) return
 
   if (video.readyState < video.HAVE_ENOUGH_DATA) {
     rafId = requestAnimationFrame(scanLoop)
@@ -91,7 +94,7 @@ function scanLoop() {
   rafId = requestAnimationFrame(scanLoop)
 }
 
-function handleResult(data) {
+function handleResult(data: string) {
   active.value = false
   try {
     const branch = new URL(data).searchParams.get('branch')

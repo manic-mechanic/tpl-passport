@@ -188,7 +188,7 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
@@ -202,13 +202,14 @@ const { public: { isDev } } = useRuntimeConfig()
 const showInstallSection = ref(false)
 const isGoogleAccount = ref(false)
 const profileEditing = ref(false)
-const inlineToast = ref({ text: '', kind: 'success' })
+type ToastKind = 'success' | 'error'
+const inlineToast = ref<{ text: string, kind: ToastKind }>({ text: '', kind: 'success' })
 
 watch(() => passport.profile.theme, (theme) => {
   $posthog?.capture('theme_changed', { theme: theme || 'system' })
 })
 
-const session = ref(null)
+const session = ref<typeof authClient.$Infer.Session | null>(null)
 
 onMounted(async () => {
   const { data } = await authClient.getSession()
@@ -251,7 +252,7 @@ watch(() => [passport.profile.name, passport.profile.homeBranch], ([name, homeBr
 })
 const profileSaving = ref(false)
 
-function showToast(text, kind = 'success') {
+function showToast(text: string, kind: ToastKind = 'success') {
   inlineToast.value = { text, kind }
   window.setTimeout(() => {
     if (inlineToast.value.text === text) inlineToast.value = { text: '', kind: 'success' }
@@ -302,11 +303,13 @@ const demoModes = [
   { value: 'empty',     label: 'Empty',    icon: '📖', count: '0 stamps' },
   { value: 'mid',       label: 'Mid-way',  icon: '🗺️', count: '28 stamps' },
   { value: 'completed', label: 'Complete', icon: '🏆', count: `${physicalBranches.length} stamps` },
-]
+] as const
 
-const activeDemoMode = ref('empty')
+type DemoMode = (typeof demoModes)[number]['value']
 
-function setDemo(mode) {
+const activeDemoMode = ref<DemoMode>('empty')
+
+function setDemo(mode: DemoMode) {
   activeDemoMode.value = mode
   passport.loadDemoState(mode)
   $posthog?.capture('demo_mode_activated', { demo_state: mode })

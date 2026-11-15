@@ -26,7 +26,11 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Badge } from '@tpl-passport/shared'
+
+type ProgressBadge = Badge & { progress: NonNullable<Badge['progress']> }
+const hasProgress = (badge: Badge): badge is ProgressBadge => !!badge.progress
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 
 const ctx = useBadgeCtx()
@@ -41,16 +45,18 @@ const highlightBadges = computed(() => {
   const nonStamps = BADGES.filter(a => a.shape !== 'octagon')
 
   const earnedStamps = stamps.filter(a => a.earned(c))
+  const lastEarnedStamp = earnedStamps[earnedStamps.length - 1]
   const nextStamp    = stamps.find(a => !a.earned(c))
   const stampSlots   = [
-    ...(earnedStamps.length ? [earnedStamps[earnedStamps.length - 1]] : []),
+    ...(lastEarnedStamp ? [lastEarnedStamp] : []),
     ...(nextStamp ? [nextStamp] : []),
   ]
 
   const earnedNonStamps = nonStamps.filter(a => a.earned(c))
   const unearned        = nonStamps.filter(a => !a.earned(c))
   const inProgress      = unearned
-    .filter(a => a.progress && a.progress(c).current > 0)
+    .filter(hasProgress)
+    .filter(a => a.progress(c).current > 0)
     .sort((a, b) => (b.progress(c).current / b.progress(c).total) - (a.progress(c).current / a.progress(c).total))
   const inProgressIds   = new Set(inProgress.map(a => a.id))
   const upcoming        = unearned.filter(a => !inProgressIds.has(a.id))
@@ -67,21 +73,22 @@ const highlightBadges = computed(() => {
   ].slice(0, 6)
 })
 
-function progPct(badge) {
-  const { current, total } = badge.progress(ctx.value)
+// progPct and progText are only called for badges with progress (see template).
+function progPct(badge: Badge) {
+  const { current, total } = badge.progress!(ctx.value)
   return Math.min(100, Math.round((current / total) * 100))
 }
 
-function progText(badge) {
-  const { current, total } = badge.progress(ctx.value)
+function progText(badge: Badge) {
+  const { current, total } = badge.progress!(ctx.value)
   return `${current}/${total}`
 }
 
-function isActivityBadge(badge) {
+function isActivityBadge(badge: Badge) {
   return ['day_tripper', 'return_visitor', 'familiar_face', 'archivist'].includes(badge.id)
 }
 
-function badgeShapeContent(badge) {
+function badgeShapeContent(badge: Badge) {
   if (!isActivityBadge(badge)) return ''
   const c = ctx.value
   if (badge.id === 'day_tripper') return String(c.maxBranchesInOneDay)

@@ -23,24 +23,25 @@
   </svg>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { BadgeCtx } from '@tpl-passport/shared'
 import { compassPoints } from '~/composables/useBadges'
 import { useIsDark } from '~/composables/useIsDark'
 
-const props = defineProps({
-  ctx: { type: Object, required: true },
-})
+type CompassDir = keyof typeof compassPoints
+
+const props = defineProps<{ ctx: BadgeCtx }>()
 
 const isDark = useIsDark()
 
-function labelColor(dir, isNorth = false) {
+function labelColor(dir: CompassDir, isNorth = false) {
   const visited = props.ctx.visitedBranchCodes.has(compassPoints[dir])
   if (!visited) return isDark.value ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)'
   if (isNorth) return '#c0201a'
   return '#1a1510'
 }
 
-function lineColor(dir) {
+function lineColor(dir: CompassDir) {
   const visited = props.ctx.visitedBranchCodes.has(compassPoints[dir])
   if (!visited) return isDark.value ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)'
   return 'rgba(0,0,0,0.3)'

@@ -81,7 +81,7 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import * as Sentry from '@sentry/nuxt'
 import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { authClient } from '~/lib/auth-client'
@@ -95,14 +95,14 @@ const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const signedIn = useSignedIn()
 
-const mode = ref('signin')
+const mode = ref<'signin' | 'signup'>('signin')
 const name = ref(passport.profile.name ?? '')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
-const error = ref('')
+const error = ref<string | undefined>('')
 const loading = ref(false)
 const googleLoading = ref(false)
 

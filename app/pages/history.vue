@@ -47,7 +47,7 @@
             <li v-for="visit in items" :key="visit.timestamp">
               <BranchCard
                 v-if="branchObjectMap[visit.branchCode]"
-                :branch="branchObjectMap[visit.branchCode]"
+                :branch="branchObjectMap[visit.branchCode]!"
                 :meta="formatTime(visit.timestamp)"
                 :has-note="!!visit.note"
                 :has-photo="!!photoUrls[visit.timestamp]"
@@ -72,7 +72,9 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
+import type { PassportCheckIn } from '~/types/passport'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import { getPhotoUrl } from '~/composables/usePhotoStore'
@@ -98,7 +100,7 @@ const memoriesOnly = ref(false)
 
 const memoryCount = computed(() => passport.checkIns.filter(isMemory).length)
 
-function isMemory(visit) {
+function isMemory(visit: PassportCheckIn) {
   return !!(visit.note?.trim() || visit.hasPhoto)
 }
 
@@ -106,11 +108,11 @@ const grouped = computed(() => {
   const now = new Date()
   const todayStr = localDayKey(now)
   const yesterdayStr = localDayKey(new Date(now.getTime() - 86400000))
-  const weekAgo = new Date(now - 7 * 86400000)
+  const weekAgo = new Date(now.getTime() - 7 * 86400000)
 
   const source = memoriesOnly.value ? passport.checkIns.filter(isMemory) : passport.checkIns
 
-  const buckets = { 'Today': [], 'Yesterday': [], 'This week': [], 'Older': [] }
+  const buckets: Record<'Today' | 'Yesterday' | 'This week' | 'Older', PassportCheckIn[]> = { 'Today': [], 'Yesterday': [], 'This week': [], 'Older': [] }
   for (const visit of source) {
     const d = new Date(visit.timestamp)
     const ds = localDayKey(d)
@@ -123,8 +125,8 @@ const grouped = computed(() => {
 })
 
 // Photo thumbnails — loaded on demand from IndexedDB
-const photoUrls = ref({})
-async function loadPhoto(timestamp) {
+const photoUrls = ref<Record<string, string | null>>({})
+async function loadPhoto(timestamp: string) {
   if (timestamp in photoUrls.value) return
   photoUrls.value[timestamp] = await getPhotoUrl(timestamp)
 }
@@ -136,7 +138,7 @@ onUnmounted(() => {
   Object.values(photoUrls.value).forEach(url => url && URL.revokeObjectURL(url))
 })
 
-function formatTime(iso) {
+function formatTime(iso: string) {
   const d = new Date(iso)
   if (localDayKey(d) === localDayKey(new Date()))
     return d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })
@@ -144,10 +146,10 @@ function formatTime(iso) {
 }
 
 const sheetOpen = ref(false)
-const activeBranch = ref(null)
+const activeBranch = ref<Branch | null>(null)
 const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
-function openSheet(branch) {
+function openSheet(branch: Branch) {
   activeBranch.value = branch
   sheetOpen.value = true
 }

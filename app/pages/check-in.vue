@@ -72,7 +72,7 @@
 
       <p v-if="locationStatus === 'too-far'" class="location-error">
         You're {{ locationDistFormatted }} away — you need to be within 100 m to check in.
-        <NuxtLink :to="`/branch/${selectedBranch.BranchCode}`" class="error-link">View branch page</NuxtLink>
+        <NuxtLink :to="`/branch/${selectedBranch?.BranchCode}`" class="error-link">View branch page</NuxtLink>
       </p>
       <p v-else-if="locationStatus === 'timeout'" class="location-error">
         Location check timed out. Check your signal and try again.
@@ -105,7 +105,8 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { CheckInResult } from '~/components/CheckInSuccessSheet.vue'
 import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm } from '~/composables/useRegion'
 import { shouldSkipLocationCheck } from '~/lib/locationCheck'
@@ -114,7 +115,7 @@ import IconVisited from '~/components/icons/IconVisited.vue'
 import IconQR from '~/components/icons/IconQR.vue'
 
 function getPosition() {
-  return new Promise((resolve, reject) =>
+  return new Promise<GeolocationPosition>((resolve, reject) =>
     navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
   )
 }
@@ -125,7 +126,7 @@ const passport = usePassportStore()
 
 const FALLBACK_BRANCH = 'TRL'
 
-const selectedCode = ref(route.query.branch ?? '')
+const selectedCode = ref(typeof route.query.branch === 'string' ? route.query.branch : '')
 const prefilled = !!route.query.branch  // static — query string doesn't change after load
 const scanned = ref(false)
 const autoDetected = ref(false)
@@ -140,7 +141,7 @@ async function detectNearest() {
     const nearest = sortedBranches
       .map(b => ({ ...b, distKm: haversineKm(pos.coords.latitude, pos.coords.longitude, b.Lat, b.Long) }))
       .sort((a, b) => a.distKm - b.distKm)[0]
-    selectedCode.value = nearest.BranchCode
+    selectedCode.value = nearest!.BranchCode  // sortedBranches is never empty
   } catch {
     selectedCode.value = FALLBACK_BRANCH
   } finally {
@@ -160,17 +161,17 @@ const selectedBranch = computed(() =>
 )
 
 const alreadyVisitedToday = computed(() =>
-  passport.hasVisitedToday(selectedBranch.value?.BranchCode)
+  selectedBranch.value ? passport.hasVisitedToday(selectedBranch.value.BranchCode) : false
 )
 
 
 const noteText = ref('')
 const checkInCompleted = ref(false)
 
-const result = ref(null)
+const result = ref<CheckInResult | null>(null)
 
-const locationStatus = ref('idle') // 'idle' | 'checking' | 'too-far' | 'timeout' | 'denied'
-const locationDistKm = ref(null)
+const locationStatus = ref<'idle' | 'checking' | 'too-far' | 'timeout' | 'denied'>('idle')
+const locationDistKm = ref<number | null>(null)
 
 const isCheckingLocation = computed(() => locationStatus.value === 'checking')
 
@@ -217,19 +218,22 @@ async function doCheckIn() {
         return
       }
     } catch (err) {
-      locationStatus.value = err?.code === 3 ? 'timeout' : 'denied'
+      locationStatus.value = (err as GeolocationPositionError | undefined)?.code === 3 ? 'timeout' : 'denied'
       return
     }
   }
 
   locationStatus.value = 'idle'
-  const timestamp = passport.checkIn(selectedBranch.value.BranchCode, noteText.value.trim())
+  // Read the selection again after the location check, as the code always has.
+  const branch = selectedBranch.value
+  if (!branch) return
+  const timestamp = passport.checkIn(branch.BranchCode, noteText.value.trim())
   if (timestamp) {
-    const branchVisitCount = passport.checkIns.filter(c => c.branchCode === selectedBranch.value.BranchCode).length
+    const branchVisitCount = passport.checkIns.filter(c => c.branchCode === branch.BranchCode).length
     $posthog?.capture('checkin_completed', {
-      branch_code: selectedBranch.value.BranchCode,
-      branch_name: selectedBranch.value.BranchName,
-      district: selectedBranch.value.District ?? '',
+      branch_code: branch.BranchCode,
+      branch_name: branch.BranchName,
+      district: branch.District ?? '',
       note_added: !!noteText.value.trim(),
       visit_number: branchVisitCount,
       total_visits: passport.checkIns.length,
@@ -237,10 +241,10 @@ async function doCheckIn() {
     checkInCompleted.value = true
     result.value = {
       timestamp,
-      branchCode: selectedBranch.value.BranchCode,
-      branchName: selectedBranch.value.BranchName,
-      region: selectedBranch.value.District ?? '',
-      wardNo: selectedBranch.value.WardNo,
+      branchCode: branch.BranchCode,
+      branchName: branch.BranchName,
+      region: branch.District ?? '',
+      wardNo: branch.WardNo,
     }
   }
 }
@@ -253,7 +257,7 @@ function openScanner() {
   scannerActive.value = true
 }
 
-function onQrScanned(branch) {
+function onQrScanned(branch: string) {
   if (sortedBranches.find(b => b.BranchCode === branch)) {
     selectedCode.value = branch
     scanned.value = true

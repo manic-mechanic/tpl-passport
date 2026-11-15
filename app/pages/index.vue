@@ -1,4 +1,5 @@
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 import { usePassportStore } from '~/stores/passport'
 
@@ -18,7 +19,7 @@ const showBanner = computed(() =>
 )
 
 const branchSheetOpen = ref(false)
-const activeBranch = ref(null)
+const activeBranch = ref<Branch | null>(null)
 const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
 function dismissBanner() {
@@ -26,7 +27,7 @@ function dismissBanner() {
   localStorage.setItem('signin_banner_dismissed', '1')
 }
 
-function openBranchSheet(branch) {
+function openBranchSheet(branch: Branch) {
   activeBranch.value = branch
   branchSheetOpen.value = true
 }
