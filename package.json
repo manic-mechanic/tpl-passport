@@ -17,7 +17,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",
     "@pinia/nuxt": "^0.11.3",
-    "@sentry/nuxt": "^10.78.0",
+    "@sentry/nuxt": "^11.12.0",
     "@tpl-passport/shared": "file:./packages/shared",
     "better-auth": "^1.7.25",
     "boring-avatars": "^2.0.4",
