@@ -102,7 +102,7 @@ const password = ref('')
 const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
-const error = ref('')
+const error = ref<string | undefined>('')
 const loading = ref(false)
 const googleLoading = ref(false)
 
@@ -120,7 +120,7 @@ async function submitEmail() {
         password: password.value,
         callbackURL: '/',
       })
-      if (err) { error.value = err.message ?? ''; return }
+      if (err) { error.value = err.message; return }
       signedIn.value = true
       await syncAccount(data?.user?.name ?? '')
       Sentry.setUser({ id: data.user.id })
@@ -132,7 +132,7 @@ async function submitEmail() {
         password: password.value,
         callbackURL: '/',
       })
-      if (err) { error.value = err.message ?? ''; return }
+      if (err) { error.value = err.message; return }
       signedIn.value = true
       if (!passport.profile.name && name.value) passport.profile.name = name.value
       await pushProfile({ name: name.value, homeBranch: null })
