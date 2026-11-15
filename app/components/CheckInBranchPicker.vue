@@ -26,10 +26,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { sortedBranches } from '~/composables/useRegion'
 
-const emit = defineEmits(['select', 'locate'])
+const emit = defineEmits<{
+  select: [branchCode: string]
+  locate: []
+}>()
 
 const query = ref('')
 

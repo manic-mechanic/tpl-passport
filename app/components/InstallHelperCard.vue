@@ -37,15 +37,22 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { getInstallGuide, isRunningStandalone } from '~/lib/installHelper'
+import type { InstallGuide } from '~/lib/installHelper'
+
+// Chrome's install prompt event; not in the DOM lib types.
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
 
 const { $posthog } = useNuxtApp()
 
-const deferredInstallEvent = ref(null)
+const deferredInstallEvent = ref<BeforeInstallPromptEvent | null>(null)
 const isInstalled = ref(false)
 const showInstallSheet = ref(false)
-const installGuide = ref({ title: 'Install this app', platform: 'other', steps: [] })
+const installGuide = ref<InstallGuide>({ title: 'Install this app', platform: 'other', steps: [] })
 const isAndroidGuide = computed(() => installGuide.value.platform === 'android')
 
 const canPromptInstall = computed(() => Boolean(deferredInstallEvent.value))
@@ -66,9 +73,9 @@ function refreshInstallState() {
   isInstalled.value = isRunningStandalone()
 }
 
-function onBeforeInstallPrompt(event) {
+function onBeforeInstallPrompt(event: Event) {
   event.preventDefault()
-  deferredInstallEvent.value = event
+  deferredInstallEvent.value = event as BeforeInstallPromptEvent
 }
 
 function onAppInstalled() {

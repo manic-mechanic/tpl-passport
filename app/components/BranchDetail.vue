@@ -71,9 +71,9 @@
       <template v-else>
         <div class="history-row">
           <div class="history-year-badge">
-            <span class="history-year">{{ branchHistoryEntries[0].year }}</span>
+            <span class="history-year">{{ branchHistoryEntries[0]?.year }}</span>
           </div>
-          <p class="history-detail">{{ branchHistoryEntries[0].detail }}</p>
+          <p class="history-detail">{{ branchHistoryEntries[0]?.detail }}</p>
         </div>
         <p class="history-locked">Come back to unlock more history.</p>
       </template>
@@ -92,7 +92,8 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import branchHours from '#data/branch-hours.json'
 import branchHistoryData from '#data/branch-history.json'
 import { usePassportStore } from '~/stores/passport'
@@ -104,13 +105,26 @@ import IconTelephone from './icons/IconTelephone.vue'
 import IconMapPin from './icons/IconMapPin.vue'
 import IconChevron from './icons/IconChevron.vue'
 
-const props = defineProps({
-  branch: { type: Object, required: true },
-  source: { type: String, default: 'explore' },
-  effectiveSource: { type: String, default: '/explore' },
-  nearbyAsRoute: { type: Boolean, default: false },
+const props = withDefaults(defineProps<{
+  branch: Branch
+  source?: string
+  effectiveSource?: string
+  nearbyAsRoute?: boolean
+}>(), {
+  source: 'explore',
+  effectiveSource: '/explore',
+  nearbyAsRoute: false,
 })
-const emit = defineEmits(['open-branch'])
+const emit = defineEmits<{ 'open-branch': [branch: Branch] }>()
+
+interface BranchEvent {
+  Title?: string
+  StartDateLocal?: string
+  StartTime?: string
+  Audiences?: string
+}
+const hoursByBranch: Record<string, Record<string, string> | undefined> = branchHours
+const historyByBranch: Record<string, { year: string, detail: string }[] | undefined> = branchHistoryData
 const passport = usePassportStore()
 const { $posthog } = useNuxtApp()
 
@@ -130,8 +144,8 @@ function trackTplLinkTapped() {
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const todayHours = computed(() => {
-  const hours = branchHours[props.branch.BranchCode]
-  return hours?.[DAYS[new Date().getDay()]] ?? null
+  const hours = hoursByBranch[props.branch.BranchCode]
+  return hours?.[DAYS[new Date().getDay()]!] ?? null
 })
 const streetAddress = computed(() => props.branch.Address?.split(',')[0] ?? '')
 const mapsUrl = computed(() => {
@@ -149,7 +163,7 @@ const checkinState = computed(() => {
   return 'idle'
 })
 
-const SERVICE_FLAGS = {
+const SERVICE_FLAGS: Partial<Record<keyof Branch, string>> = {
   KidsStop: 'Kids Stop',
   LeadingReading: 'Leading to Reading',
   CLC: 'Computer Learning Centre',
@@ -160,14 +174,14 @@ const SERVICE_FLAGS = {
 }
 const services = computed(() =>
   Object.entries(SERVICE_FLAGS)
-    .filter(([key]) => props.branch[key] === 1)
+    .filter(([key]) => props.branch[key as keyof Branch] === 1)
     .map(([, label]) => label)
 )
 
 const { data: rawEvents, pending: eventsPending } = useFetch('/api/branch-events', {
   query: computed(() => ({ library: props.branch.BranchName ?? '' })),
-  default: () => [],
-  transform: data => Array.isArray(data) ? data : [],
+  default: (): BranchEvent[] => [],
+  transform: (data: unknown): BranchEvent[] => Array.isArray(data) ? data : [],
 })
 
 const events = computed(() =>
@@ -179,10 +193,10 @@ const events = computed(() =>
   }))
 )
 
-function formatEventMonth(date) {
+function formatEventMonth(date: string) {
   return new Date(date + 'T00:00:00').toLocaleDateString('en-CA', { month: 'short' }).toUpperCase()
 }
-function formatEventDay(date) {
+function formatEventDay(date: string) {
   return new Date(date + 'T00:00:00').getDate()
 }
 
@@ -192,13 +206,13 @@ const pastVisitsHere = computed(() =>
 
 // Branch history
 const branchHistoryEntries = computed(() =>
-  branchHistoryData[props.branch.BranchCode] ?? []
+  historyByBranch[props.branch.BranchCode] ?? []
 )
 
-const COMPASS_DIR_LABELS = { n: 'North', e: 'East', s: 'South', w: 'West' }
+const COMPASS_DIR_LABELS: Record<string, string> = { n: 'North', e: 'East', s: 'South', w: 'West' }
 const compassPointDirection = computed(() => {
   const entry = Object.entries(compassPoints).find(([, code]) => code === props.branch.BranchCode)
-  return entry ? COMPASS_DIR_LABELS[entry[0]] : null
+  return entry ? (COMPASS_DIR_LABELS[entry[0]] ?? null) : null
 })
 
 const nearbyBranches = computed(() => {

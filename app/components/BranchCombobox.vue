@@ -36,23 +36,27 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { sortedBranches } from '~/composables/useRegion'
 
 defineOptions({ inheritAttrs: false })
 
-const props = defineProps({
-  modelValue: { type: String, default: '' },
-  placeholder: { type: String, default: 'Search branches…' },
-  variant: { type: String, default: 'field' }, // 'field' | 'inline'
+const props = withDefaults(defineProps<{
+  modelValue?: string
+  placeholder?: string
+  variant?: 'field' | 'inline'
+}>(), {
+  modelValue: '',
+  placeholder: 'Search branches…',
+  variant: 'field',
 })
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits<{ 'update:modelValue': [branchCode: string] }>()
 
-const comboRef  = ref(null)
+const comboRef  = ref<HTMLElement | null>(null)
 const query     = ref('')
 const open      = ref(false)
 const focusedIdx = ref(-1)
-const listStyle  = ref({})
+const listStyle  = ref<Record<string, string | number>>({})
 
 const selectedLabel = computed(() =>
   sortedBranches.find(b => b.BranchCode === props.modelValue)?.BranchName ?? ''
@@ -66,7 +70,7 @@ const filtered = computed(() => {
 })
 
 function onFocus() {
-  const rect = comboRef.value.getBoundingClientRect()
+  const rect = comboRef.value!.getBoundingClientRect()
   listStyle.value = {
     position: 'fixed',
     top:   `${rect.bottom + 4}px`,
@@ -79,8 +83,8 @@ function onFocus() {
   focusedIdx.value = -1
 }
 
-function onInput(e) {
-  query.value = e.target.value
+function onInput(e: Event) {
+  query.value = (e.target as HTMLInputElement).value
   focusedIdx.value = -1
 }
 
@@ -94,15 +98,16 @@ function close() {
   focusedIdx.value = -1
 }
 
-function moveFocus(dir) {
+function moveFocus(dir: number) {
   focusedIdx.value = Math.max(-1, Math.min(filtered.value.length - 1, focusedIdx.value + dir))
 }
 
 function confirmFocused() {
-  if (focusedIdx.value >= 0) select(filtered.value[focusedIdx.value].BranchCode)
+  const focused = filtered.value[focusedIdx.value]
+  if (focusedIdx.value >= 0 && focused) select(focused.BranchCode)
 }
 
-function select(code) {
+function select(code: string) {
   emit('update:modelValue', code)
   close()
 }

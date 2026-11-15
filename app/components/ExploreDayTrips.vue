@@ -39,7 +39,8 @@
   </p>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
@@ -50,13 +51,15 @@ import IconChevron from '~/components/icons/IconChevron.vue'
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
-const activeMode = ref('walk')    // 'walk' | 'bike' | 'transit' | 'drive'
+type TransportMode = 'walk' | 'bike' | 'transit' | 'drive'
+
+const activeMode = ref<TransportMode>('walk')
 
 watch(activeMode, (mode) => {
   $posthog?.capture('transport_mode_changed', { mode })
 })
 
-const MODES = [
+const MODES: { id: TransportMode, label: string, icon: string }[] = [
   {
     id: 'walk', label: 'Walk',
     icon: '<circle cx="12" cy="4.5" r="1.5"/><path d="M10 8.5l-2 7h2.5l.5 4h2l.5-4H16l-2-7"/><path d="M10 8.5l2-1.5 2 1.5"/>',
@@ -76,13 +79,13 @@ const MODES = [
 ]
 
 // ── Suggested Routes ─────────────────────────────────────────────────
-const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
+const branchesByCode: Record<string, Branch | undefined> = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
 
 const routesWithProgress = computed(() =>
   routesData
     .filter(r => r.mode === activeMode.value)
     .map(r => {
-      const branchObjects = r.branches.map(code => branchesByCode[code]).filter(Boolean)
+      const branchObjects = r.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
       const visited = branchObjects.filter(b => passport.hasVisited(b.BranchCode)).length
       return { ...r, branchObjects, visited, total: branchObjects.length, mapsUrl: buildMapsUrl(branchObjects) }
     })

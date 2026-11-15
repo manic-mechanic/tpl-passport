@@ -18,9 +18,9 @@
           </div>
         </div>
         <button v-if="photoUrls[visit.timestamp]" class="visit-photo-btn"
-                @click="lightboxSrc = photoUrls[visit.timestamp]"
+                @click="lightboxSrc = photoUrls[visit.timestamp] ?? null"
         >
-          <img :src="photoUrls[visit.timestamp]" class="visit-photo-thumb" alt="Check-in photo" />
+          <img :src="photoUrls[visit.timestamp] ?? undefined" class="visit-photo-thumb" alt="Check-in photo" />
         </button>
         <template v-if="editingNote === visit.timestamp">
           <textarea v-model="noteInputs[visit.timestamp]" class="visit-note-input" placeholder="Add a note…" rows="3" />
@@ -39,7 +39,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { usePassportStore } from '~/stores/passport'
 import { getPhotoUrl, savePhoto } from '~/composables/usePhotoStore'
 import { compressPhoto, uploadCheckInPhoto } from '~/lib/checkInPhoto'
@@ -48,9 +48,7 @@ import IconNote from './icons/IconNote.vue'
 import IconPhoto from './icons/IconPhoto.vue'
 
 // "Your visits here" list on a branch page: photos, a lightbox, and note editing.
-const props = defineProps({
-  branchCode: { type: String, required: true },
-})
+const props = defineProps<{ branchCode: string }>()
 
 const passport = usePassportStore()
 
@@ -58,8 +56,8 @@ const pastVisitsHere = computed(() =>
   passport.checkIns.filter(c => c.branchCode === props.branchCode)
 )
 
-const photoUrls = ref({})
-const lightboxSrc = ref(null)
+const photoUrls = ref<Record<string, string | null>>({})
+const lightboxSrc = ref<string | null>(null)
 
 watch(pastVisitsHere, async (visits) => {
   for (const visit of visits) {
@@ -73,15 +71,15 @@ onUnmounted(() => {
   Object.values(photoUrls.value).forEach(url => url && URL.revokeObjectURL(url))
 })
 
-function formatVisitDate(iso) {
+function formatVisitDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 // Note editing
-const editingNote = ref(null)
-const noteInputs = ref({})
+const editingNote = ref<string | null>(null)
+const noteInputs = ref<Record<string, string>>({})
 
-function toggleNoteEdit(timestamp) {
+function toggleNoteEdit(timestamp: string) {
   if (editingNote.value === timestamp) {
     editingNote.value = null
   } else {
@@ -90,14 +88,14 @@ function toggleNoteEdit(timestamp) {
   }
 }
 
-function saveNote(timestamp) {
+function saveNote(timestamp: string) {
   passport.updateNote(timestamp, noteInputs.value[timestamp] ?? '')
   editingNote.value = null
 }
 
 // Photo adding on existing visits
-async function onVisitPhotoCapture(event, timestamp) {
-  const file = event.target.files?.[0]
+async function onVisitPhotoCapture(event: Event, timestamp: string) {
+  const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   const blob = await compressPhoto(file)
   if (!blob) return
