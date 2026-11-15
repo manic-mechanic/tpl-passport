@@ -218,7 +218,10 @@ onMounted(async () => {
   try {
     if (typeof authClient.listAccounts === 'function') {
       const { data: accounts } = await authClient.listAccounts()
-      isGoogleAccount.value = Array.isArray(accounts) && accounts.some(account => account.providerId === 'google')
+      isGoogleAccount.value = Array.isArray(accounts) && accounts.some(account =>
+        // Behaviour kept as-is in this conversion: better-auth accounts have
+        // providerId, not provider, so this never matches. Fixed in #27.
+        (account as { provider?: string }).provider === 'google')
     }
   } catch {
     isGoogleAccount.value = false
