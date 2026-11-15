@@ -120,7 +120,7 @@ async function submitEmail() {
         password: password.value,
         callbackURL: '/',
       })
-      if (err) { error.value = err.message; return }
+      if (err) { error.value = err.message || 'Sign-in failed. Please try again.'; return }
       signedIn.value = true
       await syncAccount(data?.user?.name ?? '')
       Sentry.setUser({ id: data.user.id })
@@ -132,7 +132,7 @@ async function submitEmail() {
         password: password.value,
         callbackURL: '/',
       })
-      if (err) { error.value = err.message; return }
+      if (err) { error.value = err.message || 'Sign-up failed. Please try again.'; return }
       signedIn.value = true
       if (!passport.profile.name && name.value) passport.profile.name = name.value
       await pushProfile({ name: name.value, homeBranch: null })
