@@ -217,7 +217,11 @@ onMounted(async () => {
   try {
     if (typeof authClient.listAccounts === 'function') {
       const { data: accounts } = await authClient.listAccounts()
-      isGoogleAccount.value = Array.isArray(accounts) && accounts.some(account => account.providerId === 'google')
+      // Hide the change-email/password forms only when the user has no
+      // password (credential) account, i.e. signs in with Google alone. A user
+      // with both a password and a linked Google login keeps the forms.
+      isGoogleAccount.value = Array.isArray(accounts) && accounts.length > 0
+        && !accounts.some(account => account.providerId === 'credential')
     }
   } catch {
     isGoogleAccount.value = false
