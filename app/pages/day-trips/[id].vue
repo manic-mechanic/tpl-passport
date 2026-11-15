@@ -50,7 +50,9 @@ const nuxtRoute = useRoute()
 const trip = routesData.find(r => r.id === nuxtRoute.params.id)
 
 if (!trip) {
-  throw createError({ statusCode: 404, statusMessage: 'Route not found' })
+  // fatal: on client-side navigation a non-fatal error would leave a blank page
+  // instead of showing error.vue.
+  throw createError({ status: 404, statusText: 'Route not found', fatal: true })
 }
 
 const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
