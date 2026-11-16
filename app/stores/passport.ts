@@ -5,6 +5,7 @@ import { pushCheckIn, patchCheckInPhoto } from '~/composables/useCheckInSync'
 import { canSyncToServer } from '~/composables/useAuthState'
 import { loadPassportState, savePassportState } from '~/lib/passportStorage'
 import { checkInDayKey } from '@tpl-passport/shared'
+import { randomId } from '~/lib/randomId'
 import type { PassportCheckIn, PassportProfile } from '~/types/passport'
 
 import type { DemoMode } from './passport.demo'
@@ -22,7 +23,7 @@ export const usePassportStore = defineStore('passport', () => {
   // --- State (hydrated from localStorage on first load) ---
   const saved = loadPassportState()
 
-  const anonymousId = ref(saved.anonymousId ?? (import.meta.client ? crypto.randomUUID() : ''))
+  const anonymousId = ref(saved.anonymousId ?? (import.meta.client ? randomId() : ''))
 
   const checkIns = ref<PassportCheckIn[]>(saved.checkIns ?? [])
   const completedChallenges = ref<string[]>(saved.completedChallenges ?? [])
@@ -134,7 +135,7 @@ export const usePassportStore = defineStore('passport', () => {
       theme: profile.value.theme,
       hasSeenOnboarding: profile.value.hasSeenOnboarding,
     }
-    anonymousId.value = import.meta.client ? crypto.randomUUID() : ''
+    anonymousId.value = import.meta.client ? randomId() : ''
   }
 
   // STASHED: challenges — restore when FEATURES.challenges = true

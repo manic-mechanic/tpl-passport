@@ -10,7 +10,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '#data': fileURLToPath(new URL('./data', import.meta.url)),
+      '#data': fileURLToPath(new URL('./packages/shared/data', import.meta.url)),
       '~': fileURLToPath(new URL('./app', import.meta.url)),
     },
   },
