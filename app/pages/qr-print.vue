@@ -5,7 +5,7 @@
         <IconBack />
         Settings
       </NuxtLink>
-      <h1 class="page-title">QR Codes</h1>
+      <h1 class="page-title">QR codes</h1>
     </header>
 
     <p class="intro">

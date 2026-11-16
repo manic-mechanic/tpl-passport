@@ -48,7 +48,7 @@ const contextualTab = computed(() => {
       <div class="checkin-orb">
         <IconNavCheckIn class="nav-icon" />
       </div>
-      <span class="nav-label">Check In</span>
+      <span class="nav-label">Check in</span>
     </NuxtLink>
 
     <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active"
