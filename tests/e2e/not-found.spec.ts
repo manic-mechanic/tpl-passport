@@ -16,9 +16,14 @@ test('unknown day trip shows the 404 screen', async ({ page }) => {
 
 test('in-app navigation to an unknown day trip shows the 404 screen', async ({ page }) => {
   await page.goto('/')
-  await page.waitForFunction(() => 'useNuxtApp' in window)
-  await page.evaluate(() => (window as unknown as { useNuxtApp: () => { $router: { push: (p: string) => Promise<unknown> } } })
-    .useNuxtApp().$router.push('/day-trips/not-a-real-trip'))
+  // Push through the app's router so the route is resolved client-side, not by
+  // the server. The mounted Vue app is on #__nuxt in both dev and production.
+  // The push rejects when the page's validate fails; the 404 screen is the check.
+  type Router = { push: (p: string) => Promise<unknown> }
+  type NuxtRoot = HTMLElement & { __vue_app__?: { config: { globalProperties: { $router: Router } } } }
+  await page.waitForFunction(() => !!(document.querySelector('#__nuxt') as NuxtRoot | null)?.__vue_app__)
+  await page.evaluate(() => (document.querySelector('#__nuxt') as NuxtRoot).__vue_app__!
+    .config.globalProperties.$router.push('/day-trips/not-a-real-trip').catch(() => {}))
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
 })
 

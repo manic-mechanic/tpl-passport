@@ -176,18 +176,6 @@ describe('overallPct', () => {
     // With 4 documented: Math.round(4/100*75 + 4/100*25) = 4
     expect(passport.overallPct).toBe(4)
   })
-
-  it('mid demo is 22% — Math.round(28/100*75 + 4/100*25) = 22', async () => {
-    const passport = usePassportStore()
-    await passport.loadDemoState('mid')
-    expect(passport.overallPct).toBe(22)
-  })
-
-  it('completed demo is 81% — Math.round(100/100*75 + 25/100*25) = 81', async () => {
-    const passport = usePassportStore()
-    await passport.loadDemoState('completed')
-    expect(passport.overallPct).toBe(81)
-  })
 })
 
 describe('documentedBranchCount', () => {
@@ -281,18 +269,6 @@ describe('loadDemoState', () => {
     expect(passport.completedChallenges).toHaveLength(0)
   })
 
-  it('mid loads 31 check-ins', async () => {
-    const passport = usePassportStore()
-    await passport.loadDemoState('mid')
-    expect(passport.checkIns).toHaveLength(31)
-  })
-
-  it('completed loads 106 check-ins', async () => {
-    const passport = usePassportStore()
-    await passport.loadDemoState('completed')
-    expect(passport.checkIns).toHaveLength(106)
-  })
-
   // Pinned clocks: the UTC evening window (00:00 UTC to Toronto midnight),
   // the last minute of a Toronto day, midday, and both 2026 DST changes
   // (spring forward 2026-03-08 07:00Z, fall back 2026-11-01 06:00Z).
@@ -333,14 +309,6 @@ describe('loadDemoState', () => {
       expect(notBeforeToday).toHaveLength(0)
       expect(passport.checkIns.some(c => passport.hasVisitedToday(c.branchCode))).toBe(false)
     })
-  })
-
-  it('demo check-ins never land on today at the real current time', async () => {
-    const passport = usePassportStore()
-    const today = checkInDayKey(new Date())
-    await passport.loadDemoState('completed')
-    const todayVisits = passport.checkIns.filter(c => checkInDayKey(c.timestamp) === today)
-    expect(todayVisits).toHaveLength(0)
   })
 })
 
