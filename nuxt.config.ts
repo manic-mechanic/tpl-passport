@@ -1,4 +1,5 @@
 import { readdir } from 'node:fs/promises'
+import pkg from './package.json'
 import { fileURLToPath } from 'node:url'
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
@@ -62,6 +63,8 @@ export default defineNuxtConfig({
   // it only takes effect when isDev is on, so it can't switch off the check in production.
   runtimeConfig: {
     public: {
+      // The app's version, shown in Settings. Bump it in package.json.
+      appVersion: pkg.version,
       isDev: process.env.NODE_ENV !== 'production',
       bypassGeofence: false,
       authBase: 'https://auth.librarypassport.ca',

@@ -171,7 +171,7 @@
       <div class="about-card card">
         <div class="about-row">
           <span class="setting-label">Version</span>
-          <span class="about-val">1.0 MVP</span>
+          <span class="about-val">{{ appVersion }}</span>
         </div>
         <div class="about-row">
           <span class="setting-label">Developed by</span>
@@ -201,7 +201,7 @@ import { signOutAndClear } from '~/composables/useAccountSync'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
-const { public: { isDev } } = useRuntimeConfig()
+const { public: { isDev, appVersion } } = useRuntimeConfig()
 const { installedThisSession } = useInstallPrompt()
 const runningStandalone = ref(true)
 // Shown once mounted, unless the app is installed or was just installed here.
