@@ -33,6 +33,26 @@ export function getInstallGuide(userAgent: string, { isTouchMac = false } = {}):
   const isSamsungInternet = ua.includes('samsungbrowser')
   const isChromiumDesktop = !isAndroid && !isIos && hasAny(ua, ['chrome', 'edg', 'chromium'])
   const isDesktopSafari = !isIos && isMac && isSafari
+  const isMobile = isIos || isAndroid || ua.includes('mobile')
+  // Social and messaging apps open links in their own webview, which can't
+  // install anything. Android webviews mark themselves with "; wv)".
+  const isInAppBrowser = hasAny(ua, ['fban', 'fbav', 'instagram', 'gsa/', 'line/', 'micromessenger', 'twitter', 'linkedinapp', 'snapchat', '; wv)'])
+
+  if (isInAppBrowser && (isIos || isAndroid)) {
+    return {
+      title: 'Open in your browser first',
+      platform: isIos ? 'ios' : 'android',
+      steps: isIos
+        ? [
+            { icon: 'more', text: 'Tap ••• or the share menu in this app, then choose "Open in Safari" or "Open in browser".' },
+            { text: 'In Safari, tap "Show me" again for the install steps.' },
+          ]
+        : [
+            { icon: 'menu', text: 'Tap the menu in this app, then choose "Open in browser" or "Open in Chrome".' },
+            { text: 'In your browser, tap "Install" or "Show me" again.' },
+          ],
+    }
+  }
 
   if (isIos && isSafari) {
     return {
@@ -117,6 +137,20 @@ export function getInstallGuide(userAgent: string, { isTouchMac = false } = {}):
         { icon: 'menu', text: 'Or open the browser menu and choose "Install".' },
         { text: 'Confirm to finish.' },
       ],
+    }
+  }
+
+  if (!isMobile) {
+    // Firefox and other desktop browsers without a built-in install option.
+    return {
+      title: 'Install on your computer',
+      platform: 'desktop',
+      steps: [
+        { icon: 'menu', text: 'Open your browser menu.' },
+        { icon: 'install', text: 'Look for "Install" or "Install app".' },
+        { text: 'Confirm to finish.' },
+      ],
+      fallback: 'No install option? Your browser may not support it. Chrome, Edge and Safari on Mac do.',
     }
   }
 

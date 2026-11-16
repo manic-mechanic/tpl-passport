@@ -195,13 +195,17 @@ import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
 import { pushProfile } from '~/composables/useProfileSync'
 import { isRunningStandalone } from '~/lib/installHelper'
+import { useInstallPrompt } from '~/composables/useInstallPrompt'
 import IconExternal from '~/components/icons/IconExternal.vue'
 import { signOutAndClear } from '~/composables/useAccountSync'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const { public: { isDev } } = useRuntimeConfig()
-const showInstallSection = ref(false)
+const { installedThisSession } = useInstallPrompt()
+const runningStandalone = ref(true)
+// Shown once mounted, unless the app is installed or was just installed here.
+const showInstallSection = computed(() => !runningStandalone.value && !installedThisSession.value)
 const isGoogleAccount = ref(false)
 const profileEditing = ref(false)
 type ToastKind = 'success' | 'error'
@@ -215,8 +219,7 @@ const session = ref<typeof authClient.$Infer.Session | null>(null)
 
 onMounted(async () => {
   // Before any network call, so the section shows even when auth is slow or offline.
-  showInstallSection.value = !isRunningStandalone()
-  window.addEventListener('appinstalled', onAppInstalled)
+  runningStandalone.value = isRunningStandalone()
 
   const { data } = await authClient.getSession()
   session.value = data
@@ -234,14 +237,6 @@ onMounted(async () => {
     isGoogleAccount.value = false
   }
 })
-
-onBeforeUnmount(() => {
-  window.removeEventListener('appinstalled', onAppInstalled)
-})
-
-function onAppInstalled() {
-  showInstallSection.value = false
-}
 
 // Profile editing
 const profileName = ref(passport.profile.name ?? '')

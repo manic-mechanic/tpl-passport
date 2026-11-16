@@ -6,7 +6,7 @@
       <p class="install-hint">Open your passport in one tap, like an app.</p>
     </div>
     <button class="install-action" @click="openInstallHelper">
-      {{ canPromptInstall ? 'Install' : 'Show me' }}
+      {{ canPrompt ? 'Install' : 'Show me' }}
     </button>
     <button v-if="dismissible" class="install-dismiss" aria-label="Dismiss" @click="dismiss">
       <IconClose width="14" height="14" />
@@ -24,31 +24,7 @@
           <span class="install-step-num" aria-hidden="true">{{ i + 1 }}</span>
           <span class="install-step-text">{{ step.text }}</span>
           <span v-if="step.icon" class="install-step-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <template v-if="step.icon === 'share'">
-                <path d="M12 3v12" />
-                <path d="M8 7l4-4 4 4" />
-                <path d="M7 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-1" />
-              </template>
-              <template v-else-if="step.icon === 'add'">
-                <rect x="4" y="4" width="16" height="16" rx="3" />
-                <path d="M12 8v8M8 12h8" />
-              </template>
-              <template v-else-if="step.icon === 'menu'">
-                <circle cx="12" cy="5" r="1.2" fill="currentColor" />
-                <circle cx="12" cy="12" r="1.2" fill="currentColor" />
-                <circle cx="12" cy="19" r="1.2" fill="currentColor" />
-              </template>
-              <template v-else-if="step.icon === 'install'">
-                <rect x="3" y="4" width="18" height="13" rx="2" />
-                <path d="M12 7v6M9 10l3 3 3-3M8 21h8" />
-              </template>
-              <template v-else-if="step.icon === 'more'">
-                <circle cx="5" cy="12" r="1.2" fill="currentColor" />
-                <circle cx="12" cy="12" r="1.2" fill="currentColor" />
-                <circle cx="19" cy="12" r="1.2" fill="currentColor" />
-              </template>
-            </svg>
+            <component :is="STEP_ICONS[step.icon]" />
           </span>
         </li>
       </ol>
@@ -58,94 +34,100 @@
 </template>
 
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { getInstallGuide, isRunningStandalone } from '~/lib/installHelper'
-import type { InstallGuide } from '~/lib/installHelper'
+import type { InstallGuide, InstallStepIcon } from '~/lib/installHelper'
+import { promptInstall, useInstallPrompt } from '~/composables/useInstallPrompt'
+import IconAddSquare from '~/components/icons/IconAddSquare.vue'
 import IconClose from '~/components/icons/IconClose.vue'
+import IconInstall from '~/components/icons/IconInstall.vue'
+import IconMenuVertical from '~/components/icons/IconMenuVertical.vue'
+import IconMoreHorizontal from '~/components/icons/IconMoreHorizontal.vue'
+import IconShare from '~/components/icons/IconShare.vue'
 
 const props = withDefaults(defineProps<{
-  // Home: can be dismissed, and stays hidden on desktop. Settings keeps it available.
+  // Show a ✕ that hides the card for good on this device.
   dismissible?: boolean
+  // Hide on computers, where installing matters less than on phones.
+  hideOnDesktop?: boolean
 }>(), {
   dismissible: false,
+  hideOnDesktop: false,
 })
+
+const STEP_ICONS: Record<InstallStepIcon, Component> = {
+  share: IconShare,
+  add: IconAddSquare,
+  menu: IconMenuVertical,
+  more: IconMoreHorizontal,
+  install: IconInstall,
+}
 
 const DISMISS_KEY = 'install_card_dismissed'
 
-// Chrome's install prompt event; not in the DOM lib types.
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
-
 const { $posthog } = useNuxtApp()
+const { canPrompt, installedThisSession } = useInstallPrompt()
 
-const deferredInstallEvent = ref<BeforeInstallPromptEvent | null>(null)
 const mounted = ref(false)
-const isInstalled = ref(false)
+const runningStandalone = ref(false)
 const dismissed = ref(false)
 const showInstallSheet = ref(false)
 const installGuide = ref<InstallGuide>({ title: 'Install this app', platform: 'other', steps: [] })
 
-const canPromptInstall = computed(() => Boolean(deferredInstallEvent.value))
-
-// Rendered only after mount so the server render never shows it to installed users.
+// Rendered only after mount, once we can check how the app is running.
 const visible = computed(() => {
-  if (!mounted.value || isInstalled.value) return false
-  if (!props.dismissible) return true
-  return !dismissed.value && installGuide.value.platform !== 'desktop'
+  if (!mounted.value || runningStandalone.value || installedThisSession.value) return false
+  if (props.dismissible && dismissed.value) return false
+  if (props.hideOnDesktop && installGuide.value.platform === 'desktop') return false
+  return true
 })
-
-function refreshInstallState() {
-  isInstalled.value = isRunningStandalone()
-}
 
 function dismiss() {
   dismissed.value = true
-  localStorage.setItem(DISMISS_KEY, '1')
+  try {
+    localStorage.setItem(DISMISS_KEY, '1')
+  } catch {
+    // Storage blocked: the card stays hidden until the page reloads.
+  }
   $posthog?.capture('pwa_install_card_dismissed', { platform: installGuide.value.platform })
 }
 
-function onBeforeInstallPrompt(event: Event) {
-  event.preventDefault()
-  deferredInstallEvent.value = event as BeforeInstallPromptEvent
-}
-
-function onAppInstalled() {
-  deferredInstallEvent.value = null
-  showInstallSheet.value = false
-  refreshInstallState()
-  $posthog?.capture('pwa_installed')
+function showSteps() {
+  showInstallSheet.value = true
+  $posthog?.capture('pwa_install_instructions_opened', { platform: installGuide.value.platform })
 }
 
 async function openInstallHelper() {
-  if (!deferredInstallEvent.value) {
-    showInstallSheet.value = true
-    $posthog?.capture('pwa_install_instructions_opened', { platform: installGuide.value.platform })
+  if (!canPrompt.value) {
+    showSteps()
     return
   }
 
-  await deferredInstallEvent.value.prompt()
-  const choice = await deferredInstallEvent.value.userChoice
-  $posthog?.capture('pwa_install_prompt_result', { outcome: choice?.outcome ?? 'unknown' })
-  deferredInstallEvent.value = null
-  refreshInstallState()
+  const outcome = await promptInstall()
+  if (outcome) {
+    $posthog?.capture('pwa_install_prompt_result', { outcome })
+  } else {
+    // The prompt failed to open: show the manual steps instead.
+    showSteps()
+  }
   // If they declined Chrome's prompt, don't follow up with the manual steps.
 }
+
+watch(installedThisSession, (installed) => {
+  if (installed) showInstallSheet.value = false
+})
 
 onMounted(() => {
   installGuide.value = getInstallGuide(window.navigator.userAgent, {
     isTouchMac: window.navigator.maxTouchPoints > 1,
   })
-  dismissed.value = localStorage.getItem(DISMISS_KEY) === '1'
-  refreshInstallState()
+  try {
+    dismissed.value = localStorage.getItem(DISMISS_KEY) === '1'
+  } catch {
+    dismissed.value = false
+  }
+  runningStandalone.value = isRunningStandalone()
   mounted.value = true
-  window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-  window.addEventListener('appinstalled', onAppInstalled)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-  window.removeEventListener('appinstalled', onAppInstalled)
 })
 </script>
 

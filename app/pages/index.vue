@@ -52,7 +52,7 @@ function openBranchSheet(branch: Branch) {
         </div>
         <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>
       </div>
-      <InstallHelperCard v-else-if="authKnown" dismissible />
+      <InstallHelperCard v-else-if="authKnown" dismissible hide-on-desktop />
     </div>
 
     <RecentVisits @select="openBranchSheet" />
