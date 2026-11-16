@@ -50,7 +50,7 @@
       <template v-if="!tourCardCollapsed">
         <p class="tour-text">
           Take the TTC along routes designed by UofT's School of Cities.
-          Visit every branch by {{ tourEndLabel }} to earn a special stamp.
+          Visit every location by {{ tourEndLabel }} to earn a special stamp.
         </p>
         <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener" class="tour-learn"
            aria-label="Learn more at UofT School of Cities (opens another site)"
