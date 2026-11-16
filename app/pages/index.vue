@@ -44,6 +44,7 @@ function openBranchSheet(branch: Branch) {
 
     <!-- Prompts sit below the passport so first-time users see their passport first -->
     <div class="home-prompts">
+      <TourHomeBanner />
       <div v-if="showBanner" class="signin-banner">
         <div class="signin-banner__body">
           <p class="signin-banner__text">Save your progress — access your passport on any device</p>

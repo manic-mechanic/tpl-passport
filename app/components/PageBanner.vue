@@ -1,5 +1,5 @@
 <template>
-  <div class="page-banner" :class="{ 'page-banner--attached': !!$slots.default }">
+  <div class="page-banner" :class="{ 'page-banner--attached': !!$slots.default, 'page-banner--sub': !!backLabel }">
     <header class="page-banner__bar">
       <NuxtLink v-if="backLabel && backTo" :to="backTo" class="page-banner__back">
         <IconBack />
@@ -32,7 +32,8 @@ import IconBack from '~/components/icons/IconBack.vue'
 // The navy header at the top of a page. Every page uses this, so the banner
 // height and the title's position stay the same as you move between pages.
 // Top-level pages get a title (and maybe an action); pages reached from
-// another page also get a back link above the title.
+// another page also get a back link above a smaller title, which leaves room
+// for long names like tour routes.
 defineProps<{
   title?: string
   backLabel?: string
@@ -99,6 +100,11 @@ const emit = defineEmits<{ back: [] }>()
   line-height: 1.15;
   color: rgba(255, 255, 255, 0.92);
   overflow-wrap: anywhere;
+}
+
+.page-banner--sub .page-banner__title {
+  font-size: 1.5rem;
+  line-height: 1.2;
 }
 
 .page-banner__action {

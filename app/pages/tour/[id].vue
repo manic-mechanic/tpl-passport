@@ -30,10 +30,10 @@
           <div class="leg-body">
             <p class="leg-summary">
               <span class="leg-time">{{ formatMinutes(legMinutes(tour.legs[i]!)) }}</span>
-              <span v-for="(ride, r) in legRides(tour.legs[i]!)" :key="r" class="leg-ride">
-                {{ MODE_ICON[ride.mode] }} {{ ride.lineName ?? ride.line }}
-              </span>
-              <span v-if="!legRides(tour.legs[i]!).length" class="leg-ride">🚶 Walk</span>
+              <TtcRouteBadge v-for="(ride, r) in legRides(tour.legs[i]!)" :key="r"
+                             :mode="ride.mode" :line="ride.line ?? ''" :line-name="ride.lineName"
+              />
+              <span v-if="!legRides(tour.legs[i]!).length" class="leg-walk">Walk</span>
             </p>
             <a :href="transitDirectionsUrl(b, stops[i + 1]!)" target="_blank" rel="noopener" class="leg-link"
                @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
@@ -68,7 +68,6 @@ import {
   legRides,
   textOnColor,
   transitDirectionsUrl,
-  type TourMode,
 } from '~/lib/libraryTour'
 
 // One Your Library Tour route: its ten branches in order, with the TTC
@@ -85,8 +84,6 @@ if (!tour) {
 
 const stops = tour.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
 const visited = computed(() => stops.filter(b => passport.hasVisited(b.BranchCode)).length)
-
-const MODE_ICON: Record<TourMode, string> = { WALK: '🚶', BUS: '🚌', SUBWAY: '🚇', TRAM: '🚊' }
 
 onMounted(() => {
   $posthog?.capture('tour_route_viewed', { route_id: tour.id, visited: visited.value })
@@ -207,7 +204,7 @@ function openSheet(branch: Branch) {
   color: var(--color-text);
 }
 
-.leg-ride {
+.leg-walk {
   white-space: nowrap;
 }
 

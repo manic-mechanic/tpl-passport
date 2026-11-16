@@ -4,7 +4,7 @@
 // own map (schoolofcities.github.io/libraries-by-transit), without the map
 // geometry; data/library-tour.json says where it's from.
 
-import type { Branch } from '@tpl-passport/shared'
+import { checkInDayKey, type Branch, type CheckIn } from '@tpl-passport/shared'
 import tourData from '#data/library-tour.json'
 
 export type TourMode = 'WALK' | 'BUS' | 'SUBWAY' | 'TRAM'
@@ -101,4 +101,57 @@ export function textOnColor(hex: string): string {
   const luminance = 0.2126 * channel(n >> 16) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255)
   // Pick whichever of white or near-black has the higher contrast ratio
   return (luminance + 0.05) / 0.05 > 1.05 / (luminance + 0.05) ? '#1a1a1a' : '#fff'
+}
+
+// ─── Progress ────────────────────────────────────────────────────────────────
+
+export interface RouteProgress {
+  route: TourRoute
+  visited: number
+  total: number
+  complete: boolean
+}
+
+export function routeProgress(route: TourRoute, visitedCodes: ReadonlySet<string>): RouteProgress {
+  const visited = route.branches.filter(code => visitedCodes.has(code)).length
+  return { route, visited, total: route.branches.length, complete: visited === route.branches.length }
+}
+
+// The unfinished route you're furthest along on, to suggest next. null until
+// you've visited a branch on some route.
+export function suggestedRoute(visitedCodes: ReadonlySet<string>): RouteProgress | null {
+  let best: RouteProgress | null = null
+  for (const route of tourRoutes) {
+    const p = routeProgress(route, visitedCodes)
+    if (p.complete || p.visited === 0) continue
+    if (!best || p.visited > best.visited) best = p
+  }
+  return best
+}
+
+// Whether the tour is still on: logging visits toward all 100 runs through
+// LIBRARY_TOUR.endsOn, in library (Toronto) days.
+export function isTourOn(now: Date = new Date()): boolean {
+  return checkInDayKey(now) <= LIBRARY_TOUR.endsOn
+}
+
+// "Go for gold": every tour branch visited by LIBRARY_TOUR.endsOn. Returns the
+// library day the last one was first visited, or null if not (yet) earned.
+export function goldEarnedOn(checkIns: Pick<CheckIn, 'branchCode' | 'timestamp'>[]): string | null {
+  const firstVisit = new Map<string, string>()
+  for (const ci of checkIns) {
+    const day = checkInDayKey(ci.timestamp)
+    if (!day) continue
+    const prev = firstVisit.get(ci.branchCode)
+    if (!prev || day < prev) firstVisit.set(ci.branchCode, day)
+  }
+  let last = ''
+  for (const route of tourRoutes) {
+    for (const code of route.branches) {
+      const day = firstVisit.get(code)
+      if (!day) return null
+      if (day > last) last = day
+    }
+  }
+  return last <= LIBRARY_TOUR.endsOn ? last : null
 }

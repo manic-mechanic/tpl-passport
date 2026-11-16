@@ -30,6 +30,7 @@ import { authClient } from '~/lib/auth-client'
 import { reportError } from '~/lib/reportError'
 import { isAuthReachableFrom } from '~/lib/authReachability'
 import { syncAccount } from '~/composables/useAccountSync'
+import { routeProgress, tourRoutes } from '~/lib/libraryTour'
 import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
@@ -55,6 +56,26 @@ watch(badgeCtx, (ctx) => {
     }
   }
 }, { deep: true })
+
+// ── Library Tour route completion tracking ──────────────────────────
+// Like achievements: report routes completed after the app loaded.
+let routesDoneOnMount: Set<number> | null = null
+const routesDone = computed(() => tourRoutes
+  .filter(r => routeProgress(r, passport.visitedBranchCodes).complete)
+  .map(r => r.id))
+
+onMounted(() => {
+  routesDoneOnMount = new Set(routesDone.value)
+})
+
+watch(routesDone, (ids) => {
+  if (!routesDoneOnMount) return
+  for (const id of ids) {
+    if (routesDoneOnMount.has(id)) continue
+    $posthog?.capture('tour_route_completed', { route_id: id })
+    routesDoneOnMount.add(id)
+  }
+})
 
 // ── Home branch change tracking ──────────────────────────────────────
 const homeBranchReady = ref(false)

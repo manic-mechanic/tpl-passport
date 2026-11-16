@@ -82,10 +82,7 @@
     </NuxtLink>
   </div>
 
-  <!-- Stubbed modes -->
-  <p v-else class="coming-soon">
-    {{ MODES.find(m => m.id === activeMode)?.label }} routes coming soon.
-  </p>
+  <p class="coming-soon">Bike and car routes coming soon.</p>
 </template>
 
 <script setup lang="ts">
@@ -101,11 +98,11 @@ import IconChevron from '~/components/icons/IconChevron.vue'
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
-type TransportMode = 'walk' | 'bike' | 'transit' | 'drive'
+type TransportMode = 'transit' | 'walk'
 
-// ?mode=transit opens on the tour routes (links from the welcome sheet and route pages)
+// Opens on the Your Library Tour transit routes; ?mode=walk opens on walking routes.
 const route = useRoute()
-const activeMode = ref<TransportMode>(route.query.mode === 'transit' ? 'transit' : 'walk')
+const activeMode = ref<TransportMode>(route.query.mode === 'walk' ? 'walk' : 'transit')
 
 watch(activeMode, (mode) => {
   $posthog?.capture('transport_mode_changed', { mode })
@@ -113,20 +110,12 @@ watch(activeMode, (mode) => {
 
 const MODES: { id: TransportMode, label: string, icon: string }[] = [
   {
-    id: 'walk', label: 'Walk',
-    icon: '<circle cx="12" cy="4.5" r="1.5"/><path d="M10 8.5l-2 7h2.5l.5 4h2l.5-4H16l-2-7"/><path d="M10 8.5l2-1.5 2 1.5"/>',
-  },
-  {
-    id: 'bike', label: 'Bike',
-    icon: '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>',
-  },
-  {
     id: 'transit', label: 'Transit',
     icon: '<rect x="6" y="3" width="12" height="15" rx="2"/><path d="M6 11h12"/><path d="M9 7h2M13 7h2"/><path d="M8 18l-1 3M16 18l1 3"/>',
   },
   {
-    id: 'drive', label: 'Drive',
-    icon: '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>',
+    id: 'walk', label: 'Walk',
+    icon: '<circle cx="12" cy="4.5" r="1.5"/><path d="M10 8.5l-2 7h2.5l.5 4h2l.5-4H16l-2-7"/><path d="M10 8.5l2-1.5 2 1.5"/>',
   },
 ]
 
@@ -414,9 +403,9 @@ const tourWithProgress = computed(() =>
 }
 
 .coming-soon {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--color-text-muted);
-  padding: 24px 0;
+  padding: 20px 0 4px;
   text-align: center;
 }
 </style>

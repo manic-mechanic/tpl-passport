@@ -1,6 +1,6 @@
 <template>
   <main class="page-content">
-    <PageBanner :title="trip.name" back-label="Day Trips" back-to="/explore?tab=routes">
+    <PageBanner :title="trip.name" back-label="Day Trips" back-to="/explore?tab=routes&mode=walk">
       <template #sub>{{ trip.area }} · {{ branchObjects.length }} stops · {{ trip.duration }}</template>
     </PageBanner>
 
