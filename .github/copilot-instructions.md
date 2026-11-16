@@ -25,9 +25,8 @@ Use npm scripts from `package.json`:
   - Auth via Better Auth client (`app/lib/auth-client.ts`) using centralized auth base config (`app/lib/config.ts`).
   - Check-ins/profile sync via best-effort fetch helpers (`app/composables/useCheckInSync.ts`, `app/composables/useProfileSync.ts`).
   - On app mount (`app/app.vue`), session/profile/check-ins are reconciled; local-only check-ins are pushed up.
-- Server routes in this repo (`server/api/`) are primarily proxy/integration endpoints:
+- Server routes in this repo (`server/api/`) are proxy/integration endpoints (auth and sync live in the separate auth service at `https://auth.librarypassport.ca`):
   - `all-events.get.js` and `branch-events.get.js` proxy Toronto CKAN event data and cache results.
-  - `auth/[...all].ts` mounts Better Auth server handler backed by Turso + Drizzle (`server/lib/*`).
 - Domain logic and static branch datasets are centralized in `packages/shared/`:
   - `packages/shared/src/*` contains framework-agnostic region/badge/stamp logic.
   - App composables like `useRegion` and `useBadges` re-export from shared package.
@@ -48,6 +47,7 @@ Use npm scripts from `package.json`:
 - Use `app/lib/config.ts` (`AUTH_BASE` / `getAuthBase()`) as the single source for auth service base URL; avoid hardcoded endpoint strings.
 - `user_profile` is source of truth for `name` and `homeBranch`; use `useProfileSync` endpoints rather than auth user profile mutation.
 - Feature rollout uses code-level flags in `app/composables/useFeatureFlags.js` (not env toggles) for unfinished features.
+- Vue components and pages use `<script setup lang="ts">` with type-based `defineProps<...>()` / `defineEmits<...>()` (`withDefaults` for defaults). Use the domain types from `@tpl-passport/shared` (`Branch`, `Badge`, `BadgeCtx`, ...) rather than redefining them. `nuxi typecheck` runs with `noUncheckedIndexedAccess`, so guard index lookups.
 - Styling rules from `CLAUDE.md` are strict and should be preserved:
   - No BEM naming.
   - Scoped style nesting with `&`.

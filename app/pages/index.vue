@@ -1,24 +1,25 @@
-<script setup>
-import { authClient } from '~/lib/auth-client'
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
+import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 import { usePassportStore } from '~/stores/passport'
 
 const passport = usePassportStore()
 
-const isSignedIn = ref(false)
+const isSignedIn = useSignedIn()
+const authKnown = useAuthKnown()
 const bannerDismissed = ref(false)
 
-onMounted(async () => {
+onMounted(() => {
   bannerDismissed.value = localStorage.getItem('signin_banner_dismissed') === '1'
-  const { data } = await authClient.getSession()
-  isSignedIn.value = !!data
 })
 
+// Wait until app.vue has checked the session so signed-in users never see it flash.
 const showBanner = computed(() =>
-  !isSignedIn.value && passport.checkIns.length > 0 && !bannerDismissed.value
+  authKnown.value && !isSignedIn.value && passport.checkIns.length > 0 && !bannerDismissed.value
 )
 
 const branchSheetOpen = ref(false)
-const activeBranch = ref(null)
+const activeBranch = ref<Branch | null>(null)
 const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
 function dismissBanner() {
@@ -26,7 +27,7 @@ function dismissBanner() {
   localStorage.setItem('signin_banner_dismissed', '1')
 }
 
-function openBranchSheet(branch) {
+function openBranchSheet(branch: Branch) {
   activeBranch.value = branch
   branchSheetOpen.value = true
 }
@@ -39,17 +40,20 @@ function openBranchSheet(branch) {
       <p class="top-bar-wordmark">passport<span>:</span></p>
     </div>
 
-    <InstallHelperCard class="home-install-helper" />
+    <PassportCard class="home-passport" />
 
-    <div v-if="showBanner" class="signin-banner">
-      <div class="signin-banner__body">
-        <p class="signin-banner__text">Save your progress — access your passport on any device</p>
-        <NuxtLink to="/login" class="signin-banner__link">Sign in →</NuxtLink>
+    <!-- Prompts sit below the passport so first-time users see their passport first -->
+    <div class="home-prompts">
+      <div v-if="showBanner" class="signin-banner">
+        <div class="signin-banner__body">
+          <p class="signin-banner__text">Save your progress — access your passport on any device</p>
+          <NuxtLink to="/login" class="signin-banner__link">Sign in →</NuxtLink>
+        </div>
+        <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>
       </div>
-      <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>
+      <InstallHelperCard />
     </div>
 
-    <PassportCard />
     <RecentVisits @select="openBranchSheet" />
 
     <HomeBadgesStrip />
@@ -112,11 +116,20 @@ main {
   background: color-mix(in srgb, var(--tpl-blue) 8%, var(--color-surface));
   border: 1px solid color-mix(in srgb, var(--tpl-blue) 22%, transparent);
   border-radius: var(--radius);
+}
+
+.home-passport {
   margin-top: -8px;
 }
 
-.home-install-helper {
-  margin-top: -8px;
+.home-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &:empty {
+    display: none;
+  }
 }
 
 .signin-banner__body {

@@ -3,7 +3,7 @@
   <!-- Width/height/border-radius all set inline via stampStyles.                    -->
   <!-- CSS var --stamp-rotate lets parents override the press animation correctly.   -->
   <div class="stamp-shape" :style="shapeStyle">
-    <div class="stamp-ring" :style="{ borderRadius: dims.ringBr }" />
+    <div class="stamp-ring" :style="{ borderRadius: dims.ringBr, inset: `${dims.ringInset}px` }" />
     <slot>
       <span class="stamp-code" :style="{ fontFamily: font, fontSize: codeFontSize, opacity: inkOpacity }">
         {{ branchCode }}
@@ -12,17 +12,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { getStampColor, getStampShape, getStampFont, getStampRotation, getStampOpacity } from '~/composables/useStamp'
 
-const props = defineProps({
-  branchCode: { type: String, required: true },
-  wardNo:     { type: [Number, String], required: true },
+const props = withDefaults(defineProps<{
+  branchCode: string
+  wardNo: number | string
   // If provided, overrides the natural shape dimensions with a fixed square of this px size
-  size:       { type: Number, default: null },
+  size?: number | null
+}>(), {
+  size: null,
 })
 
-const shape      = computed(() => getStampShape(props.branchCode))
+// getStampShape indexes by hash % length, so it always returns a shape.
+const shape      = computed(() => getStampShape(props.branchCode)!)
 const font       = computed(() => getStampFont(props.branchCode))
 const rotation   = computed(() => getStampRotation(props.branchCode))
 const inkOpacity = computed(() => getStampOpacity(props.branchCode))
@@ -40,13 +43,27 @@ const dims = computed(() => {
   const borderRadius = isPercent
     ? shape.value.borderRadius
     : `${Math.min(Math.round(parseInt(shape.value.borderRadius) * scale), Math.min(w, h) / 2)}px`
-  // Ring border-radius tracks outer minus 6px inset
+  // Inner ring inset: 6px on full-size stamps, thinner on small ones so it
+  // doesn't swallow the space the initials need.
+  const ringInset = Math.max(2, Math.min(6, Math.round(Math.min(w, h) * 0.12)))
+  // Ring border-radius tracks outer minus the inset
   const outerBrPx = isPercent ? Math.min(w, h) / 2 : Math.round(parseInt(shape.value.borderRadius) * scale)
-  const ringBr = `${Math.max(0, Math.min(outerBrPx, Math.min(w, h) / 2) - 6)}px`
-  return { w, h, borderRadius, ringBr }
+  const ringBr = `${Math.max(0, Math.min(outerBrPx, Math.min(w, h) / 2) - ringInset)}px`
+  return { w, h, borderRadius, ringBr, ringInset }
 })
 
-const codeFontSize = computed(() => `${Math.round(Math.min(dims.value.w, dims.value.h) * 0.30)}px`)
+// Initials are limited by whichever is tighter: the stamp's height or its
+// width per character. Square stamps come out at 30% of their side as before;
+// wide ovals and pills (much shorter than they are wide) get larger initials
+// instead of being sized off their short side, which made them unreadable
+// at list sizes.
+const codeFontSize = computed(() => {
+  const { w, h } = dims.value
+  const charsFactor = Math.max(1, props.branchCode.length / 3)
+  const byHeight = h * 0.45
+  const byWidth = (w * 0.30) / charsFactor
+  return `${Math.round(Math.min(byHeight, byWidth))}px`
+})
 
 const shapeStyle = computed(() => {
   const { color, bg, border } = getStampColor(props.wardNo)
@@ -79,7 +96,6 @@ const shapeStyle = computed(() => {
 /* Inner impression ring — mimics a real rubber stamp */
 .stamp-ring {
   position: absolute;
-  inset: 6px;
   border: 1.5px solid currentColor;
   opacity: 0.22;
 }

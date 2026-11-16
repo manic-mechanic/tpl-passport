@@ -101,7 +101,8 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { AlphaPage, Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
@@ -113,22 +114,15 @@ const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const route = useRoute()
 
-onMounted(() => {
-  $posthog?.capture('passport_viewed', {
-    visit_count: passport.visitCount,
-    completion_pct: passport.overallPct,
-  })
-})
-
 const EXTRA_CREDIT_IDX = branchesByAlphaPage.length  // index of Extra Credit tab (= 5)
 const ALL_PAGES = [...branchesByAlphaPage.map(p => p.label), 'Extra Credit']
 
-const activeStamp = ref(null)
+const activeStamp = ref<Branch | null>(null)
 const sheetOpen = ref(false)
 watch(sheetOpen, open => { if (!open) activeStamp.value = null })
 const activePage = ref(route.query.page !== undefined ? Number(route.query.page) : 0)
-const stickyTopRef = ref(null)
-const pageHeaderRef = ref(null)
+const stickyTopRef = ref<HTMLElement | null>(null)
+const pageHeaderRef = ref<HTMLElement | null>(null)
 const stickyHeight = ref(156)  // sticky block height — drives page-header-row top
 const pageHeaderHeight = ref(68) // h1 row height — drives sheet top edge
 
@@ -147,25 +141,25 @@ function remeasure() {
 const badgeCtx = useBadgeCtx()
 const extraCreditEarned = computed(() => BADGES.filter(a => a.earned(badgeCtx.value)).length)
 
-function goToPage(i) {
+function goToPage(i: number) {
   activePage.value = i
   window.scrollTo({ top: 0, behavior: 'instant' })
 }
 
-function openSheet(branch) {
+function openSheet(branch: Branch) {
   activeStamp.value = branch
   sheetOpen.value = true
 }
 
-function isPageComplete(page) {
+function isPageComplete(page: AlphaPage) {
   return page.branches.every(b => passport.hasVisited(b.BranchCode))
 }
 
-function pageVisitCount(page) {
+function pageVisitCount(page: AlphaPage) {
   return page.branches.filter(b => passport.hasVisited(b.BranchCode)).length
 }
 
-function visitDate(branchCode) {
+function visitDate(branchCode: string) {
   const c = passport.checkIns.find(x => x.branchCode === branchCode)
   if (!c) return ''
   return new Date(c.timestamp).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
@@ -173,9 +167,12 @@ function visitDate(branchCode) {
 
 onMounted(() => {
   if (!import.meta.client) return
+  // completion_pct is the headline % on the passport card (visits and
+  // documentation); visit_pct is visits alone (the progress bar).
   $posthog?.capture('passport_viewed', {
     visit_count:    passport.visitCount,
-    completion_pct: passport.progressPct,
+    completion_pct: passport.overallPct,
+    visit_pct:      passport.progressPct,
   })
   if (route.hash === '#extra-credit') {
     activePage.value = EXTRA_CREDIT_IDX
@@ -259,8 +256,8 @@ onUnmounted(() => {
   }
 
   &.active {
-    color: var(--tpl-navy);
-    border-bottom-color: var(--tpl-navy);
+    color: var(--color-brand-text);
+    border-bottom-color: var(--color-brand-text);
   }
 
   /* Completed — subtle warm tint */
@@ -427,7 +424,7 @@ onUnmounted(() => {
   -webkit-tap-highlight-color: transparent;
 
   &:active {
-    color: var(--tpl-navy);
+    color: var(--color-brand-text);
   }
 
   & svg {

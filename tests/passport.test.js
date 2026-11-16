@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { ref } from 'vue'
 
 // Stub localStorage — not available in Node test environment
 vi.stubGlobal('localStorage', {
@@ -9,14 +10,56 @@ vi.stubGlobal('localStorage', {
 
 // Stub Nuxt auto-imports not available in Vitest
 vi.stubGlobal('useRuntimeConfig', () => ({ public: { isDev: true } }))
+const nuxtState = {}
+vi.stubGlobal('useState', (key, init) => (nuxtState[key] ??= ref(init())))
+
+// Record server pushes instead of making network requests.
+const { pushCheckIn } = vi.hoisted(() => ({ pushCheckIn: vi.fn(async () => true) }))
+vi.mock('../app/composables/useCheckInSync', () => ({
+  pushCheckIn,
+  patchCheckInPhoto: vi.fn(async () => true),
+}))
 
 // import.meta.client is undefined in Vitest (not a browser), so the
 // localStorage hydration branch in the store is skipped automatically.
 
 import { usePassportStore } from '../app/stores/passport'
+import { checkInDayKey } from '@tpl-passport/shared'
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  for (const key of Object.keys(nuxtState)) delete nuxtState[key]
+  pushCheckIn.mockClear()
+})
+
+describe('server sync on check-in', () => {
+  function setAuth(known, signedIn) {
+    useState('auth:known', () => false).value = known
+    useState('auth:signedIn', () => false).value = signedIn
+  }
+
+  it('does not push when the user is known to be signed out', () => {
+    setAuth(true, false)
+    const passport = usePassportStore()
+    const ts = passport.checkIn('AG', 'hi')
+    passport.updateNote(ts, 'edited')
+    expect(pushCheckIn).not.toHaveBeenCalled()
+    expect(passport.checkIns).toHaveLength(1)
+  })
+
+  it('pushes when signed in', () => {
+    setAuth(true, true)
+    const passport = usePassportStore()
+    const ts = passport.checkIn('AG', 'hi')
+    passport.updateNote(ts, 'edited')
+    expect(pushCheckIn).toHaveBeenCalledTimes(2)
+  })
+
+  it('pushes before the session check has finished', () => {
+    setAuth(false, false)
+    usePassportStore().checkIn('AG')
+    expect(pushCheckIn).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('checkIn', () => {
@@ -250,11 +293,53 @@ describe('loadDemoState', () => {
     expect(passport.checkIns).toHaveLength(106)
   })
 
-  it('demo check-ins never land on today', async () => {
+  // Pinned clocks: the UTC evening window (00:00 UTC to Toronto midnight),
+  // the last minute of a Toronto day, midday, and both 2026 DST changes
+  // (spring forward 2026-03-08 07:00Z, fall back 2026-11-01 06:00Z).
+  const demoClocks = [
+    '2026-06-15T00:30:00Z', // 20:30 EDT
+    '2026-06-15T03:30:00Z', // 23:30 EDT
+    '2026-06-15T03:59:00Z', // 23:59 EDT
+    '2026-01-15T00:30:00Z', // 19:30 EST
+    '2026-01-15T03:30:00Z', // 22:30 EST
+    '2026-01-15T04:59:00Z', // 23:59 EST
+    '2026-01-15T15:00:00Z', // 10:00 EST
+    '2026-06-15T15:00:00Z', // 11:00 EDT
+    '2026-03-08T04:59:00Z', // 23:59 EST, eve of spring forward
+    '2026-03-08T07:30:00Z', // 03:30 EDT, just after spring forward
+    '2026-03-09T03:30:00Z', // 23:30 EDT, day after the 23-hour day
+    '2026-11-01T05:30:00Z', // 01:30 EDT, before fall back
+    '2026-11-01T06:30:00Z', // 01:30 EST, after fall back
+    '2026-11-02T04:59:00Z', // 23:59 EST, end of the 25-hour day
+    '2026-11-02T03:30:00Z', // 22:30 EST, day after fall back
+    '2026-11-15T00:30:00Z', // 19:30 EST
+    '2026-11-15T04:59:00Z', // 23:59 EST
+    '2026-11-15T15:00:00Z', // 10:00 EST
+  ]
+
+  describe.each(['mid', 'completed'])('%s demo check-ins never land on today', (mode) => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it.each(demoClocks)('at %s', async (now) => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(now))
+      const passport = usePassportStore()
+      // "Today" is the library day, the same rule hasVisitedToday uses.
+      const today = checkInDayKey(new Date())
+      await passport.loadDemoState(mode)
+      const notBeforeToday = passport.checkIns.filter(c => !(checkInDayKey(c.timestamp) < today))
+      expect(notBeforeToday).toHaveLength(0)
+      expect(passport.checkIns.some(c => passport.hasVisitedToday(c.branchCode))).toBe(false)
+    })
+  })
+
+  it('demo check-ins never land on today at the real current time', async () => {
     const passport = usePassportStore()
-    const todayPrefix = new Date().toISOString().slice(0, 10)
+    const today = checkInDayKey(new Date())
     await passport.loadDemoState('completed')
-    const todayVisits = passport.checkIns.filter(c => c.timestamp.startsWith(todayPrefix))
+    const todayVisits = passport.checkIns.filter(c => checkInDayKey(c.timestamp) === today)
     expect(todayVisits).toHaveLength(0)
   })
 })

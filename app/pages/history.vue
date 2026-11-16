@@ -44,12 +44,12 @@
         <section v-for="[label, items] in grouped" :key="label" class="history-group">
           <p class="section-label">{{ label }}</p>
           <ul class="checkin-list">
-            <li v-for="visit in items" :key="visit.timestamp">
+            <li v-for="{ visit, branch } in items" :key="visit.timestamp">
               <BranchCard
-                v-if="branchObjectMap[visit.branchCode]"
-                :branch="branchObjectMap[visit.branchCode]"
+                v-if="branch"
+                :branch="branch"
                 :meta="formatTime(visit.timestamp)"
-                :has-note="!!visit.note"
+                :has-note="!!visit.note?.trim()"
                 :has-photo="!!photoUrls[visit.timestamp]"
                 as-button
                 @select="openSheet"
@@ -72,10 +72,12 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
+import type { PassportCheckIn } from '~/types/passport'
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches } from '~/composables/useRegion'
-import { getPhotoUrl } from '~/composables/usePhotoStore'
+import { branchesByCode } from '~/composables/useRegion'
+import { getCheckInPhotoSrc, releasePhotoSrc } from '~/composables/usePhotoStore'
 import { localDayKey } from '@tpl-passport/shared'
 import IconClock from '~/components/icons/IconClock.vue'
 import IconBack from '~/components/icons/IconBack.vue'
@@ -88,55 +90,64 @@ onMounted(() => {
   $posthog?.capture('history_viewed')
 })
 
-onMounted(() => {
-  $posthog?.capture('history_viewed')
-})
-
-const branchObjectMap = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
+// A check-in with the branch it was at (undefined if the code isn't a known branch).
+interface HistoryEntry {
+  visit: PassportCheckIn
+  branch: Branch | undefined
+}
 
 const memoriesOnly = ref(false)
 
 const memoryCount = computed(() => passport.checkIns.filter(isMemory).length)
 
-function isMemory(visit) {
-  return !!(visit.note?.trim() || visit.hasPhoto)
+function isMemory(visit: PassportCheckIn) {
+  return !!(visit.note?.trim() || visit.hasPhoto || visit.photoUri)
 }
 
 const grouped = computed(() => {
   const now = new Date()
   const todayStr = localDayKey(now)
   const yesterdayStr = localDayKey(new Date(now.getTime() - 86400000))
-  const weekAgo = new Date(now - 7 * 86400000)
+  const weekAgo = new Date(now.getTime() - 7 * 86400000)
 
   const source = memoriesOnly.value ? passport.checkIns.filter(isMemory) : passport.checkIns
 
-  const buckets = { 'Today': [], 'Yesterday': [], 'This week': [], 'Older': [] }
+  const buckets: Record<'Today' | 'Yesterday' | 'This week' | 'Older', HistoryEntry[]> = { 'Today': [], 'Yesterday': [], 'This week': [], 'Older': [] }
   for (const visit of source) {
+    const entry = { visit, branch: branchesByCode[visit.branchCode] }
     const d = new Date(visit.timestamp)
     const ds = localDayKey(d)
-    if (ds === todayStr) buckets['Today'].push(visit)
-    else if (ds === yesterdayStr) buckets['Yesterday'].push(visit)
-    else if (d > weekAgo) buckets['This week'].push(visit)
-    else buckets['Older'].push(visit)
+    if (ds === todayStr) buckets['Today'].push(entry)
+    else if (ds === yesterdayStr) buckets['Yesterday'].push(entry)
+    else if (d > weekAgo) buckets['This week'].push(entry)
+    else buckets['Older'].push(entry)
   }
   return Object.entries(buckets).filter(([, items]) => items.length > 0)
 })
 
-// Photo thumbnails — loaded on demand from IndexedDB
-const photoUrls = ref({})
-async function loadPhoto(timestamp) {
-  if (timestamp in photoUrls.value) return
-  photoUrls.value[timestamp] = await getPhotoUrl(timestamp)
+// Photo thumbnails: this device's copy, else the hosted one. Reloaded when a
+// sync brings in a hosted photo for a visit that had none here.
+const photoUrls = ref<Record<string, string | null>>({})
+const photoLoadedFor = new Map<string, string>()
+async function loadPhoto(visit: PassportCheckIn) {
+  const source = visit.photoUri ?? ''
+  if (photoLoadedFor.get(visit.timestamp) === source) return
+  photoLoadedFor.set(visit.timestamp, source)
+  const src = await getCheckInPhotoSrc(visit)
+  if (photoLoadedFor.get(visit.timestamp) !== source) {
+    releasePhotoSrc(src)
+    return
+  }
+  releasePhotoSrc(photoUrls.value[visit.timestamp])
+  photoUrls.value[visit.timestamp] = src
 }
-onMounted(() => {
-  passport.checkIns.forEach(c => loadPhoto(c.timestamp))
-})
+watch(() => passport.checkIns, list => list.forEach(loadPhoto), { immediate: true, deep: true })
 
 onUnmounted(() => {
-  Object.values(photoUrls.value).forEach(url => url && URL.revokeObjectURL(url))
+  Object.values(photoUrls.value).forEach(releasePhotoSrc)
 })
 
-function formatTime(iso) {
+function formatTime(iso: string) {
   const d = new Date(iso)
   if (localDayKey(d) === localDayKey(new Date()))
     return d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })
@@ -144,10 +155,10 @@ function formatTime(iso) {
 }
 
 const sheetOpen = ref(false)
-const activeBranch = ref(null)
+const activeBranch = ref<Branch | null>(null)
 const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
-function openSheet(branch) {
+function openSheet(branch: Branch) {
   activeBranch.value = branch
   sheetOpen.value = true
 }

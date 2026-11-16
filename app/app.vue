@@ -21,23 +21,22 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import * as Sentry from '@sentry/nuxt'
 import { usePassportStore } from '~/stores/passport'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 import { authClient } from '~/lib/auth-client'
-import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
-import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 import { reportError } from '~/lib/reportError'
-import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
-import { reconcileProfile } from '~/lib/profileSyncMerge'
+import { isAuthReachableFrom } from '~/lib/authReachability'
+import { syncAccount } from '~/composables/useAccountSync'
+import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 // ── Achievement tracking ─────────────────────────────────────────────
 const badgeCtx = useBadgeCtx()
-let earnedOnMount = null
+let earnedOnMount: Set<string> | null = null
 
 onMounted(() => {
   earnedOnMount = new Set(BADGES.filter(b => b.earned(badgeCtx.value)).map(b => b.id))
@@ -64,20 +63,12 @@ watch(() => passport.profile.homeBranch, () => {
   $posthog?.capture('home_branch_changed')
 })
 
-// Theme watcher — applies data-theme to <html> for manual toggle
-watchEffect(() => {
-  if (!import.meta.client) return
-  const t = passport.profile.theme
-  if (t === 'dark')       document.documentElement.setAttribute('data-theme', 'dark')
-  else if (t === 'light') document.documentElement.setAttribute('data-theme', 'light')
-  else                    document.documentElement.removeAttribute('data-theme')
-})
-
 // Show passport cover until app is mounted and ready
 const showCover = ref(false)
 
 // Track session so the homeBranch watcher knows whether to push updates.
-const isSignedIn = ref(false)
+const isSignedIn = useSignedIn()
+const authKnown = useAuthKnown()
 
 onMounted(async () => {
   if ('serviceWorker' in navigator) {
@@ -87,44 +78,26 @@ onMounted(async () => {
 
   // Sync auth → passport on every app load.
   // Covers: returning signed-in users, Google OAuth redirects (full page reload).
-  const { data } = await authClient.getSession()
-  isSignedIn.value = !!data
-  const googlePendingTs = sessionStorage.getItem('google_signin_pending')
-  if (data && googlePendingTs && (Date.now() - parseInt(googlePendingTs)) < 5 * 60 * 1000) {
-    Sentry.setUser({ id: data.user.id })
-    $posthog?.capture('sign_in_completed', { method: 'google' })
-  } else if (data) {
-    Sentry.setUser({ id: data.user.id })
+  // If the auth server can't be reached, carry on as signed out.
+  let data: typeof authClient.$Infer.Session | null = null
+  try {
+    data = (await authClient.getSession()).data
+  } catch (error) {
+    if (isAuthReachableFrom(window.location.hostname)) {
+      reportError(error, { area: 'auth', operation: 'get_session' })
+    }
   }
+  isSignedIn.value = !!data
+  authKnown.value = true
+  const googlePendingTs = sessionStorage.getItem('google_signin_pending')
   if (googlePendingTs) sessionStorage.removeItem('google_signin_pending')
   if (data) {
-    // user_profile is the source of truth for name + homeBranch.
-    const serverProfile = await fetchProfile()
-    const { nextName, nextHomeBranch, shouldPushHomeBranch } = reconcileProfile(
-      passport.profile,
-      serverProfile
-    )
-    passport.profile.name = nextName
-    passport.profile.homeBranch = nextHomeBranch
-    if (shouldPushHomeBranch) {
-      // Local has homeBranch but server doesn't — push it up.
-      await pushProfile({ name: passport.profile.name, homeBranch: passport.profile.homeBranch })
+    Sentry.setUser({ id: data.user.id })
+    if (googlePendingTs && (Date.now() - parseInt(googlePendingTs)) < 5 * 60 * 1000) {
+      $posthog?.capture('sign_in_completed', { method: 'google' })
     }
-  }
-  // Sync check-ins with the server when signed in.
-  // Server wins on timestamp conflict; local-only records are pushed up.
-  if (data) {
-    try {
-      const serverCheckIns = await fetchCheckIns()
-      const { merged, localOnly } = reconcileCheckIns(serverCheckIns, passport.checkIns)
-      passport.setCheckIns(merged)
-      for (const ci of localOnly) pushCheckIn(ci)
-    } catch (error) {
-      reportError(error, {
-        area: 'sync',
-        operation: 'initial_checkin_merge',
-      })
-    }
+    // Server wins on timestamp conflict; local-only records are pushed up.
+    await syncAccount()
   }
 
   // Let auth-synced homeBranch watcher flush before enabling analytics
@@ -132,11 +105,8 @@ onMounted(async () => {
   homeBranchReady.value = true
 })
 
-// Sync homeBranch → user_profile whenever it changes while signed in.
-watch(() => passport.profile.homeBranch, async (branch) => {
-  if (!isSignedIn.value) return
-  pushProfile({ name: passport.profile.name, homeBranch: branch || null })
-})
+// homeBranch is pushed by whoever changes it while signed in (Settings and
+// syncAccount); the passport card only lets signed-out users edit it.
 </script>
 
 <style>

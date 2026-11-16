@@ -24,7 +24,9 @@ function toServer(checkIn: PassportCheckIn): ServerCheckInPayload {
   }
 }
 
-export async function fetchCheckIns(): Promise<PassportCheckIn[]> {
+// Returns null when the server couldn't be read, so callers can tell
+// "no check-ins" apart from "unknown".
+export async function fetchCheckIns(): Promise<PassportCheckIn[] | null> {
   try {
     const res = await fetch(`${getAuthBase()}/api/checkins`, { credentials: 'include' })
     if (!res.ok) {
@@ -34,7 +36,7 @@ export async function fetchCheckIns(): Promise<PassportCheckIn[]> {
         status: res.status,
         endpoint: '/api/checkins',
       })
-      return []
+      return null
     }
     const data = await res.json() as ServerCheckInRecord[]
     return data.map(fromServer)
@@ -44,11 +46,16 @@ export async function fetchCheckIns(): Promise<PassportCheckIn[]> {
       operation: 'fetch_checkins',
       endpoint: '/api/checkins',
     })
-    return []
+    return null
   }
 }
 
-export async function pushCheckIn(checkIn: PassportCheckIn): Promise<void> {
+// Resolves to true when the server saved the check-in. The server keeps one
+// check-in per branch per library day: if another check-in (e.g. from another
+// device) already holds that day, it replies with duplicateOf and this one was
+// not saved. That resolves to false, so sign-out waits until the next sync
+// merges it into the kept check-in.
+export async function pushCheckIn(checkIn: PassportCheckIn): Promise<boolean> {
   try {
     const res = await fetch(`${getAuthBase()}/api/checkins`, {
       method: 'POST',
@@ -65,7 +72,10 @@ export async function pushCheckIn(checkIn: PassportCheckIn): Promise<void> {
         branchCode: checkIn.branchCode,
         timestamp: checkIn.timestamp,
       })
+      return false
     }
+    const data = await res.json().catch(() => null) as { duplicateOf?: string | null } | null
+    return !data?.duplicateOf
   } catch (error) {
     reportError(error, {
       area: 'sync',
@@ -74,10 +84,12 @@ export async function pushCheckIn(checkIn: PassportCheckIn): Promise<void> {
       branchCode: checkIn.branchCode,
       timestamp: checkIn.timestamp,
     })
+    return false
   }
 }
 
-export async function patchCheckInPhoto(timestamp: string, photoUri: string): Promise<void> {
+// Resolves to true when the server accepted the photo URL.
+export async function patchCheckInPhoto(timestamp: string, photoUri: string): Promise<boolean> {
   try {
     const res = await fetch(`${getAuthBase()}/api/checkins/${encodeURIComponent(timestamp)}`, {
       method: 'PATCH',
@@ -94,6 +106,7 @@ export async function patchCheckInPhoto(timestamp: string, photoUri: string): Pr
         timestamp,
       })
     }
+    return res.ok
   } catch (error) {
     reportError(error, {
       area: 'sync',
@@ -101,6 +114,7 @@ export async function patchCheckInPhoto(timestamp: string, photoUri: string): Pr
       endpoint: '/api/checkins/:timestamp',
       timestamp,
     })
+    return false
   }
 }
 

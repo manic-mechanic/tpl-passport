@@ -45,3 +45,115 @@ describe('reconcileCheckIns', () => {
     expect(localOnly).toEqual([])
   })
 })
+
+describe('reconcileCheckIns same-day duplicates', () => {
+  it('drops a local check-in for a branch and day the server already has', () => {
+    const server = [{ branchCode: 'AG', timestamp: '2026-04-10T14:00:00.000Z', note: '' }]
+    const local = [{ branchCode: 'AG', timestamp: '2026-04-10T14:05:00.000Z', note: '' }]
+
+    const { merged, localOnly } = reconcileCheckIns(server, local)
+    expect(localOnly).toEqual([])
+    expect(merged).toEqual(server)
+  })
+
+  it('moves the local note and hosted photo onto the server copy and marks it for upload', () => {
+    const server = [{ branchCode: 'AG', timestamp: '2026-04-10T14:00:00.000Z', note: '' }]
+    const local = [{
+      branchCode: 'AG', timestamp: '2026-04-10T14:05:00.000Z', note: 'nice reading room',
+      hasPhoto: true, photoUri: 'https://example.com/p.jpg',
+    }]
+
+    const { merged, updated, photoMoves } = reconcileCheckIns(server, local)
+    const expected = {
+      branchCode: 'AG', timestamp: '2026-04-10T14:00:00.000Z', note: 'nice reading room',
+      hasPhoto: true, photoUri: 'https://example.com/p.jpg',
+    }
+    expect(merged).toEqual([expected])
+    expect(updated).toEqual([expected])
+    expect(photoMoves).toEqual([])
+  })
+
+  it('re-keys a device-only photo from the dropped duplicate', () => {
+    const server = [{ branchCode: 'AG', timestamp: '2026-04-10T14:00:00.000Z', note: '' }]
+    const local = [{ branchCode: 'AG', timestamp: '2026-04-10T14:05:00.000Z', note: '', hasPhoto: true }]
+
+    const { merged, updated, photoMoves } = reconcileCheckIns(server, local)
+    expect(merged[0].hasPhoto).toBe(true)
+    expect(updated).toEqual([])
+    expect(photoMoves).toEqual([{ from: '2026-04-10T14:05:00.000Z', to: '2026-04-10T14:00:00.000Z' }])
+  })
+
+  it('leaves the server copy alone when it already has a note and photo', () => {
+    const server = [{ branchCode: 'AG', timestamp: '2026-04-10T14:00:00.000Z', note: 'server', hasPhoto: true, photoUri: 'https://example.com/s.jpg' }]
+    const local = [{ branchCode: 'AG', timestamp: '2026-04-10T14:05:00.000Z', note: 'local', hasPhoto: true }]
+
+    const { updated, photoMoves } = reconcileCheckIns(server, local)
+    expect(updated).toEqual([])
+    expect(photoMoves).toEqual([])
+  })
+
+  it('does not mutate the server input', () => {
+    const server = [{ branchCode: 'AG', timestamp: '2026-04-10T14:00:00.000Z', note: '' }]
+    reconcileCheckIns(server, [{ branchCode: 'AG', timestamp: '2026-04-10T14:05:00.000Z', note: 'x' }])
+    expect(server[0].note).toBe('')
+  })
+
+  it('keeps visits to the same branch on different days', () => {
+    const server = [{ branchCode: 'AG', timestamp: '2026-04-10T14:00:00.000Z', note: '' }]
+    const local = [{ branchCode: 'AG', timestamp: '2026-04-12T14:00:00.000Z', note: '' }]
+    const { localOnly } = reconcileCheckIns(server, local)
+    expect(localOnly).toHaveLength(1)
+  })
+})
+
+describe('reconcileCheckIns uses the library day', () => {
+  it('treats an evening visit as the same Toronto day even when the UTC date differs', () => {
+    // 9am EST and 8pm EST on Nov 14; the second is Nov 15 in UTC.
+    const server = [{ branchCode: 'AN', timestamp: '2026-11-14T14:00:00.000Z', note: '' }]
+    const local = [{ branchCode: 'AN', timestamp: '2026-11-15T01:00:00.000Z', note: '' }]
+    const { merged, localOnly } = reconcileCheckIns(server, local)
+    expect(localOnly).toHaveLength(0)
+    expect(merged).toHaveLength(1)
+  })
+
+  it('keeps an evening visit and the next morning as separate days', () => {
+    // 8pm EST Nov 14 (Nov 15 UTC) and 10am EST Nov 15.
+    const server = [{ branchCode: 'AN', timestamp: '2026-11-15T01:00:00.000Z', note: '' }]
+    const local = [{ branchCode: 'AN', timestamp: '2026-11-15T15:00:00.000Z', note: '' }]
+    const { localOnly } = reconcileCheckIns(server, local)
+    expect(localOnly).toHaveLength(1)
+  })
+})
+
+describe('reconcileCheckIns photos on the same check-in', () => {
+  const ts = '2026-07-24T15:00:00.000Z'
+  const hosted = 'https://photos.example/photos/u1/a.jpg'
+
+  it('keeps a hosted photo the server copy is missing and marks it for push', () => {
+    const server = [{ branchCode: 'NE', timestamp: ts, note: '' }]
+    const local = [{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true, photoUri: hosted }]
+
+    const { merged, updated, localOnly } = reconcileCheckIns(server, local)
+    expect(localOnly).toEqual([])
+    expect(merged).toEqual([{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true, photoUri: hosted }])
+    expect(updated).toEqual(merged)
+  })
+
+  it('keeps hasPhoto for a photo only on this device so it still gets uploaded', () => {
+    const server = [{ branchCode: 'NE', timestamp: ts, note: '' }]
+    const local = [{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true }]
+
+    const { merged, updated } = reconcileCheckIns(server, local)
+    expect(merged).toEqual([{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true }])
+    expect(updated).toEqual([])
+  })
+
+  it('keeps the server photo when both have one', () => {
+    const server = [{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true, photoUri: hosted }]
+    const local = [{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true, photoUri: 'https://photos.example/photos/u1/old.jpg' }]
+
+    const { merged, updated } = reconcileCheckIns(server, local)
+    expect(merged[0].photoUri).toBe(hosted)
+    expect(updated).toEqual([])
+  })
+})

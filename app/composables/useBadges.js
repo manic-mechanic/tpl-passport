@@ -1,5 +1,5 @@
-import { BADGES, buildBadgeCtx, compassPoints, compassBranches } from '@tpl-passport/shared'
-export { BADGES, buildBadgeCtx, compassPoints, compassBranches }
+import { BADGES, BADGE_DISPLAY_ORDER, activityBadgeStat, buildBadgeCtx, compassPoints, compassBranches } from '@tpl-passport/shared'
+export { BADGES, BADGE_DISPLAY_ORDER, activityBadgeStat, buildBadgeCtx, compassPoints, compassBranches }
 
 // Badge background gradients for suggestion cards in /explore.
 const BADGE_BG = {

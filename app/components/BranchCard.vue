@@ -35,26 +35,35 @@
   </button>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import IconChevron from './icons/IconChevron.vue'
 import IconNote from './icons/IconNote.vue'
 import IconPhoto from './icons/IconPhoto.vue'
 
-const props = defineProps({
-  branch: { type: Object, required: true },
-  distance: { type: String, default: null },
-  meta: { type: String, default: null },  // overrides computed meta line
-  index: { type: Number, default: null },
-  hasNote: { type: Boolean, default: false },
-  hasPhoto: { type: Boolean, default: false },
-  asButton: { type: Boolean, default: false },
-  compact: { type: Boolean, default: false },
+const props = withDefaults(defineProps<{
+  branch: Branch
+  distance?: string | null
+  meta?: string | null  // overrides computed meta line
+  index?: number | null
+  hasNote?: boolean
+  hasPhoto?: boolean
+  asButton?: boolean
+  compact?: boolean
+}>(), {
+  distance: null,
+  meta: null,
+  index: null,
+  hasNote: false,
+  hasPhoto: false,
+  asButton: false,
+  compact: false,
 })
 
 const stampSize = computed(() => props.compact ? 32 : 40)
 
-defineEmits(['select'])
+defineEmits<{ select: [branch: Branch] }>()
 
 const passport = usePassportStore()
 const visited = computed(() => passport.hasVisited(props.branch.BranchCode))

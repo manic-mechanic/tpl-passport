@@ -15,6 +15,7 @@
 // the demo buttons will appear but loadDemoState() will be a no-op — test
 // demo state locally with `npm run dev` or from a preview branch instead.
 
+import { checkInDayKey, dayRangeUtc } from '@tpl-passport/shared'
 import { physicalBranches } from '~/composables/useRegion'
 
 const DEMO_NOTES = [
@@ -30,23 +31,23 @@ const DEMO_NOTES = [
   'The teen section had some surprisingly good graphic novels',
 ]
 
+// ISO timestamp at hour:minute (library time) on the library day `n` days
+// before today. Days are counted in BRANCH_TIME_ZONE, the same rule
+// hasVisitedToday uses, so n >= 1 never lands on today in any time zone.
+function libraryDaysAgo(n, hour = 12, minute = 0) {
+  const [y, m, d] = checkInDayKey(new Date()).split('-').map(Number)
+  const dayKey = new Date(Date.UTC(y, m - 1, d - n)).toISOString().slice(0, 10)
+  const start = Date.parse(dayRangeUtc(dayKey).start)
+  return new Date(start + (hour * 60 + minute) * 60_000).toISOString()
+}
+
 // Spread visits evenly backward from today, one per branch, newest first.
 function makeCheckIns(codes, totalDaysSpan) {
   return codes.map((branchCode, i) => {
     const daysBack = Math.max(1, Math.round((i / codes.length) * totalDaysSpan))
-    const d = new Date()
-    d.setDate(d.getDate() - daysBack)
-    d.setHours(10 + (i % 8), (i * 7) % 60, 0, 0)
-    return { branchCode, timestamp: d.toISOString(), note: '' }
+    const timestamp = libraryDaysAgo(daysBack, 10 + (i % 8), (i * 7) % 60)
+    return { branchCode, timestamp, note: '' }
   })
-}
-
-// Returns an ISO timestamp N days ago at a specific UTC hour.
-function utcDaysAgo(n, utcHour = 12) {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() - n)
-  d.setUTCHours(utcHour, 0, 0, 0)
-  return d.toISOString()
 }
 
 // Applies a demo state to the passport store's reactive refs.
@@ -65,14 +66,14 @@ export function applyDemoState(mode, { checkIns, completedChallenges, profile })
   if (mode === 'mid') {
     // First 28 physical branches (~28%), visited over the past 4 months
     checkIns.value = makeCheckIns(allCodes.slice(0, 28), 120)
-    // Day Tripper: 2 branches on the same UTC day
+    // Day Tripper: 2 branches on the same library day
     checkIns.value.push(
-      { branchCode: allCodes[0], timestamp: utcDaysAgo(30, 11), note: '' },
-      { branchCode: allCodes[1], timestamp: utcDaysAgo(30, 15), note: '' },
+      { branchCode: allCodes[0], timestamp: libraryDaysAgo(30, 11), note: '' },
+      { branchCode: allCodes[1], timestamp: libraryDaysAgo(30, 15), note: '' },
     )
     // Return Visitor: allCodes[1] gets a 3rd visit
     checkIns.value.push(
-      { branchCode: allCodes[1], timestamp: utcDaysAgo(29), note: '' },
+      { branchCode: allCodes[1], timestamp: libraryDaysAgo(29), note: '' },
     )
     // Archivist: 2 fully documented check-ins (note + photo), 2 notes-only for documentedBranchCount
     checkIns.value[0] = { ...checkIns.value[0], note: DEMO_NOTES[0], hasPhoto: true }
@@ -91,20 +92,20 @@ export function applyDemoState(mode, { checkIns, completedChallenges, profile })
   } else if (mode === 'completed') {
     // All physical branches, visited over the past 2 years
     checkIns.value = makeCheckIns(allCodes, 730)
-    // Day Tripper: 2 branches on the same UTC day
+    // Day Tripper: 2 branches on the same library day
     checkIns.value.push(
-      { branchCode: allCodes[0], timestamp: utcDaysAgo(10, 11), note: '' },
-      { branchCode: allCodes[1], timestamp: utcDaysAgo(10, 15), note: '' },
+      { branchCode: allCodes[0], timestamp: libraryDaysAgo(10, 11), note: '' },
+      { branchCode: allCodes[1], timestamp: libraryDaysAgo(10, 15), note: '' },
     )
     // Familiar Face: allCodes[0] now has 5 total visits (1 from makeCheckIns + 1 day-trip above + 3 here)
     checkIns.value.push(
-      { branchCode: allCodes[0], timestamp: utcDaysAgo(9), note: '' },
-      { branchCode: allCodes[0], timestamp: utcDaysAgo(8), note: '' },
-      { branchCode: allCodes[0], timestamp: utcDaysAgo(7), note: '' },
+      { branchCode: allCodes[0], timestamp: libraryDaysAgo(9), note: '' },
+      { branchCode: allCodes[0], timestamp: libraryDaysAgo(8), note: '' },
+      { branchCode: allCodes[0], timestamp: libraryDaysAgo(7), note: '' },
     )
     // Return Visitor: allCodes[1] now has 3 total visits (1 makeCheckIns + 1 day-trip + 1 here)
     checkIns.value.push(
-      { branchCode: allCodes[1], timestamp: utcDaysAgo(6), note: '' },
+      { branchCode: allCodes[1], timestamp: libraryDaysAgo(6), note: '' },
     )
     // Archivist: 10 fully documented (note + photo), 15 notes-only for documentedBranchCount
     for (let i = 0; i < 10; i++) {

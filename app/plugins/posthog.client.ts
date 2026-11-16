@@ -1,9 +1,11 @@
 import posthog from 'posthog-js'
+import type { PostHog } from 'posthog-js'
 
 export default defineNuxtPlugin(() => {
   const { public: { isDev, posthogKey, posthogHost } } = useRuntimeConfig()
 
-  if (isDev) return { provide: { posthog: null } }
+  // $posthog is null in dev, so callers use $posthog?.capture(...).
+  if (isDev) return { provide: { posthog: null as PostHog | null } }
 
   posthog.init(posthogKey, {
     api_host: posthogHost,
@@ -24,5 +26,5 @@ export default defineNuxtPlugin(() => {
     posthog.capture('$pageview', { path: to.fullPath })
   })
 
-  return { provide: { posthog } }
+  return { provide: { posthog: posthog as PostHog | null } }
 })

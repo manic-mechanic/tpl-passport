@@ -8,26 +8,19 @@
 // - offset: start day offset from today (0=today)
 // - days: number of days to fetch (1-7)
 import { reportServerError } from '../lib/reportServerError'
+import { eventDates } from '../lib/eventDates'
 
 const EVENTS_RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'
 const CKAN = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action'
 const CACHE_TTL = 30 * 60 * 1000
-const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 const cacheByDate = new Map() // date -> { data, fetchedAt }
 
-function dateString(offsetDays) {
-  return new Date(Date.now() + offsetDays * MS_PER_DAY).toISOString().slice(0, 10)
-}
-
-function addDays(baseDate, daysToAdd) {
-  const base = new Date(`${baseDate}T00:00:00Z`)
-  base.setUTCDate(base.getUTCDate() + daysToAdd)
-  return base.toISOString().slice(0, 10)
-}
-
 async function fetchEventsForDate(date) {
   const now = Date.now()
+  for (const [key, entry] of cacheByDate) {
+    if (now - entry.fetchedAt > CACHE_TTL) cacheByDate.delete(key)
+  }
   const cached = cacheByDate.get(date)
   if (cached && now - cached.fetchedAt <= CACHE_TTL) {
     return cached.data
@@ -53,8 +46,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const offset = Math.max(0, Math.min(6, Number.parseInt(String(query.offset ?? '0'), 10) || 0))
   const days = Math.max(1, Math.min(7, Number.parseInt(String(query.days ?? '7'), 10) || 7))
-  const startDate = dateString(offset)
-  const dates = Array.from({ length: days }, (_, i) => addDays(startDate, i))
+  const dates = eventDates(offset, days)
   const results = await Promise.all(dates.map(fetchEventsForDate))
   const all = results.flatMap(records => records)
   return all.sort((a, b) => {

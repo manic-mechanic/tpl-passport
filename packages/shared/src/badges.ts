@@ -2,13 +2,15 @@
 
 import { physicalBranches, branchesByAlphaPage } from './region'
 import type { CheckIn, Branch } from './types'
-import { localDayKey } from './date'
+import { checkInDayKey } from './date'
 
 // ─── Compass points (furthest branch in each cardinal direction) ──────────────
 
 export const compassPoints = (() => {
   const geo = physicalBranches.filter(b => b.Lat != null && b.Long != null)
-  let n = geo[0], s = geo[0], e = geo[0], w = geo[0]
+  const first = geo[0]
+  if (!first) return { n: '', s: '', e: '', w: '' }
+  let n = first, s = first, e = first, w = first
   for (const b of geo) {
     if (parseFloat(b.Lat) > parseFloat(n.Lat)) n = b
     if (parseFloat(b.Lat) < parseFloat(s.Lat)) s = b
@@ -25,7 +27,7 @@ export const compassBranches = new Set(Object.values(compassPoints))
 export function maxBranchesInOneDay(checkIns: CheckIn[]) {
   const byDay: Record<string, Set<string>> = {}
   for (const c of checkIns) {
-    const day = localDayKey(c.timestamp)
+    const day = checkInDayKey(c.timestamp)
     if (!day) continue
     if (!byDay[day]) byDay[day] = new Set()
     byDay[day].add(c.branchCode)
@@ -126,6 +128,20 @@ export interface Badge {
   suggest: (ctx: BadgeCtx) => { pct: number; message: string; branches: Branch[] }
 }
 
+// ─── Activity badge stat ──────────────────────────────────────────────────────
+
+// The live number shown inside an activity badge's shape (e.g. "3" for Day
+// Tripper = most branches visited in one day). null for badges without one.
+export function activityBadgeStat(badge: Pick<Badge, 'id'>, ctx: BadgeCtx): string | null {
+  switch (badge.id) {
+    case 'day_tripper':    return String(ctx.maxBranchesInOneDay)
+    case 'familiar_face':  return String(ctx.homeVisitCount)
+    case 'return_visitor': return String(ctx.maxNonHomeVisitCount)
+    case 'archivist':      return String(ctx.fullyDocumentedCount)
+    default:               return null
+  }
+}
+
 // ─── Display order (column-major, matching web BadgesSection.vue) ─────────────
 
 export const BADGE_DISPLAY_ORDER = [
@@ -176,7 +192,7 @@ export const BADGES: Badge[] = [
       return {
         pct:      visitedPageCount / branchesByAlphaPage.length,
         message:  `Visit a branch on ${emptyPages.length} more page${emptyPages.length === 1 ? '' : 's'}`,
-        branches: emptyPages.slice(0, 3).map(p => p.branches[0]),
+        branches: emptyPages.slice(0, 3).flatMap(p => (p.branches[0] ? [p.branches[0]] : [])),
       }
     } },
 
@@ -188,7 +204,7 @@ export const BADGES: Badge[] = [
       const sorted = [...ctx.checkIns].sort((a, b) => a.timestamp.localeCompare(b.timestamp))
       const byDay: Record<string, Set<string>> = {}
       for (const ci of sorted) {
-        const day = localDayKey(ci.timestamp)
+        const day = checkInDayKey(ci.timestamp)
         if (!day) continue
         if (!byDay[day]) byDay[day] = new Set()
         byDay[day].add(ci.branchCode)
@@ -222,8 +238,8 @@ export const BADGES: Badge[] = [
         })
         .filter(p => p.pct < 1)
         .sort((a, b) => b.pct - a.pct)
-      if (!pages.length) return { pct: 1, message: '', branches: [] }
       const best = pages[0]
+      if (!best) return { pct: 1, message: '', branches: [] }
       const unvisited = best.page.branches.filter(b => !ctx.visitedBranchCodes.has(b.BranchCode))
       return {
         pct:      best.pct,

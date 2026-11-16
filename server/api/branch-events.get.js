@@ -8,20 +8,17 @@
 // the limit=100 + client-side filterToWindow approach that misses events
 // for busy branches with 100+ past or far-future records.
 import { reportServerError } from '../lib/reportServerError'
+import { eventDates } from '../lib/eventDates'
 
 const EVENTS_RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'
 const CKAN = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action'
-
-function dateString(offsetDays) {
-  return new Date(Date.now() + offsetDays * 864e5).toISOString().slice(0, 10)
-}
 
 export default defineEventHandler(async (event) => {
   const { library } = getQuery(event)
   if (!library || Array.isArray(library)) return []
 
   const shortName = library.replace(/ Branch$/i, '')
-  const dates = [dateString(0), dateString(1)]
+  const dates = eventDates(0, 2)
 
   try {
     const results = await Promise.all(dates.map(date => {

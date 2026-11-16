@@ -103,20 +103,23 @@
   </BaseSheet>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Badge } from '@tpl-passport/shared'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
-import { BADGES, useBadgeCtx, compassPoints } from '~/composables/useBadges'
+import { BADGES, BADGE_DISPLAY_ORDER, activityBadgeStat, useBadgeCtx, compassPoints } from '~/composables/useBadges'
 import IconCheckMark from './icons/IconCheckMark.vue'
 
-const props = defineProps({ sheetHeight: { type: String, default: 'calc(100svh - var(--nav-height) - 76px)' } })
+const props = withDefaults(defineProps<{ sheetHeight?: string }>(), {
+  sheetHeight: 'calc(100svh - var(--nav-height) - 76px)',
+})
 
 const { $posthog } = useNuxtApp()
 const badgeCtx = useBadgeCtx()
 
-const activeBadge = ref(null)
+const activeBadge = ref<Badge | null>(null)
 const sheetOpen = ref(false)
 
-function openSheet(badge) {
+function openSheet(badge: Badge) {
   activeBadge.value = badge
   sheetOpen.value = true
   $posthog?.capture('badge_detail_viewed', {
@@ -128,21 +131,13 @@ function openSheet(badge) {
 watch(sheetOpen, open => { if (!open) activeBadge.value = null })
 
 // Column-major display order (2 cols, left col first):
-const DISPLAY_ORDER = [
-  'first', 'day_tripper',
-  'archivist', 'navigator',
-  'explorer', 'familiar_face',
-  'adventurer', 'page_filler',
-  'globetrotter', 'page_turner',
-  'complete', 'return_visitor',
-]
-const displayBadges = DISPLAY_ORDER.map(id => BADGES.find(a => a.id === id)).filter(Boolean)
+const displayBadges = BADGE_DISPLAY_ORDER.map(id => BADGES.find(a => a.id === id)).filter((b): b is Badge => !!b)
 
 const nextStampId = computed(() =>
   BADGES.find(a => a.shape === 'octagon' && !a.earned(badgeCtx.value))?.id ?? null
 )
 
-function showBadgeProgress(badge) {
+function showBadgeProgress(badge: Badge) {
   const ctx = badgeCtx.value
   if (!badge.progress) return false
   if (badge.earned(ctx)) return false
@@ -150,12 +145,14 @@ function showBadgeProgress(badge) {
   if (badge.shape === 'octagon') return badge.id === nextStampId.value
   return true
 }
-function badgeProgressPct(badge) {
-  const { current, total } = badge.progress(badgeCtx.value)
+// badgeProgressPct and badgeProgressLabel are only called when
+// showBadgeProgress(badge) is true, which requires badge.progress.
+function badgeProgressPct(badge: Badge) {
+  const { current, total } = badge.progress!(badgeCtx.value)
   return Math.min(100, Math.round((current / total) * 100))
 }
-function badgeProgressLabel(badge) {
-  const { current, total } = badge.progress(badgeCtx.value)
+function badgeProgressLabel(badge: Badge) {
+  const { current, total } = badge.progress!(badgeCtx.value)
   if (badge.id === 'day_tripper') return `${current} in a day`
   if (badge.id === 'archivist') return `${current} documented`
   if (badge.id === 'familiar_face') return `${current} home visits`
@@ -163,27 +160,16 @@ function badgeProgressLabel(badge) {
   return `${current}/${total}`
 }
 
-function badgeShapeContent(badge) {
-  if (!badge) return ''
-  if (!isActivityBadge(badge)) return ''
-  const ctx = badgeCtx.value
-  if (badge.id === 'day_tripper') return String(ctx.maxBranchesInOneDay)
-  if (badge.id === 'familiar_face') return String(ctx.homeVisitCount)
-  if (badge.id === 'return_visitor') return String(ctx.maxNonHomeVisitCount)
-  if (badge.id === 'archivist') return String(ctx.fullyDocumentedCount)
-  return ''
+function badgeShapeContent(badge: Badge | null) {
+  return badge ? (activityBadgeStat(badge, badgeCtx.value) ?? '') : ''
 }
 
-function isActivityBadge(badge) {
-  return ['day_tripper', 'return_visitor', 'familiar_face', 'archivist'].includes(badge.id)
-}
-
-function earnedDate(badge) {
+function earnedDate(badge: Badge) {
   if (!badge.earnedAt || !badge.earned(badgeCtx.value)) return null
   return badge.earnedAt(badgeCtx.value)
 }
 
-function branchName(code) {
+function branchName(code: string) {
   return physicalBranches.find(b => b.BranchCode === code)?.BranchName ?? code
 }
 
@@ -191,8 +177,9 @@ const returnVisitorBranchName = computed(() => {
   const entries = Object.entries(badgeCtx.value.branchVisitCounts)
     .filter(([code]) => code !== badgeCtx.value.homeBranch)
     .sort((a, b) => b[1] - a[1])
-  if (!entries.length || entries[0][1] <= 0) return 'No branch yet'
-  return branchName(entries[0][0])
+  const top = entries[0]
+  if (!top || top[1] <= 0) return 'No branch yet'
+  return branchName(top[0])
 })
 
 const archivistBranchNames = computed(() =>
@@ -384,7 +371,7 @@ const archivistBranchNames = computed(() =>
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--color-tint);
   border-radius: 8px;
   color: var(--color-text-muted);
 
@@ -392,16 +379,8 @@ const archivistBranchNames = computed(() =>
     color: var(--color-text);
   }
 
-  @media (prefers-color-scheme: dark) {
-    & {
-      background: rgba(255, 255, 255, 0.05);
-    }
-  }
 }
 
-:global([data-theme="dark"]) .detail-row {
-  background: rgba(255, 255, 255, 0.05);
-}
 
 .detail-check {
   font-size: 0.875rem;

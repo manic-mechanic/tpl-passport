@@ -39,8 +39,9 @@
   </BaseSheet>
 </template>
 
-<script setup>
-import { physicalBranches, buildMapsUrl } from '~/composables/useRegion'
+<script setup lang="ts">
+import type { Branch } from '@tpl-passport/shared'
+import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
 import IconBack from '~/components/icons/IconBack.vue'
 import IconMapPin from '~/components/icons/IconMapPin.vue'
@@ -50,19 +51,20 @@ const nuxtRoute = useRoute()
 const trip = routesData.find(r => r.id === nuxtRoute.params.id)
 
 if (!trip) {
-  throw createError({ statusCode: 404, statusMessage: 'Route not found' })
+  // fatal: on client-side navigation a non-fatal error would leave a blank page
+  // instead of showing error.vue.
+  throw createError({ status: 404, statusText: 'Route not found', fatal: true })
 }
 
-const branchesByCode = Object.fromEntries(physicalBranches.map(b => [b.BranchCode, b]))
-const branchObjects = trip.branches.map(code => branchesByCode[code]).filter(Boolean)
+const branchObjects = trip.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
 
 const mapsUrl = buildMapsUrl(branchObjects)
 
 const sheetOpen = ref(false)
-const activeBranch = ref(null)
+const activeBranch = ref<Branch | null>(null)
 const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
-function openSheet(branch) {
+function openSheet(branch: Branch) {
   activeBranch.value = branch
   sheetOpen.value = true
 }
@@ -120,7 +122,7 @@ function openSheet(branch) {
   gap: 7px;
   padding: 10px 16px;
   background: var(--tpl-blue);
-  color: #fff;
+  color: var(--color-text-inverse);
   border-radius: var(--radius-pill);
   font-size: 0.875rem;
   font-weight: 600;

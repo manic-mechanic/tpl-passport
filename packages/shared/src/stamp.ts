@@ -5,7 +5,7 @@ const HUES = [350, 22, 43, 165, 215, 275, 130, 190, 310, 55]
 
 export function getStampColor(wardNo: string | number): { color: string; bg: string; border: string } {
   const idx = ((parseInt(String(wardNo)) || 1) - 1) % HUES.length
-  const h = HUES[idx]
+  const h = HUES[idx] ?? HUES[0]
   return {
     color:  `hsl(${h}, 62%, 36%)`,
     bg:     `hsl(${h}, 62%, 94%)`,
@@ -35,11 +35,11 @@ function hashCode(str: string, mod: number, prime = 31): number {
 }
 
 export function getStampShape(branchCode: string): (typeof STAMP_SHAPES)[number] {
-  return STAMP_SHAPES[hashCode(branchCode, STAMP_SHAPES.length)]
+  return STAMP_SHAPES[hashCode(branchCode, STAMP_SHAPES.length)] ?? STAMP_SHAPES[0]!
 }
 
 export function getStampFont(branchCode: string): string {
-  return STAMP_FONTS[hashCode(branchCode, STAMP_FONTS.length, 17)]
+  return STAMP_FONTS[hashCode(branchCode, STAMP_FONTS.length, 17)] ?? STAMP_FONTS[0]!
 }
 
 export function getStampRotation(branchCode: string): number {

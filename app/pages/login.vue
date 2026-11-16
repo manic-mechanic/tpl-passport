@@ -2,10 +2,7 @@
   <main class="login-page">
     <header class="login-header">
       <NuxtLink to="/settings" class="back-link">← Back</NuxtLink>
-      <div class="brand">
-        <img src="/tpl-meta.png" class="tpl-logo" alt="Toronto Public Library" />
-        <span class="brand-title">passport<span class="brand-colon">:</span></span>
-      </div>
+      <BrandMark class="login-brand" />
       <p class="brand-tagline">Sign in to save your progress</p>
     </header>
 
@@ -84,55 +81,30 @@
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import * as Sentry from '@sentry/nuxt'
 import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { authClient } from '~/lib/auth-client'
 import { usePassportStore } from '~/stores/passport'
-import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
-import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
+import { pushProfile } from '~/composables/useProfileSync'
 import { reportError } from '~/lib/reportError'
-import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
-import { reconcileProfile } from '~/lib/profileSyncMerge'
+import { syncAccount } from '~/composables/useAccountSync'
+import { useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
+const signedIn = useSignedIn()
 
-const mode = ref('signin')
+const mode = ref<'signin' | 'signup'>('signin')
 const name = ref(passport.profile.name ?? '')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
-const error = ref('')
+const error = ref<string | undefined>('')
 const loading = ref(false)
 const googleLoading = ref(false)
-
-async function syncAfterSignIn(userName) {
-  const serverProfile = await fetchProfile()
-  const { nextName, nextHomeBranch, shouldPushHomeBranch } = reconcileProfile(
-    passport.profile,
-    serverProfile,
-    userName ?? ''
-  )
-  passport.profile.name = nextName
-  passport.profile.homeBranch = nextHomeBranch
-  if (shouldPushHomeBranch) {
-    pushProfile({ name: passport.profile.name, homeBranch: passport.profile.homeBranch })
-  }
-  try {
-    const serverCheckIns = await fetchCheckIns()
-    const { merged, localOnly } = reconcileCheckIns(serverCheckIns, passport.checkIns)
-    passport.setCheckIns(merged)
-    for (const ci of localOnly) pushCheckIn(ci)
-  } catch (error) {
-    reportError(error, {
-      area: 'sync',
-      operation: 'post_signin_checkin_merge',
-    })
-  }
-}
 
 async function submitEmail() {
   error.value = ''
@@ -148,8 +120,9 @@ async function submitEmail() {
         password: password.value,
         callbackURL: '/',
       })
-      if (err) { error.value = err.message; return }
-      await syncAfterSignIn(data?.user?.name)
+      if (err) { error.value = err.message || 'Sign-in failed. Please try again.'; return }
+      signedIn.value = true
+      await syncAccount(data?.user?.name ?? '')
       Sentry.setUser({ id: data.user.id })
       $posthog?.capture('sign_in_completed', { method: 'email' })
     } else {
@@ -159,9 +132,12 @@ async function submitEmail() {
         password: password.value,
         callbackURL: '/',
       })
-      if (err) { error.value = err.message; return }
+      if (err) { error.value = err.message || 'Sign-up failed. Please try again.'; return }
+      signedIn.value = true
       if (!passport.profile.name && name.value) passport.profile.name = name.value
       await pushProfile({ name: name.value, homeBranch: null })
+      // Upload anything recorded before the account existed.
+      await syncAccount(name.value)
       Sentry.setUser({ id: signUpData.user.id })
       $posthog?.capture('sign_up_completed', { method: 'email', name_set: !!name.value })
     }
@@ -217,30 +193,8 @@ async function signInWithGoogle() {
   margin-bottom: 20px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.login-brand {
   margin-bottom: 6px;
-}
-
-.tpl-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-.brand-title {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--tpl-navy);
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
-}
-
-.brand-colon {
-  color: var(--tpl-blue);
 }
 
 .brand-tagline {
@@ -376,7 +330,7 @@ async function signInWithGoogle() {
   font-size: 1rem;
   font-weight: 700;
   font-family: var(--font-body);
-  color: #fff;
+  color: var(--color-text-inverse);
   background: var(--tpl-blue);
   border: none;
   border-radius: var(--radius-sm);
