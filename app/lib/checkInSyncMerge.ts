@@ -11,7 +11,11 @@ function branchDayKey(checkIn: PassportCheckIn): string {
 }
 
 // Merges server and local check-ins.
-// - Server wins when both have the same timestamp.
+// - Server wins when both have the same timestamp, except for a photo the
+//   server copy is missing: if this device has one (a hosted photoUri, or a
+//   hasPhoto flag for a photo still only in IndexedDB), it's kept. A hosted
+//   photoUri is returned in `updated` so the caller pushes it up; a local-only
+//   photo keeps hasPhoto so the caller's pending-upload pass uploads it.
 // - A local-only check-in for a branch + day the server already has (e.g. the
 //   same visit recorded on two devices) is dropped rather than pushed, matching
 //   the one-stamp-per-branch-per-day rule in the store. If the server copy has
@@ -24,10 +28,11 @@ export function reconcileCheckIns(
   serverCheckIns: PassportCheckIn[],
   localCheckIns: PassportCheckIn[],
 ) {
-  const serverTimestamps = new Set(serverCheckIns.map(c => c.timestamp))
+  const serverByTimestamp = new Map<string, PassportCheckIn>()
   const serverByDay = new Map<string, PassportCheckIn>()
   const mergedServer = serverCheckIns.map((c) => {
     const copy = { ...c }
+    serverByTimestamp.set(copy.timestamp, copy)
     if (!serverByDay.has(branchDayKey(copy))) serverByDay.set(branchDayKey(copy), copy)
     return copy
   })
@@ -37,7 +42,17 @@ export function reconcileCheckIns(
   const photoMoves: { from: string, to: string }[] = []
 
   for (const local of localCheckIns) {
-    if (serverTimestamps.has(local.timestamp)) continue
+    const sameTimestamp = serverByTimestamp.get(local.timestamp)
+    if (sameTimestamp) {
+      if (!sameTimestamp.hasPhoto && (local.hasPhoto || local.photoUri)) {
+        sameTimestamp.hasPhoto = true
+        if (local.photoUri) {
+          sameTimestamp.photoUri = local.photoUri
+          updated.add(sameTimestamp)
+        }
+      }
+      continue
+    }
     const sameDay = serverByDay.get(branchDayKey(local))
     if (!sameDay) {
       localOnly.push(local)

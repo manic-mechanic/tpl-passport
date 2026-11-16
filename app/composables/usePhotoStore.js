@@ -3,6 +3,8 @@
 // stored in the Pinia checkIns array, so no extra ID needed.
 //
 // Signed-in users also get a hosted copy via /api/upload/photo on the auth server.
+// That copy's URL is the check-in's photoUri, which is how a photo taken on
+// another device (or before this device was signed out) is shown.
 
 const DB_NAME    = 'tpl-passport-photos'
 const STORE_NAME = 'photos'
@@ -88,4 +90,21 @@ export async function movePhoto(fromKey, toKey) {
   if (!blob) return
   await savePhoto(toKey, blob)
   await deletePhoto(fromKey)
+}
+
+// The image src for a check-in's photo: this device's copy when it has one,
+// otherwise the hosted copy, or null when there's no photo. A device copy is
+// an object URL; pass it to releasePhotoSrc when done.
+export async function getCheckInPhotoSrc(checkIn) {
+  try {
+    const local = await getPhotoUrl(checkIn.timestamp)
+    if (local) return local
+  } catch {
+    // IndexedDB unavailable (e.g. some private modes): fall back to the hosted copy.
+  }
+  return checkIn.photoUri || null
+}
+
+export function releasePhotoSrc(src) {
+  if (src?.startsWith('blob:')) URL.revokeObjectURL(src)
 }

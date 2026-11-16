@@ -40,8 +40,9 @@
 </template>
 
 <script setup lang="ts">
+import type { PassportCheckIn } from '~/types/passport'
 import { usePassportStore } from '~/stores/passport'
-import { getPhotoUrl, savePhoto } from '~/composables/usePhotoStore'
+import { getCheckInPhotoSrc, releasePhotoSrc, savePhoto } from '~/composables/usePhotoStore'
 import { compressPhoto, uploadCheckInPhoto } from '~/lib/checkInPhoto'
 import { canSyncToServer } from '~/composables/useAuthState'
 import IconNote from './icons/IconNote.vue'
@@ -59,16 +60,28 @@ const pastVisitsHere = computed(() =>
 const photoUrls = ref<Record<string, string | null>>({})
 const lightboxSrc = ref<string | null>(null)
 
-watch(pastVisitsHere, async (visits) => {
-  for (const visit of visits) {
-    if (visit.timestamp in photoUrls.value) continue
-    photoUrls.value[visit.timestamp] = null
-    photoUrls.value[visit.timestamp] = await getPhotoUrl(visit.timestamp)
+// This device's copy of each photo, else the hosted one. Reloaded when a sync
+// brings in a hosted photo for a visit that had none here.
+const photoLoadedFor = new Map<string, string>()
+watch(pastVisitsHere, (visits) => {
+  for (const visit of visits) void loadPhoto(visit)
+}, { immediate: true, deep: true })
+
+async function loadPhoto(visit: PassportCheckIn) {
+  const source = visit.photoUri ?? ''
+  if (photoLoadedFor.get(visit.timestamp) === source) return
+  photoLoadedFor.set(visit.timestamp, source)
+  const src = await getCheckInPhotoSrc(visit)
+  if (photoLoadedFor.get(visit.timestamp) !== source) {
+    releasePhotoSrc(src)
+    return
   }
-}, { immediate: true })
+  releasePhotoSrc(photoUrls.value[visit.timestamp])
+  photoUrls.value[visit.timestamp] = src
+}
 
 onUnmounted(() => {
-  Object.values(photoUrls.value).forEach(url => url && URL.revokeObjectURL(url))
+  Object.values(photoUrls.value).forEach(releasePhotoSrc)
 })
 
 function formatVisitDate(iso: string) {
@@ -100,13 +113,17 @@ async function onVisitPhotoCapture(event: Event, timestamp: string) {
   const blob = await compressPhoto(file)
   if (!blob) return
   await savePhoto(timestamp, blob)
-  const oldUrl = photoUrls.value[timestamp]
-  if (oldUrl) URL.revokeObjectURL(oldUrl)
+  releasePhotoSrc(photoUrls.value[timestamp])
   photoUrls.value[timestamp] = URL.createObjectURL(blob)
   passport.markCheckInHasPhoto(timestamp)
   if (canSyncToServer()) {
     const publicUrl = await uploadCheckInPhoto(blob)
-    if (publicUrl) passport.markCheckInHasPhoto(timestamp, publicUrl)
+    if (publicUrl) {
+      // The new hosted URL would otherwise make the watcher reload this
+      // photo; this device's copy is already showing.
+      photoLoadedFor.set(timestamp, publicUrl)
+      passport.markCheckInHasPhoto(timestamp, publicUrl)
+    }
   }
 }
 </script>

@@ -124,3 +124,36 @@ describe('reconcileCheckIns uses the library day', () => {
     expect(localOnly).toHaveLength(1)
   })
 })
+
+describe('reconcileCheckIns photos on the same check-in', () => {
+  const ts = '2026-07-24T15:00:00.000Z'
+  const hosted = 'https://photos.example/photos/u1/a.jpg'
+
+  it('keeps a hosted photo the server copy is missing and marks it for push', () => {
+    const server = [{ branchCode: 'NE', timestamp: ts, note: '' }]
+    const local = [{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true, photoUri: hosted }]
+
+    const { merged, updated, localOnly } = reconcileCheckIns(server, local)
+    expect(localOnly).toEqual([])
+    expect(merged).toEqual([{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true, photoUri: hosted }])
+    expect(updated).toEqual(merged)
+  })
+
+  it('keeps hasPhoto for a photo only on this device so it still gets uploaded', () => {
+    const server = [{ branchCode: 'NE', timestamp: ts, note: '' }]
+    const local = [{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true }]
+
+    const { merged, updated } = reconcileCheckIns(server, local)
+    expect(merged).toEqual([{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true }])
+    expect(updated).toEqual([])
+  })
+
+  it('keeps the server photo when both have one', () => {
+    const server = [{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true, photoUri: hosted }]
+    const local = [{ branchCode: 'NE', timestamp: ts, note: '', hasPhoto: true, photoUri: 'https://photos.example/photos/u1/old.jpg' }]
+
+    const { merged, updated } = reconcileCheckIns(server, local)
+    expect(merged[0].photoUri).toBe(hosted)
+    expect(updated).toEqual([])
+  })
+})
