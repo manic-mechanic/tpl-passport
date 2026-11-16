@@ -2,7 +2,7 @@
 // when sorted descending, which was the fix for the bug where limit=200 asc
 // only returned past events for busy branches.
 //
-// Note: the filterToWindow unit tests were removed when branch-events.get.js
+// Note: the filterToWindow unit tests were removed when branch-events.get.ts
 // was refactored to use parallel exact-date CKAN queries (today + tomorrow)
 // instead of client-side window filtering. The route no longer exports
 // filterToWindow.
