@@ -24,18 +24,32 @@ Open the app on your phone for the best experience — it's designed as a mobile
 | **Check In** | Select a branch, add an optional note or photo, verify proximity, earn a stamp |
 | **Passport** | Stamp book across 5 alphabetical pages + an Extra Credit page for badges |
 | **History** | Check-in log grouped by recency; filter to visits with notes or photos |
-| **Branch detail** | Branch info, hours, events, and services |
+| **Branch detail** | Branch info, hours, events, services, and your visits with notes and photos |
+| **All branches** | A–Z directory of every branch with search and visited/unvisited filters |
+| **Day trip** | A curated multi-branch route with its stops and a one-tap Google Maps link |
 | **Settings** | Sign in/out, theme picker (Light / Auto / Dark), install helper, dev-only demo mode |
 | **QR Print** | Printable branch QR codes for check-in campaigns |
 
 ## Stack
 
-- **Nuxt 4** (SPA mode — `ssr: false`)
-- **Pinia** for state, persisted to `localStorage`
-- **Auth service at auth.librarypassport.ca** — sign-in (email/password and Google) and cross-device sync go through the separate auth service; the app uses the Better Auth Vue client
+- **Nuxt 4** in SPA mode (`ssr: false`), written in **TypeScript** (`<script setup lang="ts">` throughout)
+- **Pinia** for state, persisted to `localStorage`; check-in photos are kept on the device in IndexedDB
+- **Auth service** ([tpl-passport-auth](https://github.com/manic-mechanic/tpl-passport-auth), a Cloudflare Worker at `auth.librarypassport.ca`): email/password and Google sign-in via Better Auth, plus cross-device sync of check-ins, profile and photos (stored in Cloudflare R2). The app works fully signed out; signing in uploads what's on the device
+- **Nitro server routes** (`server/api/`) proxy TPL events from Toronto Open Data
+- **Sentry** for errors (hidden source maps are uploaded at build time) and **PostHog** for product analytics
 - **Vercel** for hosting
 
-Branch and route data is static JSON in `packages/shared/data/`, sourced from the [Toronto Open Data](https://open.toronto.ca/) portal.
+Branch, hours and route data is static JSON in `packages/shared/data/`, sourced from the [Toronto Open Data](https://open.toronto.ca/) portal. `packages/shared` also holds the pure logic (badges, stamps, regions, the library-day rule) shared with the auth service and the native app.
+
+## Environments
+
+| Where | Branch | Notes |
+|---|---|---|
+| [www.librarypassport.ca](https://www.librarypassport.ca) | `main` | Production |
+| [dev.librarypassport.ca](https://dev.librarypassport.ca) | `dev` | Dev-only UI on (demo mode, etc.); uses the production auth service and data |
+| `*.vercel.app` previews | any PR branch | Built for every push |
+
+Configuration is in `.env.example`. `NUXT_PUBLIC_IS_DEV` turns on the dev-only UI (demo mode, location-check bypass toggle, QR scanner); `NUXT_PUBLIC_BYPASS_GEOFENCE` only takes effect when it's on.
 
 ## Commands
 
@@ -46,3 +60,6 @@ Branch and route data is static JSON in `packages/shared/data/`, sourced from th
 - `npm run lint` — run ESLint checks
 - `npm run lint:fix` — auto-fix lint issues where possible
 - `npm run build` — build for production
+- `npx nuxi typecheck` — type-check the app and server
+
+CI runs lint, typecheck, unit tests, a production build and the Playwright suite on every PR and on `main`.
