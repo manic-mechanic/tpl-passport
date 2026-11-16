@@ -49,7 +49,7 @@
                 v-if="branch"
                 :branch="branch"
                 :meta="formatTime(visit.timestamp)"
-                :has-note="!!visit.note"
+                :has-note="!!visit.note?.trim()"
                 :has-photo="!!photoUrls[visit.timestamp]"
                 as-button
                 @select="openSheet"
@@ -77,7 +77,7 @@ import type { Branch } from '@tpl-passport/shared'
 import type { PassportCheckIn } from '~/types/passport'
 import { usePassportStore } from '~/stores/passport'
 import { branchesByCode } from '~/composables/useRegion'
-import { getPhotoUrl } from '~/composables/usePhotoStore'
+import { getCheckInPhotoSrc, releasePhotoSrc } from '~/composables/usePhotoStore'
 import { localDayKey } from '@tpl-passport/shared'
 import IconClock from '~/components/icons/IconClock.vue'
 import IconBack from '~/components/icons/IconBack.vue'
@@ -101,7 +101,7 @@ const memoriesOnly = ref(false)
 const memoryCount = computed(() => passport.checkIns.filter(isMemory).length)
 
 function isMemory(visit: PassportCheckIn) {
-  return !!(visit.note?.trim() || visit.hasPhoto)
+  return !!(visit.note?.trim() || visit.hasPhoto || visit.photoUri)
 }
 
 const grouped = computed(() => {
@@ -125,18 +125,26 @@ const grouped = computed(() => {
   return Object.entries(buckets).filter(([, items]) => items.length > 0)
 })
 
-// Photo thumbnails — loaded on demand from IndexedDB
+// Photo thumbnails: this device's copy, else the hosted one. Reloaded when a
+// sync brings in a hosted photo for a visit that had none here.
 const photoUrls = ref<Record<string, string | null>>({})
-async function loadPhoto(timestamp: string) {
-  if (timestamp in photoUrls.value) return
-  photoUrls.value[timestamp] = await getPhotoUrl(timestamp)
+const photoLoadedFor = new Map<string, string>()
+async function loadPhoto(visit: PassportCheckIn) {
+  const source = visit.photoUri ?? ''
+  if (photoLoadedFor.get(visit.timestamp) === source) return
+  photoLoadedFor.set(visit.timestamp, source)
+  const src = await getCheckInPhotoSrc(visit)
+  if (photoLoadedFor.get(visit.timestamp) !== source) {
+    releasePhotoSrc(src)
+    return
+  }
+  releasePhotoSrc(photoUrls.value[visit.timestamp])
+  photoUrls.value[visit.timestamp] = src
 }
-onMounted(() => {
-  passport.checkIns.forEach(c => loadPhoto(c.timestamp))
-})
+watch(() => passport.checkIns, list => list.forEach(loadPhoto), { immediate: true, deep: true })
 
 onUnmounted(() => {
-  Object.values(photoUrls.value).forEach(url => url && URL.revokeObjectURL(url))
+  Object.values(photoUrls.value).forEach(releasePhotoSrc)
 })
 
 function formatTime(iso: string) {
