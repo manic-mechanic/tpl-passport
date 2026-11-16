@@ -1,43 +1,73 @@
+export type InstallStepIcon = 'share' | 'more' | 'menu' | 'add' | 'install'
+
+export type InstallStep = {
+  text: string
+  icon?: InstallStepIcon
+}
+
 export type InstallGuide = {
   title: string
   platform: 'ios' | 'android' | 'desktop' | 'other'
-  steps: string[]
+  steps: InstallStep[]
+  // Shown under the steps when the browser might not support installing.
+  fallback?: string
 }
 
 function hasAny(ua: string, needles: string[]): boolean {
   return needles.some((needle) => ua.includes(needle))
 }
 
-export function getInstallGuide(userAgent: string): InstallGuide {
+/**
+ * Install steps for the current browser.
+ *
+ * `isTouchMac` covers iPadOS Safari, which reports a Mac user agent. Pass
+ * `navigator.maxTouchPoints > 1` from the browser.
+ */
+export function getInstallGuide(userAgent: string, { isTouchMac = false } = {}): InstallGuide {
   const ua = userAgent.toLowerCase()
-  const isIos = hasAny(ua, ['iphone', 'ipad', 'ipod'])
+  const isMac = ua.includes('macintosh')
+  const isIos = hasAny(ua, ['iphone', 'ipad', 'ipod']) || (isMac && isTouchMac)
   const isAndroid = ua.includes('android')
-  const isSafari = ua.includes('safari') && !hasAny(ua, ['chrome', 'crios', 'edg', 'opr', 'fxios'])
+  const isSafari = ua.includes('safari') && !hasAny(ua, ['chrome', 'crios', 'edg', 'opr', 'fxios', 'firefox'])
   const isFirefox = hasAny(ua, ['firefox', 'fxios'])
   const isSamsungInternet = ua.includes('samsungbrowser')
   const isChromiumDesktop = !isAndroid && !isIos && hasAny(ua, ['chrome', 'edg', 'chromium'])
-  const isDesktopSafari = !isIos && ua.includes('macintosh') && isSafari
+  const isDesktopSafari = !isIos && isMac && isSafari
 
-  if (isIos) {
+  if (isIos && isSafari) {
     return {
-      title: 'Install on iPhone or iPad',
+      title: 'Add to your Home Screen',
       platform: 'ios',
       steps: [
-        ...(isSafari ? [] : ['Open this app in Safari.']),
-        'Tap the Share button in the browser toolbar.',
-        'Choose "Add to Home Screen", then tap "Add".',
+        { icon: 'share', text: 'Tap the Share button. If you don\'t see it, tap ••• first.' },
+        { icon: 'add', text: 'Scroll down and tap "Add to Home Screen".' },
+        { text: 'Leave "Open as Web App" on, then tap "Add".' },
       ],
+    }
+  }
+
+  if (isIos) {
+    // Chrome, Edge and Firefox on iOS can add to the Home Screen since iOS 16.4.
+    return {
+      title: 'Add to your Home Screen',
+      platform: 'ios',
+      steps: [
+        { icon: 'share', text: 'Tap the Share button. In Chrome it\'s in the address bar; in Firefox and Edge, open the menu first.' },
+        { icon: 'add', text: 'Tap "Add to Home Screen".' },
+        { text: 'Tap "Add".' },
+      ],
+      fallback: 'Don\'t see the option? Open this page in Safari and try there.',
     }
   }
 
   if (isAndroid && isFirefox) {
     return {
-      title: 'Install in Firefox on Android',
+      title: 'Install in Firefox',
       platform: 'android',
       steps: [
-        'Open the browser menu.',
-        'Tap "Install" or "Add app to Home Screen".',
-        'Confirm the install prompt.',
+        { icon: 'menu', text: 'Tap the menu button.' },
+        { icon: 'install', text: 'Tap "Add app to Home screen" or "Install".' },
+        { text: 'Confirm to finish.' },
       ],
     }
   }
@@ -47,9 +77,9 @@ export function getInstallGuide(userAgent: string): InstallGuide {
       title: 'Install in Samsung Internet',
       platform: 'android',
       steps: [
-        'Open the browser menu.',
-        'Tap "Install app".',
-        'If a safety warning appears, choose "Install anyway" to continue.',
+        { icon: 'menu', text: 'Tap the menu button.' },
+        { icon: 'install', text: 'Tap "Install app".' },
+        { text: 'If a safety warning appears, choose "Install anyway".' },
       ],
     }
   }
@@ -59,34 +89,33 @@ export function getInstallGuide(userAgent: string): InstallGuide {
       title: 'Install on Android',
       platform: 'android',
       steps: [
-        'Use an HTTPS URL (or localhost). HTTP device-IP URLs only support bookmark shortcuts.',
-        'Open the browser menu.',
-        'Tap "Install app" or "Add to Home screen".',
-        'Confirm to finish installing.',
+        { icon: 'menu', text: 'Tap the menu button next to the address bar.' },
+        { icon: 'install', text: 'Tap "Add to Home screen" or "Install app".' },
+        { text: 'Tap "Install" to finish.' },
       ],
     }
   }
 
   if (isDesktopSafari) {
     return {
-      title: 'Install in Safari on Mac',
+      title: 'Add to your Dock',
       platform: 'desktop',
       steps: [
-        'Open the Share menu in Safari.',
-        'Choose "Add to Dock".',
-        'Confirm to install.',
+        { icon: 'share', text: 'Click the Share button in the toolbar.' },
+        { icon: 'add', text: 'Choose "Add to Dock".' },
+        { text: 'Click "Add".' },
       ],
     }
   }
 
   if (isChromiumDesktop) {
     return {
-      title: 'Install on desktop',
+      title: 'Install on your computer',
       platform: 'desktop',
       steps: [
-        'Click the install icon in the address bar.',
-        'Or open the browser menu and choose "Install app".',
-        'Confirm to install.',
+        { icon: 'install', text: 'Click the install icon at the right of the address bar.' },
+        { icon: 'menu', text: 'Or open the browser menu and choose "Install".' },
+        { text: 'Confirm to finish.' },
       ],
     }
   }
@@ -95,10 +124,11 @@ export function getInstallGuide(userAgent: string): InstallGuide {
     title: 'Install this app',
     platform: 'other',
     steps: [
-      'Open your browser menu.',
-      'Look for "Install app" or "Add to Home Screen".',
-      'Follow the prompt to finish installing.',
+      { icon: 'menu', text: 'Open your browser menu.' },
+      { icon: 'install', text: 'Look for "Install app" or "Add to Home Screen".' },
+      { text: 'Follow the prompt to finish.' },
     ],
+    fallback: 'Not every browser can install web apps. If yours can\'t, try Safari on iPhone or Chrome on Android.',
   }
 }
 

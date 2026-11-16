@@ -42,7 +42,8 @@ function openBranchSheet(branch: Branch) {
 
     <PassportCard class="home-passport" />
 
-    <!-- Prompts sit below the passport so first-time users see their passport first -->
+    <!-- Prompts sit below the passport so first-time users see their passport first.
+         One at a time: sign-in (protects their check-ins) wins over install. -->
     <div class="home-prompts">
       <div v-if="showBanner" class="signin-banner">
         <div class="signin-banner__body">
@@ -51,7 +52,7 @@ function openBranchSheet(branch: Branch) {
         </div>
         <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>
       </div>
-      <InstallHelperCard />
+      <InstallHelperCard v-else-if="authKnown" dismissible />
     </div>
 
     <RecentVisits @select="openBranchSheet" />

@@ -209,6 +209,10 @@ watch(() => passport.profile.theme, (theme) => {
 const session = ref<typeof authClient.$Infer.Session | null>(null)
 
 onMounted(async () => {
+  // Before any network call, so the section shows even when auth is slow or offline.
+  showInstallSection.value = !isRunningStandalone()
+  window.addEventListener('appinstalled', onAppInstalled)
+
   const { data } = await authClient.getSession()
   session.value = data
   profileEditing.value = !data
@@ -224,8 +228,6 @@ onMounted(async () => {
   } catch {
     isGoogleAccount.value = false
   }
-  showInstallSection.value = !isRunningStandalone()
-  window.addEventListener('appinstalled', onAppInstalled)
 })
 
 onBeforeUnmount(() => {
