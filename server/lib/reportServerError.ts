@@ -1,6 +1,12 @@
 import * as Sentry from '@sentry/nuxt'
 
-function formatError(error) {
+export interface ServerErrorContext {
+  area?: string
+  operation?: string
+  [key: string]: unknown
+}
+
+function formatError(error: unknown) {
   if (error instanceof Error) {
     return {
       name: error.name,
@@ -11,7 +17,7 @@ function formatError(error) {
   return { message: String(error) }
 }
 
-export function reportServerError(error, context = {}) {
+export function reportServerError(error: unknown, context: ServerErrorContext = {}): void {
   const err = error instanceof Error ? error : new Error(String(error))
   Sentry.captureException(err, {
     tags: {

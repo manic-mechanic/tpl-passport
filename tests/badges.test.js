@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { physicalBranches, branchesByAlphaPage } from '../app/composables/useRegion.js'
-import { compassBranches } from '../app/composables/useBadges.js'
+import { physicalBranches, branchesByAlphaPage } from '../app/composables/useRegion'
+import { compassBranches } from '../app/composables/useBadges'
 import {
   BADGES,
   buildBadgeCtx,

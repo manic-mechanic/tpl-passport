@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { physicalBranches, sortedBranches, DISTRICT_ORDER, getDistrictColor, haversineKm, branchesByAlphaPage } from '../app/composables/useRegion.js'
+import { physicalBranches, sortedBranches, DISTRICT_ORDER, getDistrictColor, haversineKm, branchesByAlphaPage } from '../app/composables/useRegion'
 
 describe('physicalBranches', () => {
   it('contains exactly 100 branches', () => {

@@ -9,29 +9,18 @@
 // for busy branches with 100+ past or far-future records.
 import { reportServerError } from '../lib/reportServerError'
 import { eventDates } from '../lib/eventDates'
-
-const EVENTS_RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'
-const CKAN = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action'
+import { compareEvents, fetchCkanEvents } from '../lib/ckanEvents'
 
 export default defineEventHandler(async (event) => {
   const { library } = getQuery(event)
-  if (!library || Array.isArray(library)) return []
+  if (!library || typeof library !== 'string') return []
 
   const shortName = library.replace(/ Branch$/i, '')
   const dates = eventDates(0, 2)
 
   try {
-    const results = await Promise.all(dates.map(date => {
-      const filters = encodeURIComponent(JSON.stringify({ LocationName: shortName, StartDateLocal: date }))
-      const url = `${CKAN}/datastore_search?id=${EVENTS_RESOURCE}&filters=${filters}&limit=200&sort=StartTime%20asc`
-      return $fetch(url)
-    }))
-
-    const all = results.flatMap(res => res.result?.records ?? [])
-    return all.sort((a, b) => {
-      if (a.StartDateLocal !== b.StartDateLocal) return a.StartDateLocal < b.StartDateLocal ? -1 : 1
-      return (a.StartTime ?? '') < (b.StartTime ?? '') ? -1 : 1
-    })
+    const results = await Promise.all(dates.map(date => fetchCkanEvents(date, shortName)))
+    return results.flat().sort(compareEvents)
   } catch (error) {
     reportServerError(error, {
       area: 'events',
