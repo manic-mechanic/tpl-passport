@@ -1,9 +1,6 @@
 <template>
   <main class="page-content">
-    <header class="page-header">
-      <h1>Settings</h1>
-    </header>
-    <div class="header-gap" />
+    <PageBanner title="Settings" />
     <p v-if="inlineToast.text" class="inline-toast" :class="inlineToast.kind">{{ inlineToast.text }}</p>
 
     <!-- Account -->
@@ -317,19 +314,6 @@ function setDemo(mode: DemoMode) {
 </script>
 
 <style scoped>
-.page-header {
-  position: sticky;
-  top: env(safe-area-inset-top);
-  z-index: 10;
-  margin: 0 -18px;
-  padding: 14px 18px 16px;
-  background: var(--tpl-navy);
-}
-
-.header-gap {
-  height: 20px;
-}
-
 .inline-toast {
   margin-bottom: 12px;
   border-radius: var(--radius-sm);
@@ -344,15 +328,6 @@ function setDemo(mode: DemoMode) {
     background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
     color: var(--color-error);
   }
-}
-
-.page-header h1 {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
 }
 
 .settings-group {

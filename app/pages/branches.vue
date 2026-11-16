@@ -1,15 +1,8 @@
 <template>
   <main class="page-content">
-    <header class="page-header">
-      <NuxtLink to="/explore" class="back-link">
-        <IconBack />
-        Explore
-      </NuxtLink>
-      <div>
-        <h1>All Branches</h1>
-        <p class="sub">{{ filteredBranches.length }} of {{ physicalBranches.length }}</p>
-      </div>
-    </header>
+    <PageBanner title="All Branches" back-label="Explore" back-to="/explore">
+      <template #sub>{{ filteredBranches.length }} of {{ physicalBranches.length }}</template>
+    </PageBanner>
 
     <div class="controls">
       <div class="search-wrap">
@@ -47,7 +40,6 @@ import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches } from '~/composables/useRegion'
 import IconSearch from '~/components/icons/IconSearch.vue'
-import IconBack from '~/components/icons/IconBack.vue'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -95,33 +87,8 @@ function openSheet(branch: Branch) {
 </script>
 
 <style scoped>
-.page-header {
-  padding: 16px 0 14px;
-}
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--tpl-blue);
-  text-decoration: none;
-  margin-bottom: 6px;
-}
-
-.back-link svg {
-  width: 16px;
-  height: 16px;
-}
-
 .page-header h1 {
   margin-bottom: 3px;
-}
-
-.sub {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
 }
 
 .controls {
