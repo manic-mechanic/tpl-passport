@@ -34,7 +34,7 @@
             <span class="setting-label">Save your progress</span>
             <p class="setting-hint">Access your passport on any device</p>
           </div>
-          <NuxtLink to="/login" class="signin-link">Sign in →</NuxtLink>
+          <NuxtLink to="/login" class="signin-link">Sign in</NuxtLink>
         </div>
       </div>
     </section>
@@ -49,7 +49,7 @@
             <span class="account-email">{{ profileName || '—' }}</span>
           </div>
           <div class="setting-row">
-            <span class="setting-label">Home Branch</span>
+            <span class="setting-label">Home branch</span>
             <span class="account-email">{{ profileHomeBranch || '—' }}</span>
           </div>
           <div class="setting-row">
@@ -64,7 +64,7 @@
             >
           </div>
           <div class="setting-row">
-            <span class="setting-label">Home Branch</span>
+            <span class="setting-label">Home branch</span>
             <div class="profile-branch-wrap">
               <BranchCombobox v-model="profileHomeBranch" placeholder="Search branches…" />
             </div>
@@ -175,7 +175,11 @@
         </div>
         <div class="about-row">
           <span class="setting-label">Developed by</span>
-          <a href="https://www.github.com/bennygoldman" target="_blank" class="about-link">Benny Goldman ↗</a>
+          <a href="https://www.github.com/bennygoldman" target="_blank" rel="noopener" class="about-link"
+             aria-label="Benny Goldman on GitHub (opens another site)"
+          >
+            Benny Goldman<IconExternal class="external-icon" aria-hidden="true" />
+          </a>
         </div>
         <div class="about-row">
           <p class="disclaimer">This is an unofficial app and is not affiliated with or endorsed by Toronto Public Library.</p>
@@ -191,6 +195,7 @@ import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
 import { pushProfile } from '~/composables/useProfileSync'
 import { isRunningStandalone } from '~/lib/installHelper'
+import IconExternal from '~/components/icons/IconExternal.vue'
 import { signOutAndClear } from '~/composables/useAccountSync'
 
 const { $posthog } = useNuxtApp()

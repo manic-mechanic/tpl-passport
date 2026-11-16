@@ -1,6 +1,6 @@
 <template>
   <main class="page-content">
-    <PageBanner title="Check In" />
+    <PageBanner title="Check in" />
 
     <p class="branch-status" aria-live="polite">
       <template v-if="scanned">Scanned at your branch</template>

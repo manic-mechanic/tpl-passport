@@ -1,7 +1,7 @@
 <template>
   <section class="recent-visits">
     <div class="section-header">
-      <h2>Recent Visits</h2>
+      <h2>Recent visits</h2>
       <NuxtLink v-if="recentBranches.length" to="/passport" class="see-all">See all</NuxtLink>
     </div>
 

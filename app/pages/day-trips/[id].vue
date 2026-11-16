@@ -21,7 +21,7 @@
     </section>
 
     <section class="suggestions-section">
-      <h2 class="stops-title">Local Suggestions</h2>
+      <h2 class="stops-title">Local suggestions</h2>
       <p class="suggestions-empty">
         Curated tips from locals and librarians — coming soon.
       </p>

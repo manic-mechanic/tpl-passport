@@ -1,57 +1,48 @@
-# Copy Audit
+# Copy Guide
 
-> Status: audit only — no fixes made yet
+> Status: rules agreed and applied (November 2026, issue #36). Use this when writing new copy.
 
 ---
 
-## Key Issues
+## Rules
 
-### 1. "Check In" capitalization
-- Page header and nav label: **"Check In"** (title case)
-- Buttons in BranchDetail: **"Check in here"** / **"Check in again"** (sentence case)
+### 1. Sentence case
+Headings, page titles, tab labels, nav labels and buttons use sentence case:
+"Check in", "Recent visits", "Branch history", "All branches", "Near me".
 
-### 2. Visit status — 4 different phrasings
-| Context | Text |
-|---|---|
-| BranchCard meta | "visited" / "never been" |
-| Check-in page notice | "You've already checked in here today" |
-| BranchDetail buttons | "Check in again" / "Check in here" |
-| branches.vue filters | "Visited" / "Unvisited" |
+Exceptions are names: **Extra Credit** (a passport page), **Library Passport**,
+**Toronto Public Library**, and branch and route names.
 
-### 3. Link arrow conventions
-| Usage | Style |
-|---|---|
-| "Find a branch →" (check-in.vue) | → |
-| "All events at this branch ↗" (BranchDetail) | ↗ |
-| "Toronto Public Library ↗" (settings) | ↗ |
-| "See all" (RecentVisits, HomeBadgesStrip) | none |
+### 2. "Check in" is the action, "visit" is the record
+- Verbs and buttons: "Check in here", "Check in again", "Checked in today".
+- Counts and lists: "visits", "Recent visits", "Your visits here", "Visited" / "Not visited".
+- Don't count "check-ins" in the UI.
 
-No consistent rule: internal vs external vs no arrow.
+### 3. Links
+- Internal text links: no arrow ("Sign in", "See all", "Browse all branches").
+- Rows that open something: the chevron (`IconChevron`).
+- Links that leave the app: text, then `IconExternal` with the shared `.external-icon` class,
+  `target="_blank" rel="noopener"`, and an `aria-label` ending "(opens another site)".
+  Don't use ↗ or →.
 
 ### 4. "Nearby" vs "near you"
-- "Nearby branches" — BranchDetail section heading
-- "Also nearby" — check-in success sheet
-- "branches near you" — explore.vue geolocation prompt
-- "Finding branches near you…" — explore.vue loading state
+Both stay. "Nearby" is relative to a branch ("Nearby branches", "Also nearby"); "near you"
+is relative to the user's location ("Finding branches near you…").
 
-### 5. Empty state tone varies wildly
-| Empty state | Tone |
-|---|---|
-| "No check-ins yet. Visit a branch to get started!" | casual + encouraging |
-| "No memories recorded yet. Add a note or photo when checking in." | instructional |
-| "You've earned every badge. Nothing left to work toward — well done!" | celebratory |
-| "Branch not found." | terse |
-| "No events today or tomorrow." | neutral |
+### 5. Empty states
+Say what's empty, then give one next step. No exclamation marks.
+- "No visits yet. Check in at any branch to start your history."
+- Dead ends link somewhere: "We couldn't find that branch. Browse all branches"
 
-### 6. Section heading structure inconsistency
-- "Recent Visits", "Upcoming events", "Nearby branches" — plural
-- "Your Passport", "Extra Credit" — singular
-- "Your visits here" — possessive + plural (BranchDetail)
+### 6. Ellipses
+Use the single character `…`, only for something in progress ("Saving…", "Checking location…")
+or a placeholder ("Search branches…").
 
 ---
 
-## Minor Issues
+## Still to do
 
-- Ellipsis inconsistency: "Detecting your location…" and "Checking location…" use ellipsis, but "coming soon" copy does not
-- "Already visited today" (BranchDetail label) vs "You've already checked in here today" (check-in.vue notice) — same concept, two phrasings
-- "visits" vs "check-ins" used interchangeably in history.vue (header: "check-ins", stat label: "Total visits")
+- After #34 (Your Library Tour) merges, apply these rules to its copy and to the lines this
+  pass left alone to avoid conflicts:
+  - `app/pages/day-trips/[id].vue`: back label "Day Trips" → "Day trips"
+  - `app/components/ExploreDayTrips.vue` and the new tour pages

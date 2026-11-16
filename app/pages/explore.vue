@@ -13,17 +13,17 @@
         <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
                 :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'"
         >
-          Near Me
+          Near me
         </button>
         <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
                 :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'"
         >
-          Day Trips
+          Day trips
         </button>
         <button class="tab-pill" :class="{ active: activeTab === 'events' }" role="tab"
                 :aria-selected="activeTab === 'events'" @click="activeTab = 'events'"
         >
-          What's On
+          What's on
         </button>
         <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
                 :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'"
