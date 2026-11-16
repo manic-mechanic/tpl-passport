@@ -10,7 +10,7 @@
       <ul class="welcome-points">
         <li>Visit branches, collect stamps, and see your passport fill up.</li>
         <li>Plan your trip with routes designed by School of Cities.</li>
-        <li>Visit every location by {{ endLabel }} to complete the {{ LIBRARY_TOUR.hashtag }} challenge.</li>
+        <li>Visit every location by {{ TOUR_END_LABEL }} to complete the {{ LIBRARY_TOUR.hashtag }} challenge.</li>
       </ul>
       <button type="button" class="welcome-primary" @click="close('dismissed')">
         Start exploring
@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { LIBRARY_TOUR, isTourOn, isTourReferral } from '~/lib/libraryTour'
+import { LIBRARY_TOUR, TOUR_END_LABEL, isTourOn, isTourReferral } from '~/lib/libraryTour'
 
 // Shown once to people who arrive from the Your Library Tour event page.
 const SEEN_KEY = 'tour_welcome_seen'
@@ -31,7 +31,6 @@ const SEEN_KEY = 'tour_welcome_seen'
 const { $posthog } = useNuxtApp()
 const router = useRouter()
 const open = ref(false)
-const endLabel = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
 
 function readSeen(): boolean {
   try {
@@ -49,6 +48,17 @@ function markSeen() {
   }
 }
 
+// Sets a per-tab flag and returns whether it was already set.
+function sessionFlag(key: string): boolean {
+  try {
+    if (sessionStorage.getItem(key) === '1') return true
+    sessionStorage.setItem(key, '1')
+  } catch {
+    // Storage unavailable: count it.
+  }
+  return false
+}
+
 function close(action: 'routes' | 'dismissed') {
   $posthog?.capture('tour_welcome_closed', { action })
   open.value = false
@@ -64,7 +74,11 @@ onMounted(async () => {
   const route = router.currentRoute.value
   if (!isTourReferral(route.query, document.referrer)) return
 
-  $posthog?.capture('tour_referral_landed', { via: route.query.ref ? 'link' : 'referrer', path: route.path })
+  // Once per visit: document.referrer survives a reload, so a referred
+  // visitor would otherwise be counted again on every refresh.
+  if (!sessionFlag('tour_referral_tracked')) {
+    $posthog?.capture('tour_referral_landed', { via: route.query.ref ? 'link' : 'referrer', path: route.path })
+  }
 
   // Keep shared and bookmarked URLs clean
   if (route.query.ref !== undefined) {

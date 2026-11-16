@@ -1,5 +1,5 @@
 <template>
-  <span class="ttc-route" :aria-label="label">
+  <span class="ttc-route" role="img" :aria-label="label">
     <TtcModeIcon :mode="mode" />
     <span
       class="ttc-route-number"

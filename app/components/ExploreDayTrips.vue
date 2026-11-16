@@ -7,7 +7,9 @@
       <IconMode class="mode-icon" v-html="mode.icon" />
       {{ mode.label }}
     </button>
-    <div class="mode-tab mode-tab--soon" aria-label="Bike and car routes coming soon">
+    <div class="mode-tab mode-tab--soon" role="tab" aria-selected="false" aria-disabled="true"
+         aria-label="Bike and car routes coming soon"
+    >
       <span class="mode-icons" aria-hidden="true">
         <IconMode class="mode-icon" v-html="BIKE_ICON" />
         <IconMode class="mode-icon" v-html="CAR_ICON" />
@@ -50,7 +52,7 @@
       <template v-if="!tourCardCollapsed">
         <p class="tour-text">
           Take the TTC along routes designed by UofT's School of Cities.
-          Visit every location by {{ tourEndLabel }} to earn a special stamp.
+          Visit every location by {{ TOUR_END_LABEL }} to earn a special stamp.
         </p>
         <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener" class="tour-learn"
            aria-label="Learn more at UofT School of Cities (opens another site)"
@@ -96,7 +98,7 @@ import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
-import { LIBRARY_TOUR, formatMinutes, isTourOn, textOnColor, tourRoutes } from '~/lib/libraryTour'
+import { LIBRARY_TOUR, TOUR_END_LABEL, formatMinutes, isTourOn, routeProgress, textOnColor, tourRoutes } from '~/lib/libraryTour'
 import IconExternal from '~/components/icons/IconExternal.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -141,8 +143,6 @@ const BIKE_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/>
 const CAR_ICON = '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>'
 
 // ── Your Library Tour (transit) ──────────────────────────────────────
-const tourEndLabel = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
-
 // The card shows while the tour is on; the routes stay after it ends.
 const tourOn = isTourOn()
 
@@ -168,9 +168,9 @@ function toggleTourCard() {
 
 const tourWithProgress = computed(() =>
   tourRoutes.map((r) => {
+    const { visited, total } = routeProgress(r, passport.visitedBranchCodes)
     const branchObjects = r.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
-    const visited = branchObjects.filter(b => passport.hasVisited(b.BranchCode)).length
-    return { ...r, branchObjects, visited, total: branchObjects.length }
+    return { ...r, branchObjects, visited, total }
   })
 )
 </script>

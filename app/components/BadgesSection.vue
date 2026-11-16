@@ -3,7 +3,7 @@
     <button v-for="badge in displayBadges" :key="badge.id" class="badge-item" @click="openSheet(badge)">
       <span class="badge-shape-wrap">
         <BadgeShape :badge="badge" :ctx="badgeCtx" :size="64" :content-override="badgeShapeContent(badge)" />
-        <span v-if="badge.id === 'complete' && tourCompletedDay" class="tour-postmark" aria-label="Completed during #YourLibraryTour">
+        <span v-if="showTourPostmark(badge)" class="tour-postmark" role="img" aria-label="Completed during #YourLibraryTour">
           {{ LIBRARY_TOUR.hashtag }}
         </span>
       </span>
@@ -23,7 +23,7 @@
       <div class="detail-badge">
         <span class="badge-shape-wrap">
           <BadgeShape :badge="activeBadge" :ctx="badgeCtx" :size="88" :content-override="badgeShapeContent(activeBadge)" />
-          <span v-if="activeBadge.id === 'complete' && tourCompletedDay" class="tour-postmark tour-postmark--large" aria-hidden="true">
+          <span v-if="showTourPostmark(activeBadge)" class="tour-postmark tour-postmark--large" aria-hidden="true">
             {{ LIBRARY_TOUR.hashtag }}
           </span>
         </span>
@@ -36,8 +36,8 @@
         <IconCheckMark />
         Earned{{ earnedDate(activeBadge) ? ' · ' + earnedDate(activeBadge) : '' }}
       </div>
-      <p v-if="activeBadge.id === 'complete' && tourCompletedDay" class="detail-tour">
-        Every location visited by {{ tourEndLabel }}, completing the {{ LIBRARY_TOUR.hashtag }} challenge.
+      <p v-if="showTourPostmark(activeBadge)" class="detail-tour">
+        Every location visited by {{ TOUR_END_LABEL }}, completing the {{ LIBRARY_TOUR.hashtag }} challenge.
       </p>
       <div v-else-if="activeBadge.progress" class="detail-progress">
         <div class="prog-bar wide">
@@ -122,7 +122,7 @@ import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, BADGE_DISPLAY_ORDER, activityBadgeStat, useBadgeCtx, compassPoints } from '~/composables/useBadges'
 import IconCheckMark from './icons/IconCheckMark.vue'
 import { usePassportStore } from '~/stores/passport'
-import { LIBRARY_TOUR, tourCompletedOn } from '~/lib/libraryTour'
+import { LIBRARY_TOUR, TOUR_END_LABEL, tourCompletedOn } from '~/lib/libraryTour'
 
 const props = withDefaults(defineProps<{ sheetHeight?: string }>(), {
   sheetHeight: 'calc(100svh - var(--nav-height) - 76px)',
@@ -134,7 +134,9 @@ const passport = usePassportStore()
 
 // Full Passport earned by the end of #YourLibraryTour gets the tour's postmark.
 const tourCompletedDay = computed(() => tourCompletedOn(passport.checkIns))
-const tourEndLabel = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
+function showTourPostmark(badge: Badge) {
+  return badge.id === 'complete' && !!tourCompletedDay.value && badge.earned(badgeCtx.value)
+}
 
 const activeBadge = ref<Badge | null>(null)
 const sheetOpen = ref(false)

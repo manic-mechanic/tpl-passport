@@ -12,6 +12,7 @@ import {
   tourRoutes,
   textOnColor,
   tourCompletedOn,
+  tourStops,
   transitDirectionsUrl,
 } from '../app/lib/libraryTour'
 
@@ -117,5 +118,26 @@ describe('shortStopName', () => {
     expect(shortStopName('Sherbourne St at Bloor St East South Side - Sherbourne Station')).toBe('Sherbourne St at Bloor St East - Sherbourne Station')
     expect(shortStopName('Humber College Station')).toBe('Humber College Station')
     expect(shortStopName(undefined)).toBe('')
+  })
+})
+
+describe('tourStops', () => {
+  const route = tourRoutes[0]!
+
+  it('pairs each stop with the leg to the next', () => {
+    const lookup = Object.fromEntries(route.branches.map(c => [c, { code: c }]))
+    const stops = tourStops(route, lookup)
+    expect(stops).toHaveLength(10)
+    expect(stops[0]).toMatchObject({ code: route.branches[0], next: { code: route.branches[1] }, leg: route.legs[0] })
+    expect(stops[9]).toMatchObject({ next: undefined, leg: undefined })
+  })
+
+  it("keeps later legs on the right stops when a branch is missing", () => {
+    const missing = route.branches[3]!
+    const lookup = Object.fromEntries(route.branches.filter(c => c !== missing).map(c => [c, { code: c }]))
+    const stops = tourStops(route, lookup)
+    expect(stops[3]!.branch).toBeUndefined()
+    expect(stops[2]!.next).toBeUndefined() // no leg into the missing stop
+    expect(stops[5]).toMatchObject({ code: route.branches[5], next: { code: route.branches[6] }, leg: route.legs[5] })
   })
 })

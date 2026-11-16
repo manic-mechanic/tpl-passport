@@ -21,25 +21,29 @@
     </section>
 
     <ol class="stops">
-      <template v-for="(b, i) in stops" :key="b.BranchCode">
-        <li class="stop">
-          <BranchCard :branch="b" :index="i + 1" as-button @select="openSheet" />
+      <!-- Walk the route's own order so each leg stays between the two
+           branches it describes, even if one were missing from the branch list -->
+      <template v-for="(stop, i) in route" :key="stop.code">
+        <li v-if="stop.branch" class="stop">
+          <BranchCard :branch="stop.branch" :index="i + 1" as-button @select="openSheet" />
         </li>
-        <li v-if="tour.legs[i] && stops[i + 1]" class="leg" :aria-label="`From ${b.BranchName} to ${stops[i + 1]!.BranchName}`">
+        <li v-if="stop.branch && stop.next && stop.leg" class="leg"
+            :aria-label="`From ${stop.branch.BranchName} to ${stop.next.BranchName}`"
+        >
           <span class="leg-rail" aria-hidden="true" />
           <div class="leg-body">
             <div class="leg-head">
               <span class="leg-time">
-                {{ formatMinutes(legMinutes(tour.legs[i]!)) }}<template v-if="!legRides(tour.legs[i]!).length"> walk</template>
+                {{ formatMinutes(legMinutes(stop.leg)) }}<template v-if="!legRides(stop.leg).length"> walk</template>
               </span>
-              <a :href="transitDirectionsUrl(b, stops[i + 1]!)" target="_blank" rel="noopener" class="leg-link"
+              <a :href="transitDirectionsUrl(stop.branch, stop.next)" target="_blank" rel="noopener" class="leg-link"
                  @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
               >
                 Directions
               </a>
             </div>
             <!-- One line per ride: vehicle, route number, and where to board -->
-            <p v-for="(ride, r) in legRides(tour.legs[i]!)" :key="r" class="leg-ride">
+            <p v-for="(ride, r) in legRides(stop.leg)" :key="r" class="leg-ride">
               <TtcRouteBadge :mode="ride.mode" :line="ride.line ?? ''" :line-name="ride.lineName" />
               <span class="leg-stop">{{ shortStopName(ride.fromStop) }}</span>
             </p>
@@ -65,6 +69,7 @@ import {
   legRides,
   shortStopName,
   textOnColor,
+  tourStops,
   transitDirectionsUrl,
 } from '~/lib/libraryTour'
 
@@ -80,7 +85,8 @@ if (!tour) {
   throw createError({ status: 404, statusText: 'Route not found', fatal: true })
 }
 
-const stops = tour.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
+const route = tourStops(tour, branchesByCode)
+const stops = route.flatMap(s => (s.branch ? [s.branch] : []))
 const visited = computed(() => stops.filter(b => passport.hasVisited(b.BranchCode)).length)
 
 onMounted(() => {

@@ -42,6 +42,10 @@ export const LIBRARY_TOUR = tourData as {
 
 export const tourRoutes: TourRoute[] = LIBRARY_TOUR.routes
 
+// The tour's last day as shown in copy, e.g. "October 31, 2027".
+export const TOUR_END_LABEL = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`)
+  .toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
+
 export function getTourRoute(id: string | number): TourRoute | undefined {
   return tourRoutes.find(r => String(r.id) === String(id))
 }
@@ -150,4 +154,26 @@ export function tourCompletedOn(checkIns: Pick<CheckIn, 'branchCode' | 'timestam
 export function shortStopName(stop: string | undefined): string {
   if (!stop) return ''
   return stop.replace(/\s+(North|South|East|West) Side\b/, '').trim()
+}
+
+export interface TourStop<B> {
+  code: string
+  branch: B | undefined
+  next: B | undefined // the branch after this one, if any
+  leg: TourSegment[] | undefined // how to get from this branch to the next
+}
+
+// A route's stops in order, each with the leg to the next stop. Built from the
+// route's own order so a code missing from `branches` can't shift later legs
+// onto the wrong pair of stops.
+export function tourStops<B>(route: TourRoute, branches: Record<string, B | undefined>): TourStop<B>[] {
+  return route.branches.map((code, i) => {
+    const nextCode = route.branches[i + 1]
+    return {
+      code,
+      branch: branches[code],
+      next: nextCode ? branches[nextCode] : undefined,
+      leg: route.legs[i],
+    }
+  })
 }

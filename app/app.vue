@@ -58,15 +58,13 @@ watch(badgeCtx, (ctx) => {
 }, { deep: true })
 
 // ── Library Tour route completion tracking ──────────────────────────
-// Like achievements: report routes completed after the app loaded.
+// Report routes completed during this visit. The baseline is taken after the
+// initial account sync (below), so routes finished on another device and
+// synced in on load aren't reported again.
 let routesDoneOnMount: Set<number> | null = null
 const routesDone = computed(() => tourRoutes
   .filter(r => routeProgress(r, passport.visitedBranchCodes).complete)
   .map(r => r.id))
-
-onMounted(() => {
-  routesDoneOnMount = new Set(routesDone.value)
-})
 
 watch(routesDone, (ids) => {
   if (!routesDoneOnMount) return
@@ -125,6 +123,7 @@ onMounted(async () => {
   // Let auth-synced homeBranch watcher flush before enabling analytics
   await nextTick()
   homeBranchReady.value = true
+  routesDoneOnMount = new Set(routesDone.value)
 })
 
 // homeBranch is pushed by whoever changes it while signed in (Settings and
