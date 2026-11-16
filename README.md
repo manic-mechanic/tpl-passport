@@ -43,11 +43,7 @@ Branch, hours and route data is static JSON in `packages/shared/data/`, sourced 
 
 ## Environments
 
-| Where | Branch | Notes |
-|---|---|---|
-| [www.librarypassport.ca](https://www.librarypassport.ca) | `main` | Production |
-| [dev.librarypassport.ca](https://dev.librarypassport.ca) | `dev` | Dev-only UI on (demo mode, etc.); uses the production auth service and data |
-| `*.vercel.app` previews | any PR branch | Built for every push |
+Production is [www.librarypassport.ca](https://www.librarypassport.ca), deployed from `main`. Every PR gets a Vercel preview.
 
 Configuration is in `.env.example`. `NUXT_PUBLIC_IS_DEV` turns on the dev-only UI (demo mode, location-check bypass toggle, QR scanner); `NUXT_PUBLIC_BYPASS_GEOFENCE` only takes effect when it's on.
 
