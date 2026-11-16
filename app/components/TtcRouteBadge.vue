@@ -11,7 +11,6 @@
       }"
       aria-hidden="true"
     >{{ line }}</span>
-    <span v-if="name" class="ttc-route-name" aria-hidden="true">{{ name }}</span>
   </span>
 </template>
 
@@ -19,7 +18,8 @@
 import type { TourMode } from '~/lib/libraryTour'
 import { isRapidTransitLine, routeBadgeStyle, routeShortName } from '~/lib/ttcRouteStyle'
 
-// One TTC ride, e.g. [bus] (45) Kipling or [subway] (2) Bloor-Danforth.
+// A TTC vehicle icon and route number, e.g. [bus] (45) or [subway] (2). The
+// route's name is only read out, to keep the badge to one short line.
 const props = defineProps<{
   mode: TourMode
   line: string
@@ -66,8 +66,4 @@ const label = computed(() => {
   border-radius: 50%;
 }
 
-.ttc-route-name {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
 </style>

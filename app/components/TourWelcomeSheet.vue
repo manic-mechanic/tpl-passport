@@ -1,23 +1,22 @@
 <template>
-  <BaseSheet v-model:open="open" aria-label="Welcome, Library Tour traveller">
+  <BaseSheet v-model:open="open" aria-label="Welcome to TPL Passport">
     <div class="welcome">
       <p class="welcome-tag">{{ LIBRARY_TOUR.hashtag }}</p>
-      <h2 class="welcome-title">Welcome, Library Tour traveller</h2>
+      <h2 class="welcome-title">Welcome to TPL Passport</h2>
       <p class="welcome-text">
-        This passport is a free companion to <strong>Next Stop: Your Library Tour</strong>.
-        Check in at each branch you visit to collect its stamp, and watch your routes fill in.
+        TPL Passport is a free companion to <strong>Next Stop: Your Library Tour</strong>.
       </p>
       <ul class="welcome-points">
-        <li>All ten tour routes, with the TTC rides between stops</li>
-        <li>A stamp for every branch, all 100 if you go for gold</li>
-        <li>No account needed. Sign in any time to keep your stamps on every device</li>
+        <li>Collect stamps for visiting branches, and watch your passport fill up.</li>
+        <li>Suggested routes are on the Explore tab, with TTC directions between stops.</li>
+        <li>Visit every branch by {{ endLabel }} to complete the {{ LIBRARY_TOUR.hashtag }} challenge.</li>
       </ul>
-      <NuxtLink to="/explore?tab=routes&mode=transit" class="welcome-primary" @click="close('routes')">
-        See the 10 routes
-      </NuxtLink>
-      <button type="button" class="welcome-secondary" @click="close('dismissed')">
+      <button type="button" class="welcome-primary" @click="close('dismissed')">
         Start exploring
       </button>
+      <NuxtLink to="/explore?tab=routes" class="welcome-secondary" @click="close('routes')">
+        See the routes
+      </NuxtLink>
     </div>
   </BaseSheet>
 </template>
@@ -31,6 +30,7 @@ const SEEN_KEY = 'tour_welcome_seen'
 const { $posthog } = useNuxtApp()
 const router = useRouter()
 const open = ref(false)
+const endLabel = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
 
 function readSeen(): boolean {
   try {
@@ -115,6 +115,10 @@ onMounted(async () => {
 
 .welcome-primary {
   display: block;
+  width: 100%;
+  border: none;
+  font: inherit;
+  cursor: pointer;
   margin-top: 8px;
   padding: 14px 16px;
   border-radius: var(--radius);
@@ -127,11 +131,9 @@ onMounted(async () => {
 
 .welcome-secondary {
   padding: 12px 16px;
-  border: none;
-  background: none;
-  font: inherit;
   font-weight: 600;
+  text-align: center;
   color: var(--color-accent);
-  cursor: pointer;
+  text-decoration: none;
 }
 </style>

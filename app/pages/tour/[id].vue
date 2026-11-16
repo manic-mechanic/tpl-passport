@@ -28,27 +28,25 @@
         <li v-if="tour.legs[i] && stops[i + 1]" class="leg" :aria-label="`From ${b.BranchName} to ${stops[i + 1]!.BranchName}`">
           <span class="leg-rail" aria-hidden="true" />
           <div class="leg-body">
-            <p class="leg-summary">
-              <span class="leg-time">{{ formatMinutes(legMinutes(tour.legs[i]!)) }}</span>
-              <TtcRouteBadge v-for="(ride, r) in legRides(tour.legs[i]!)" :key="r"
-                             :mode="ride.mode" :line="ride.line ?? ''" :line-name="ride.lineName"
-              />
-              <span v-if="!legRides(tour.legs[i]!).length" class="leg-walk">Walk</span>
+            <div class="leg-head">
+              <span class="leg-time">
+                {{ formatMinutes(legMinutes(tour.legs[i]!)) }}<template v-if="!legRides(tour.legs[i]!).length"> walk</template>
+              </span>
+              <a :href="transitDirectionsUrl(b, stops[i + 1]!)" target="_blank" rel="noopener" class="leg-link"
+                 @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
+              >
+                Directions
+              </a>
+            </div>
+            <!-- One line per ride: vehicle, route number, and where to board -->
+            <p v-for="(ride, r) in legRides(tour.legs[i]!)" :key="r" class="leg-ride">
+              <TtcRouteBadge :mode="ride.mode" :line="ride.line ?? ''" :line-name="ride.lineName" />
+              <span class="leg-stop">{{ shortStopName(ride.fromStop) }}</span>
             </p>
-            <a :href="transitDirectionsUrl(b, stops[i + 1]!)" target="_blank" rel="noopener" class="leg-link"
-               @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
-            >
-              Directions
-            </a>
           </div>
         </li>
       </template>
     </ol>
-
-    <p class="tour-credit">
-      Route from <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener">Next Stop: Your Library Tour</a>
-      by the School of Cities, University of Toronto. {{ LIBRARY_TOUR.hashtag }}
-    </p>
   </main>
 
   <BaseSheet v-model:open="sheetOpen" :height="sheetHeight">
@@ -61,11 +59,11 @@ import type { Branch } from '@tpl-passport/shared'
 import { branchesByCode } from '~/composables/useRegion'
 import { usePassportStore } from '~/stores/passport'
 import {
-  LIBRARY_TOUR,
   formatMinutes,
   getTourRoute,
   legMinutes,
   legRides,
+  shortStopName,
   textOnColor,
   transitDirectionsUrl,
 } from '~/lib/libraryTour'
@@ -184,39 +182,43 @@ function openSheet(branch: Branch) {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  gap: 4px;
   padding: 10px 0;
 }
 
-.leg-summary {
+.leg-head {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .leg-time {
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-text);
 }
 
-.leg-walk {
+.leg-ride {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.75rem;
+}
+
+.leg-stop {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-text-muted);
 }
 
 .leg-link {
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 600;
-}
-
-.tour-credit {
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--color-text-muted);
 }
 </style>

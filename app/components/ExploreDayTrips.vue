@@ -7,6 +7,10 @@
       <IconMode class="mode-icon" v-html="mode.icon" />
       {{ mode.label }}
     </button>
+    <div class="mode-tab mode-tab--soon" aria-disabled="true">
+      <IconMode class="mode-icon" v-html="BIKE_CAR_ICON" />
+      Bike &amp; car soon
+    </div>
   </nav>
 
   <!-- Walking routes -->
@@ -35,23 +39,20 @@
 
   <!-- Transit: the ten Your Library Tour routes -->
   <div v-else-if="activeMode === 'transit'" class="routes-list">
-    <section class="tour-intro">
-      <p class="tour-tag">{{ LIBRARY_TOUR.hashtag }}</p>
-      <h2 class="tour-title">Next Stop: Your Library Tour</h2>
-      <p class="tour-text">
-        Ten transit routes of ten branches each, covering all 100. Take one in a day, mix and match,
-        or go for gold and visit every branch by {{ tourEndLabel }}.
-      </p>
-      <div class="tour-progress" aria-label="Branches visited">
-        <div class="tour-progress-bar">
-          <span :style="{ width: `${Math.round(passport.visitCount / tourBranchTotal * 100)}%` }" />
-        </div>
-        <span class="tour-progress-label">{{ passport.visitCount }} of {{ tourBranchTotal }} branches</span>
-      </div>
-      <p class="tour-credit">
-        Routes by the
-        <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener">School of Cities, University of Toronto</a>
-      </p>
+    <section class="tour-intro" :class="{ collapsed: tourCardCollapsed }">
+      <button type="button" class="tour-intro-head" :aria-expanded="!tourCardCollapsed" @click="toggleTourCard">
+        <span class="tour-tag">{{ LIBRARY_TOUR.hashtag }}</span>
+        <IconChevron class="tour-intro-chevron" aria-hidden="true" />
+      </button>
+      <template v-if="!tourCardCollapsed">
+        <p class="tour-text">
+          Take the TTC along routes designed by UofT's School of Cities.
+          Visit every branch by {{ tourEndLabel }} to earn a special stamp.
+        </p>
+        <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener" class="tour-learn"
+           @click="$posthog?.capture('tour_learn_more_tapped')"
+        >Learn more →</a>
+      </template>
     </section>
 
     <NuxtLink v-for="tour in tourWithProgress" :key="tour.id" :to="`/tour/${tour.id}`"
@@ -81,8 +82,6 @@
       </div>
     </NuxtLink>
   </div>
-
-  <p class="coming-soon">Bike and car routes coming soon.</p>
 </template>
 
 <script setup lang="ts">
@@ -114,7 +113,7 @@ const MODES: { id: TransportMode, label: string, icon: string }[] = [
     icon: '<rect x="6" y="3" width="12" height="15" rx="2"/><path d="M6 11h12"/><path d="M9 7h2M13 7h2"/><path d="M8 18l-1 3M16 18l1 3"/>',
   },
   {
-    id: 'walk', label: 'Walk',
+    id: 'walk', label: 'Walking',
     icon: '<circle cx="12" cy="4.5" r="1.5"/><path d="M10 8.5l-2 7h2.5l.5 4h2l.5-4H16l-2-7"/><path d="M10 8.5l2-1.5 2 1.5"/>',
   },
 ]
@@ -130,9 +129,30 @@ const routesWithProgress = computed(() =>
     })
 )
 
+const BIKE_CAR_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>'
+
 // ── Your Library Tour (transit) ──────────────────────────────────────
-const tourBranchTotal = tourRoutes.reduce((n, r) => n + r.branches.length, 0)
-const tourEndLabel = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`).toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })
+const tourEndLabel = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
+
+// The tour card can be collapsed to its title line; remembered on this device.
+const TOUR_CARD_KEY = 'tour_card_collapsed'
+const tourCardCollapsed = ref(false)
+onMounted(() => {
+  try {
+    tourCardCollapsed.value = localStorage.getItem(TOUR_CARD_KEY) === '1'
+  } catch {
+    // Storage unavailable: start expanded.
+  }
+})
+function toggleTourCard() {
+  tourCardCollapsed.value = !tourCardCollapsed.value
+  try {
+    localStorage.setItem(TOUR_CARD_KEY, tourCardCollapsed.value ? '1' : '0')
+  } catch {
+    // Not remembered this time.
+  }
+  $posthog?.capture('tour_card_toggled', { collapsed: tourCardCollapsed.value })
+}
 
 const tourWithProgress = computed(() =>
   tourRoutes.map((r) => {
@@ -187,6 +207,11 @@ const tourWithProgress = computed(() =>
   }
 }
 
+
+.mode-tab--soon {
+  cursor: default;
+  opacity: 0.5;
+}
 
 .mode-icon {
   width: 20px;
@@ -316,68 +341,60 @@ const tourWithProgress = computed(() =>
 
 /* ── Your Library Tour ───────────────────────────────────────────── */
 .tour-intro {
-  padding: 16px;
+  padding: 12px 16px 14px;
   border-radius: var(--radius);
-  background: var(--tpl-navy);
-  color: rgba(255, 255, 255, 0.9);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+
+  &.collapsed {
+    padding-bottom: 12px;
+  }
+}
+
+.tour-intro-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tour-tag {
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-brand-text);
 }
 
-.tour-title {
-  font-size: 1.25rem;
-  color: #fff;
+.tour-intro-chevron {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-text-muted);
+  transform: rotate(-90deg);
+  transition: transform 0.15s;
+}
+
+.tour-intro.collapsed .tour-intro-chevron {
+  transform: rotate(90deg);
 }
 
 .tour-text {
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-mid);
 }
 
-.tour-progress {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tour-progress-bar {
-  flex: 1;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  overflow: hidden;
-
-  & span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: #fff;
-  }
-}
-
-.tour-progress-label {
-  font-size: 0.75rem;
+.tour-learn {
+  align-self: flex-start;
+  font-size: 0.8125rem;
   font-weight: 600;
-  white-space: nowrap;
-}
-
-.tour-credit {
-  font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.6);
-
-  & a {
-    color: rgba(255, 255, 255, 0.85);
-    text-decoration: underline;
-  }
 }
 
 .tour-card {
@@ -402,10 +419,4 @@ const tourWithProgress = computed(() =>
   color: var(--color-text-muted);
 }
 
-.coming-soon {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  padding: 20px 0 4px;
-  text-align: center;
-}
 </style>

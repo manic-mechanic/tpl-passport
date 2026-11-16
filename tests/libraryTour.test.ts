@@ -9,6 +9,7 @@ import {
   legMinutes,
   legRides,
   routeProgress,
+  shortStopName,
   suggestedRoute,
   tourRoutes,
   textOnColor,
@@ -114,5 +115,14 @@ describe('tour progress', () => {
     expect(goldEarnedOn([...allByDeadline, visit(allCodes[0]!, '2027-12-01T15:00:00.000Z')])).toBe('2027-06-01')
 
     expect(goldEarnedOn(allByDeadline.slice(1))).toBeNull()
+  })
+})
+
+describe('shortStopName', () => {
+  it('drops the curb side but keeps landmarks', () => {
+    expect(shortStopName('Humberwood Blvd at Pinecone Dr North Side')).toBe('Humberwood Blvd at Pinecone Dr')
+    expect(shortStopName('Sherbourne St at Bloor St East South Side - Sherbourne Station')).toBe('Sherbourne St at Bloor St East - Sherbourne Station')
+    expect(shortStopName('Humber College Station')).toBe('Humber College Station')
+    expect(shortStopName(undefined)).toBe('')
   })
 })

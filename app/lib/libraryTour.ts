@@ -155,3 +155,10 @@ export function goldEarnedOn(checkIns: Pick<CheckIn, 'branchCode' | 'timestamp'>
   }
   return last <= LIBRARY_TOUR.endsOn ? last : null
 }
+
+// A boarding stop without its curb side, e.g. "Humberwood Blvd at Pinecone Dr
+// North Side" → "Humberwood Blvd at Pinecone Dr". Landmarks after " - " stay.
+export function shortStopName(stop: string | undefined): string {
+  if (!stop) return ''
+  return stop.replace(/\s+(North|South|East|West) Side\b/, '').trim()
+}
