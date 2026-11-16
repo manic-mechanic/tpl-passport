@@ -76,7 +76,9 @@ main {
   top: env(safe-area-inset-top);
   z-index: 10;
   margin: 0 -18px;
-  padding: 10px 16px;
+  /* Same height as PageBanner, so switching tabs doesn't shift the page */
+  padding: var(--banner-pad-top) 18px var(--banner-pad-bottom);
+  min-height: calc(var(--banner-pad-top) + var(--banner-row-height) + var(--banner-pad-bottom));
   background: var(--tpl-navy);
   display: flex;
   align-items: center;

@@ -1,12 +1,9 @@
 <template>
   <main class="page-content">
-    <div ref="stickyTopRef" class="sticky-top">
-      <header ref="pageHeaderRef" class="page-header">
-        <div>
-          <h1>My Passport</h1>
-        </div>
+    <PageBanner ref="stickyTopRef" title="My Passport">
+      <template #action>
         <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
-      </header>
+      </template>
 
       <!-- Page navigation tabs: alpha ranges + Extra Credit -->
       <nav class="page-nav" aria-label="Passport pages" role="tablist">
@@ -25,7 +22,7 @@
           Extra Credit
         </button>
       </nav>
-    </div>
+    </PageBanner>
 
     <div class="passport-book">
       <!-- Alpha pages -->
@@ -102,6 +99,7 @@
 </template>
 
 <script setup lang="ts">
+import type { ComponentPublicInstance } from 'vue'
 import type { AlphaPage, Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
@@ -121,8 +119,7 @@ const activeStamp = ref<Branch | null>(null)
 const sheetOpen = ref(false)
 watch(sheetOpen, open => { if (!open) activeStamp.value = null })
 const activePage = ref(route.query.page !== undefined ? Number(route.query.page) : 0)
-const stickyTopRef = ref<HTMLElement | null>(null)
-const pageHeaderRef = ref<HTMLElement | null>(null)
+const stickyTopRef = ref<ComponentPublicInstance | null>(null)
 const stickyHeight = ref(156)  // sticky block height — drives page-header-row top
 const pageHeaderHeight = ref(68) // h1 row height — drives sheet top edge
 
@@ -134,8 +131,12 @@ const badgeSheetHeight = computed(() =>
 )
 
 function remeasure() {
-  if (stickyTopRef.value) stickyHeight.value = stickyTopRef.value.offsetHeight
-  if (pageHeaderRef.value) pageHeaderHeight.value = pageHeaderRef.value.offsetHeight
+  const banner = stickyTopRef.value?.$el as HTMLElement | undefined
+  if (!banner) return
+  stickyHeight.value = banner.offsetHeight
+  // The navy bar alone, without the page tabs below it
+  const bar = banner.querySelector<HTMLElement>('.page-banner__bar')
+  if (bar) pageHeaderHeight.value = bar.offsetHeight
 }
 
 const badgeCtx = useBadgeCtx()
@@ -188,28 +189,6 @@ onUnmounted(() => {
 
 <style scoped>
 /* ── Sticky header block (title + tabs) ── */
-.sticky-top {
-  position: sticky;
-  top: env(safe-area-inset-top);
-  z-index: 10;
-  background: var(--tpl-navy);
-  /* Bleed to screen edges */
-  margin: 0 -18px;
-  padding: 0 18px;
-}
-
-.page-header {
-  padding: 16px 0 6px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-
-  & h1 {
-    margin-bottom: 4px;
-    color: rgba(255, 255, 255, 0.92);
-  }
-}
-
 .sub {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.55);
@@ -227,7 +206,6 @@ onUnmounted(() => {
 /* ── Page navigation tabs ── */
 .page-nav {
   display: flex;
-  margin: 0 -18px;
   padding: 0 18px;
   background: var(--color-bg);
   border-bottom: 1.5px solid var(--color-border-soft);

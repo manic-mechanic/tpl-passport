@@ -1,15 +1,12 @@
 <template>
   <main class="page-content" :class="{ 'has-browse-cta': activeTab === 'near-me' }">
     <!-- Sticky header + tabs -->
-    <div class="sticky-top">
-      <header class="page-header">
-        <div>
-          <h1>Explore</h1>
-        </div>
+    <PageBanner title="Explore">
+      <template #action>
         <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
           <IconSearch />
         </NuxtLink>
-      </header>
+      </template>
 
       <!-- Tab pills -->
       <nav class="tab-bar" role="tablist">
@@ -34,7 +31,7 @@
           Extra Credit
         </button>
       </nav>
-    </div>
+    </PageBanner>
 
     <!-- Near Me -->
     <section v-show="activeTab === 'near-me'" class="explore-section">
@@ -169,27 +166,7 @@ function openBranchSheet(branch: Branch) {
 }
 
 /* ── Sticky header block ─────────────────────────────────────────── */
-.sticky-top {
-  position: sticky;
-  top: env(safe-area-inset-top);
-  z-index: 10;
-  margin: 0 -18px;
-  background: var(--tpl-navy);
-}
-
 /* ── Page header ─────────────────────────────────────────────────── */
-.page-header {
-  padding: 14px 18px 14px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-.page-header h1 {
-  margin-bottom: 3px;
-  color: rgba(255, 255, 255, 0.92);
-}
-
 .sub {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.55);
