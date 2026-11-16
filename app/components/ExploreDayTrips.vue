@@ -7,9 +7,12 @@
       <IconMode class="mode-icon" v-html="mode.icon" />
       {{ mode.label }}
     </button>
-    <div class="mode-tab mode-tab--soon" aria-disabled="true">
-      <IconMode class="mode-icon" v-html="BIKE_CAR_ICON" />
-      Bike &amp; car soon
+    <div class="mode-tab mode-tab--soon" aria-label="Bike and car routes coming soon">
+      <span class="mode-icons" aria-hidden="true">
+        <IconMode class="mode-icon" v-html="BIKE_ICON" />
+        <IconMode class="mode-icon" v-html="CAR_ICON" />
+      </span>
+      Coming soon
     </div>
   </nav>
 
@@ -39,7 +42,7 @@
 
   <!-- Transit: the ten Your Library Tour routes -->
   <div v-else-if="activeMode === 'transit'" class="routes-list">
-    <section class="tour-intro" :class="{ collapsed: tourCardCollapsed }">
+    <section v-if="tourOn" class="tour-intro" :class="{ collapsed: tourCardCollapsed }">
       <button type="button" class="tour-intro-head" :aria-expanded="!tourCardCollapsed" @click="toggleTourCard">
         <span class="tour-tag">{{ LIBRARY_TOUR.hashtag }}</span>
         <IconChevron class="tour-intro-chevron" aria-hidden="true" />
@@ -50,8 +53,12 @@
           Visit every branch by {{ tourEndLabel }} to earn a special stamp.
         </p>
         <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener" class="tour-learn"
+           aria-label="Learn more at UofT School of Cities (opens another site)"
            @click="$posthog?.capture('tour_learn_more_tapped')"
-        >Learn more →</a>
+        >
+          Learn more at UofT School of Cities
+          <IconExternal class="tour-learn-icon" aria-hidden="true" />
+        </a>
       </template>
     </section>
 
@@ -89,7 +96,8 @@ import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
-import { LIBRARY_TOUR, formatMinutes, textOnColor, tourRoutes } from '~/lib/libraryTour'
+import { LIBRARY_TOUR, formatMinutes, isTourOn, textOnColor, tourRoutes } from '~/lib/libraryTour'
+import IconExternal from '~/components/icons/IconExternal.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
 
@@ -129,10 +137,14 @@ const routesWithProgress = computed(() =>
     })
 )
 
-const BIKE_CAR_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>'
+const BIKE_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>'
+const CAR_ICON = '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>'
 
 // ── Your Library Tour (transit) ──────────────────────────────────────
 const tourEndLabel = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
+
+// The card shows while the tour is on; the routes stay after it ends.
+const tourOn = isTourOn()
 
 // The tour card can be collapsed to its title line; remembered on this device.
 const TOUR_CARD_KEY = 'tour_card_collapsed'
@@ -211,6 +223,11 @@ const tourWithProgress = computed(() =>
 .mode-tab--soon {
   cursor: default;
   opacity: 0.5;
+}
+
+.mode-icons {
+  display: flex;
+  gap: 4px;
 }
 
 .mode-icon {
@@ -393,8 +410,16 @@ const tourWithProgress = computed(() =>
 
 .tour-learn {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.8125rem;
   font-weight: 600;
+}
+
+.tour-learn-icon {
+  width: 13px;
+  height: 13px;
 }
 
 .tour-card {

@@ -117,27 +117,16 @@ export function routeProgress(route: TourRoute, visitedCodes: ReadonlySet<string
   return { route, visited, total: route.branches.length, complete: visited === route.branches.length }
 }
 
-// The unfinished route you're furthest along on, to suggest next. null until
-// you've visited a branch on some route.
-export function suggestedRoute(visitedCodes: ReadonlySet<string>): RouteProgress | null {
-  let best: RouteProgress | null = null
-  for (const route of tourRoutes) {
-    const p = routeProgress(route, visitedCodes)
-    if (p.complete || p.visited === 0) continue
-    if (!best || p.visited > best.visited) best = p
-  }
-  return best
-}
-
 // Whether the tour is still on: logging visits toward all 100 runs through
 // LIBRARY_TOUR.endsOn, in library (Toronto) days.
 export function isTourOn(now: Date = new Date()): boolean {
   return checkInDayKey(now) <= LIBRARY_TOUR.endsOn
 }
 
-// "Go for gold": every tour branch visited by LIBRARY_TOUR.endsOn. Returns the
-// library day the last one was first visited, or null if not (yet) earned.
-export function goldEarnedOn(checkIns: Pick<CheckIn, 'branchCode' | 'timestamp'>[]): string | null {
+// Completing the #YourLibraryTour challenge: every branch first visited by
+// LIBRARY_TOUR.endsOn. Returns the library day the last one was first
+// visited, or null if not (yet) done. Shown as a postmark on Full Passport.
+export function tourCompletedOn(checkIns: Pick<CheckIn, 'branchCode' | 'timestamp'>[]): string | null {
   const firstVisit = new Map<string, string>()
   for (const ci of checkIns) {
     const day = checkInDayKey(ci.timestamp)

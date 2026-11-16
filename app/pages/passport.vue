@@ -80,7 +80,6 @@
           </div>
         </div>
         <BadgesSection :sheet-height="badgeSheetHeight" />
-        <TourBadgesSection />
 
         <nav class="page-turner" aria-label="Navigate pages">
           <button class="turner-btn prev" @click="goToPage(EXTRA_CREDIT_IDX - 1)">

@@ -3,16 +3,15 @@ import { physicalBranches } from '../app/composables/useRegion'
 import {
   formatMinutes,
   getTourRoute,
-  goldEarnedOn,
   isTourOn,
   isTourReferral,
   legMinutes,
   legRides,
   routeProgress,
   shortStopName,
-  suggestedRoute,
   tourRoutes,
   textOnColor,
+  tourCompletedOn,
   transitDirectionsUrl,
 } from '../app/lib/libraryTour'
 
@@ -90,31 +89,25 @@ describe('tour progress', () => {
     expect(routeProgress(route1, new Set(route1.branches)).complete).toBe(true)
   })
 
-  it('suggests the unfinished route you are furthest along on', () => {
-    expect(suggestedRoute(new Set())).toBeNull()
-    const route2 = tourRoutes[1]!
-    const visited = new Set([...route1.branches, ...route2.branches.slice(0, 2), tourRoutes[2]!.branches[0]!])
-    expect(suggestedRoute(visited)?.route.id).toBe(route2.id)
-  })
 
   it('is on through the last day, in Toronto time', () => {
     expect(isTourOn(new Date('2027-11-01T03:59:00Z'))).toBe(true) // Oct 31, 11:59pm EDT
     expect(isTourOn(new Date('2027-11-01T04:01:00Z'))).toBe(false)
   })
 
-  it('awards gold for all 100 branches by the end date', () => {
+  it('counts the challenge complete when all 100 branches are visited by the end date', () => {
     const visit = (code: string, timestamp: string) => ({ branchCode: code, timestamp })
     const allByDeadline = allCodes.map(c => visit(c, '2027-06-01T15:00:00.000Z'))
-    expect(goldEarnedOn(allByDeadline)).toBe('2027-06-01')
+    expect(tourCompletedOn(allByDeadline)).toBe('2027-06-01')
 
-    // The last new branch after the deadline: no gold, even with a later repeat visit
+    // The last new branch after the deadline: not complete, even with a later repeat visit
     const lastLate = [...allByDeadline.slice(1), visit(allCodes[0]!, '2027-11-02T15:00:00.000Z')]
-    expect(goldEarnedOn(lastLate)).toBeNull()
+    expect(tourCompletedOn(lastLate)).toBeNull()
 
-    // A repeat visit after the deadline doesn't undo gold
-    expect(goldEarnedOn([...allByDeadline, visit(allCodes[0]!, '2027-12-01T15:00:00.000Z')])).toBe('2027-06-01')
+    // A repeat visit after the deadline doesn't undo it
+    expect(tourCompletedOn([...allByDeadline, visit(allCodes[0]!, '2027-12-01T15:00:00.000Z')])).toBe('2027-06-01')
 
-    expect(goldEarnedOn(allByDeadline.slice(1))).toBeNull()
+    expect(tourCompletedOn(allByDeadline.slice(1))).toBeNull()
   })
 })
 

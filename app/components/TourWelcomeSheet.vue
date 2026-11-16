@@ -4,12 +4,13 @@
       <p class="welcome-tag">{{ LIBRARY_TOUR.hashtag }}</p>
       <h2 class="welcome-title">Welcome to TPL Passport</h2>
       <p class="welcome-text">
-        TPL Passport is a free companion to <strong>Next Stop: Your Library Tour</strong>.
+        TPL Passport is a free companion to
+        <strong class="welcome-event">Next Stop: Your Library Tour</strong>
       </p>
       <ul class="welcome-points">
-        <li>Collect stamps for visiting branches, and watch your passport fill up.</li>
-        <li>Suggested routes are on the Explore tab, with TTC directions between stops.</li>
-        <li>Visit every branch by {{ endLabel }} to complete the {{ LIBRARY_TOUR.hashtag }} challenge.</li>
+        <li>Visit branches, collect stamps, and see your passport fill up.</li>
+        <li>Plan your trip with routes designed by School of Cities.</li>
+        <li>Visit every location by {{ endLabel }} to complete the {{ LIBRARY_TOUR.hashtag }} challenge.</li>
       </ul>
       <button type="button" class="welcome-primary" @click="close('dismissed')">
         Start exploring
@@ -22,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { LIBRARY_TOUR, isTourReferral } from '~/lib/libraryTour'
+import { LIBRARY_TOUR, isTourOn, isTourReferral } from '~/lib/libraryTour'
 
 // Shown once to people who arrive from the Your Library Tour event page.
 const SEEN_KEY = 'tour_welcome_seen'
@@ -71,7 +72,7 @@ onMounted(async () => {
     await router.replace({ query })
   }
 
-  if (readSeen()) return
+  if (readSeen() || !isTourOn()) return
   // After the passport cover animation (app.vue)
   setTimeout(() => { open.value = true }, 1000)
 })
@@ -101,6 +102,11 @@ onMounted(async () => {
   font-size: 0.9375rem;
   line-height: 1.5;
   color: var(--color-text-mid);
+}
+
+.welcome-event {
+  display: block;
+  white-space: nowrap;
 }
 
 .welcome-points {
