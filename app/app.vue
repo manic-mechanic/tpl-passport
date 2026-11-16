@@ -4,6 +4,7 @@
     <div class="status-bar-fill" aria-hidden="true" />
     <NuxtPage />
     <BottomNav />
+    <TourWelcomeSheet />
 
     <!-- Passport cover loading screen -->
     <Transition name="cover">

@@ -33,6 +33,55 @@
     </NuxtLink>
   </div>
 
+  <!-- Transit: the ten Your Library Tour routes -->
+  <div v-else-if="activeMode === 'transit'" class="routes-list">
+    <section class="tour-intro">
+      <p class="tour-tag">{{ LIBRARY_TOUR.hashtag }}</p>
+      <h2 class="tour-title">Next Stop: Your Library Tour</h2>
+      <p class="tour-text">
+        Ten transit routes of ten branches each, covering all 100. Take one in a day, mix and match,
+        or go for gold and visit every branch by {{ tourEndLabel }}.
+      </p>
+      <div class="tour-progress" aria-label="Branches visited">
+        <div class="tour-progress-bar">
+          <span :style="{ width: `${Math.round(passport.visitCount / tourBranchTotal * 100)}%` }" />
+        </div>
+        <span class="tour-progress-label">{{ passport.visitCount }} of {{ tourBranchTotal }} branches</span>
+      </div>
+      <p class="tour-credit">
+        Routes by the
+        <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener">School of Cities, University of Toronto</a>
+      </p>
+    </section>
+
+    <NuxtLink v-for="tour in tourWithProgress" :key="tour.id" :to="`/tour/${tour.id}`"
+              class="route-card tour-card" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }"
+              @click="$posthog?.capture('tour_route_tapped', { route_id: tour.id, route_name: tour.title, visited: tour.visited, total: tour.total })"
+    >
+      <div class="route-meta-row">
+        <span class="tour-chip">Route {{ tour.id }}</span>
+        <span class="route-info">{{ formatMinutes(tour.travelMin) }} · {{ tour.rides }} rides</span>
+        <IconChevron class="route-chevron" />
+      </div>
+      <p class="route-name">{{ tour.title }}</p>
+      <p class="tour-visited">
+        <template v-if="tour.visited === tour.total">All {{ tour.total }} visited</template>
+        <template v-else>{{ tour.visited }} of {{ tour.total }} visited</template>
+      </p>
+      <div class="route-stamps">
+        <div v-for="b in tour.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
+          <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
+            <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
+          </div>
+          <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
+        </div>
+        <div v-if="tour.branchObjects.length > 4" class="route-overflow">
+          +{{ tour.branchObjects.length - 4 }}<br>More
+        </div>
+      </div>
+    </NuxtLink>
+  </div>
+
   <!-- Stubbed modes -->
   <p v-else class="coming-soon">
     {{ MODES.find(m => m.id === activeMode)?.label }} routes coming soon.
@@ -44,6 +93,7 @@ import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
+import { LIBRARY_TOUR, formatMinutes, textOnColor, tourRoutes } from '~/lib/libraryTour'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
 
@@ -53,7 +103,9 @@ const passport = usePassportStore()
 
 type TransportMode = 'walk' | 'bike' | 'transit' | 'drive'
 
-const activeMode = ref<TransportMode>('walk')
+// ?mode=transit opens on the tour routes (links from the welcome sheet and route pages)
+const route = useRoute()
+const activeMode = ref<TransportMode>(route.query.mode === 'transit' ? 'transit' : 'walk')
 
 watch(activeMode, (mode) => {
   $posthog?.capture('transport_mode_changed', { mode })
@@ -89,6 +141,17 @@ const routesWithProgress = computed(() =>
     })
 )
 
+// ── Your Library Tour (transit) ──────────────────────────────────────
+const tourBranchTotal = tourRoutes.reduce((n, r) => n + r.branches.length, 0)
+const tourEndLabel = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`).toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })
+
+const tourWithProgress = computed(() =>
+  tourRoutes.map((r) => {
+    const branchObjects = r.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
+    const visited = branchObjects.filter(b => passport.hasVisited(b.BranchCode)).length
+    return { ...r, branchObjects, visited, total: branchObjects.length }
+  })
+)
 </script>
 
 <style scoped>
@@ -260,6 +323,94 @@ const routesWithProgress = computed(() =>
   color: var(--color-text-muted);
   text-align: center;
   line-height: 1.4;
+}
+
+/* ── Your Library Tour ───────────────────────────────────────────── */
+.tour-intro {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--tpl-navy);
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tour-tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tour-title {
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.tour-text {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tour-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tour-progress-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+
+  & span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #fff;
+  }
+}
+
+.tour-progress-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tour-credit {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.6);
+
+  & a {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: underline;
+  }
+}
+
+.tour-card {
+  border-left: 4px solid var(--route-color);
+}
+
+.tour-chip {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--route-on);
+  background: var(--route-color);
+  border-radius: 999px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+.tour-visited {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .coming-soon {

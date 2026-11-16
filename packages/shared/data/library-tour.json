@@ -1,0 +1,2674 @@
+{
+ "name": "Next Stop: Your Library Tour",
+ "hashtag": "#YourLibraryTour",
+ "by": "School of Cities, University of Toronto",
+ "url": "https://schoolofcities.utoronto.ca/opportunities/next-stop-your-library-tour/",
+ "endsOn": "2027-10-31",
+ "routes": [
+  {
+   "id": 1,
+   "title": "Humberwood to Mimico Centennial",
+   "color": "#1E3765",
+   "walkKm": 4.4,
+   "travelMin": 184,
+   "rides": 15,
+   "branches": [
+    "HW",
+    "AB",
+    "RX",
+    "NE",
+    "EB",
+    "EA",
+    "AD",
+    "LB",
+    "NT",
+    "MI"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 46
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "996",
+      "lineName": "996 Wilson Express",
+      "fromStop": "Humberwood Blvd at Pinecone Dr North Side",
+      "toStop": "Humber College Blvd at Highway 27"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 105
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 9,
+      "line": "6",
+      "lineName": "Line 6 Finch West",
+      "fromStop": "Humber College Station",
+      "toStop": "Albion Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 440
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 433
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "45",
+      "lineName": "45 Kipling",
+      "fromStop": "Kipling Ave at Albion Rd South Side",
+      "toStop": "Kipling Ave at Hinton Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 81
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 150
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "45",
+      "lineName": "45 Kipling",
+      "fromStop": "Kipling Ave at Hinton Rd",
+      "toStop": "Kipling Ave at Rexdale Blvd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 108
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 189
+     },
+     {
+      "mode": "BUS",
+      "minutes": 12,
+      "line": "45",
+      "lineName": "45 Kipling",
+      "fromStop": "Kipling Ave at Rexdale Blvd",
+      "toStop": "Kipling Ave at Eglinton Ave West"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 63
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "32",
+      "lineName": "32 Eglinton West",
+      "fromStop": "Eglinton Ave West at Kipling Ave",
+      "toStop": "Renforth Station at Bus Bay 6"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 168
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "112",
+      "lineName": "112 West Mall",
+      "fromStop": "Renforth Station at Bus Bay 3",
+      "toStop": "Eringate Dr at Wellesworth Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 305
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 319
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "112",
+      "lineName": "112 West Mall",
+      "fromStop": "Eringate Dr at Wellesworth Dr",
+      "toStop": "The West Mall at Burnhamthorpe Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 44
+     },
+     {
+      "mode": "BUS",
+      "minutes": 2,
+      "line": "50",
+      "lineName": "50 Burnhamthorpe",
+      "fromStop": "Burnhamthorpe Rd at The West Mall",
+      "toStop": "Burnhamthorpe Rd at The East Mall"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 30
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 117
+     },
+     {
+      "mode": "BUS",
+      "minutes": 10,
+      "line": "111",
+      "lineName": "111 East Mall",
+      "fromStop": "The East Mall at Burnhamthorpe Rd South Side",
+      "toStop": "Dundas St West at Acorn Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 93
+     },
+     {
+      "mode": "BUS",
+      "minutes": 23,
+      "line": "123",
+      "lineName": "123 Sherway",
+      "fromStop": "Dundas St West at Acorn Ave",
+      "toStop": "Brown's Line at Horner Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 280
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 359
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "123",
+      "lineName": "123 Sherway",
+      "fromStop": "Brown's Line at Horner Ave",
+      "toStop": "Long Branch Loop - Long Branch GO Station"
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 5,
+      "line": "507",
+      "lineName": "507 Long Branch",
+      "fromStop": "Long Branch Loop - Long Branch GO Station",
+      "toStop": "Lake Shore Blvd West at Thirty First St"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 118
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 150
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 6,
+      "line": "507",
+      "lineName": "507 Long Branch",
+      "fromStop": "Lake Shore Blvd West at Thirty First St",
+      "toStop": "Lake Shore Blvd West at Thirteenth St"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 156
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 188
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 9,
+      "line": "507",
+      "lineName": "507 Long Branch",
+      "fromStop": "Lake Shore Blvd West at Tenth St",
+      "toStop": "Lake Shore Blvd West at Superior Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 7,
+      "meters": 478
+     }
+    ]
+   ]
+  },
+  {
+   "id": 2,
+   "title": "Humber Summit to Bloor/Gladstone",
+   "color": "#007FA3",
+   "walkKm": 5.0,
+   "travelMin": 194,
+   "rides": 15,
+   "branches": [
+    "HS",
+    "WP",
+    "RI",
+    "BR",
+    "HB",
+    "SW",
+    "RN",
+    "HP",
+    "PK",
+    "BL"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 250
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "166",
+      "lineName": "166 Toryork",
+      "fromStop": "Millwick Dr at Plunkett Rd",
+      "toStop": "Toryork Dr at Weston Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 65
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "165",
+      "lineName": "165 Weston Rd North",
+      "fromStop": "Weston Rd at Toryork Dr",
+      "toStop": "Weston Rd at Coronado Crt"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 109
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 180
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "165",
+      "lineName": "165 Weston Rd North",
+      "fromStop": "Weston Rd at Coronado Crt",
+      "toStop": "Weston Rd at Finch Ave West"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 84
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 9,
+      "line": "6",
+      "lineName": "Line 6 Finch West",
+      "fromStop": "Emery Station",
+      "toStop": "Rowntree Mills Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 83
+     },
+     {
+      "mode": "BUS",
+      "minutes": 21,
+      "line": "37",
+      "lineName": "37 Islington",
+      "fromStop": "Islington Ave at Finch Ave West South Side",
+      "toStop": "Islington Ave at Summitcrest Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 48
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 144
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "37",
+      "lineName": "37 Islington",
+      "fromStop": "Islington Ave at Summitcrest Dr",
+      "toStop": "Aberfoyle Cres at Islington Ave - Islington Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 12,
+      "meters": 838
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 177
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "149",
+      "lineName": "149 Etobicoke-Bloor",
+      "fromStop": "Bloor St West at Thompson Ave West Side",
+      "toStop": "Bloor St West at Prince Edward Dr South"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 73
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "66",
+      "lineName": "66 Prince Edward",
+      "fromStop": "Prince Edward Dr South at Bloor St West South Side",
+      "toStop": "Park Lawn Rd at Lorne Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 21
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 315
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "80",
+      "lineName": "80 Queensway",
+      "fromStop": "The Queensway at Park Lawn Rd East Side",
+      "toStop": "The Queensway at Ellis Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 435
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "77",
+      "lineName": "77 Swansea",
+      "fromStop": "Windermere Pl at Windermere Ave",
+      "toStop": "Runnymede Rd at Deforest Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 244
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 12,
+      "meters": 813
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 144
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 5,
+      "line": "2",
+      "lineName": "Line 2 (Bloor - Danforth)",
+      "fromStop": "Runnymede Station",
+      "toStop": "Dundas West Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 215
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 10,
+      "line": "504",
+      "lineName": "504 King",
+      "fromStop": "Dundas West Station",
+      "toStop": "Roncesvalles Ave at High Park Blvd South Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 92
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 96
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 4,
+      "line": "504",
+      "lineName": "504 King",
+      "fromStop": "Roncesvalles Ave at High Park Blvd South Side",
+      "toStop": "Roncesvalles Ave at Queen St West"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 142
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 7,
+      "line": "501",
+      "lineName": "501 Queen",
+      "fromStop": "Queen St West at Roncesvalles Ave East Side",
+      "toStop": "Queen St West at Brock Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 2
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 396
+     },
+     {
+      "mode": "BUS",
+      "minutes": 11,
+      "line": "929",
+      "lineName": "929 Dufferin Express",
+      "fromStop": "Dufferin St at Queen St West",
+      "toStop": "Dufferin St at Bloor St West - Dufferin Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 47
+     }
+    ]
+   ]
+  },
+  {
+   "id": 3,
+   "title": "York Woods to Wychwood",
+   "color": "#6D247A",
+   "walkKm": 4.7,
+   "travelMin": 150,
+   "rides": 13,
+   "branches": [
+    "YW",
+    "JS",
+    "BC",
+    "WE",
+    "MD",
+    "EG",
+    "SI",
+    "DU",
+    "DT",
+    "WY"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 201
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 6,
+      "line": "6",
+      "lineName": "Line 6 Finch West",
+      "fromStop": "Tobermory Station",
+      "toStop": "Norfinch Oakdale Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 141
+     },
+     {
+      "mode": "BUS",
+      "minutes": 10,
+      "line": "84",
+      "lineName": "84 Sheppard West",
+      "fromStop": "Norfinch Dr at Finch Ave West",
+      "toStop": "Sheppard Ave West at Magellan Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 40
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 392
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "35",
+      "lineName": "35 Jane",
+      "fromStop": "Jane St at Sheppard Ave West",
+      "toStop": "Jane St at William Cragg Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 363
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 397
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "935",
+      "lineName": "935 Jane Express",
+      "fromStop": "Jane St at Wilson Ave South Side",
+      "toStop": "Jane St at Lawrence Ave West"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 76
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "52",
+      "lineName": "52 Lawrence West",
+      "fromStop": "Lawrence Ave West at Jane St",
+      "toStop": "Lawrence Ave West at Little Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 327
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 174
+     },
+     {
+      "mode": "BUS",
+      "minutes": 11,
+      "line": "89",
+      "lineName": "89 Weston",
+      "fromStop": "Weston Rd at Little Ave",
+      "toStop": "Eglinton Ave West at Weston Rd East Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 59
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 242
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "89",
+      "lineName": "89 Weston",
+      "fromStop": "Weston Rd at Eglinton Ave West",
+      "toStop": "Weston Rd at Humber Blvd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 65
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "168",
+      "lineName": "168 Symington",
+      "fromStop": "Black Creek Dr at Weston Rd",
+      "toStop": "Rogers Rd at Keele St"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 8,
+      "meters": 537
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 8,
+      "meters": 546
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "168",
+      "lineName": "168 Symington",
+      "fromStop": "Rogers Rd at Keele St",
+      "toStop": "Old Weston Rd at St Clair Ave West"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 148
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 134
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 11,
+      "line": "512",
+      "lineName": "512 St Clair",
+      "fromStop": "St Clair Ave West at Hounslow Heath Rd",
+      "toStop": "St Clair Ave West at Dufferin St East Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 148
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 7,
+      "meters": 497
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "127",
+      "lineName": "127 Davenport",
+      "fromStop": "Davenport Rd at Dufferin St",
+      "toStop": "Davenport Rd at Shaw St"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 13
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 41
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "127",
+      "lineName": "127 Davenport",
+      "fromStop": "Davenport Rd at Shaw St",
+      "toStop": "Davenport Rd at Bathurst St"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 53
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "7",
+      "lineName": "7 Bathurst",
+      "fromStop": "Bathurst St at Davenport Rd",
+      "toStop": "Bathurst Street at St Clair Ave West"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 101
+     }
+    ]
+   ]
+  },
+  {
+   "id": 4,
+   "title": "Downsview to Taylor Memorial",
+   "color": "#AB1368",
+   "walkKm": 3.6,
+   "travelMin": 170,
+   "rides": 14,
+   "branches": [
+    "DO",
+    "AP",
+    "OV",
+    "MAS",
+    "FP",
+    "TH",
+    "TOD",
+    "SWS",
+    "DA",
+    "TA"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 56
+     },
+     {
+      "mode": "BUS",
+      "minutes": 10,
+      "line": "41",
+      "lineName": "41 Keele",
+      "fromStop": "Keele St at Victory Dr",
+      "toStop": "Keele St at Lawrence Ave West"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 81
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "952",
+      "lineName": "952 Lawrence West Express",
+      "fromStop": "Lawrence Ave West at Keele St",
+      "toStop": "Lawrence Ave West at Culford Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 146
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 155
+     },
+     {
+      "mode": "BUS",
+      "minutes": 15,
+      "line": "52",
+      "lineName": "52 Lawrence West",
+      "fromStop": "Lawrence Ave West at Culford Rd East Side",
+      "toStop": "Lawrence West Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 155
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 3,
+      "line": "1",
+      "lineName": "Line 1 (Yonge-University)",
+      "fromStop": "Lawrence West Station",
+      "toStop": "Cedarvale Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 54
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "63",
+      "lineName": "63 Ossington",
+      "fromStop": "Cedarvale Station",
+      "toStop": "Oakwood Ave at Rogers Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 43
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 72
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "63",
+      "lineName": "63 Ossington",
+      "fromStop": "Oakwood Ave at Rogers Rd",
+      "toStop": "Oakwood Ave at Eglinton Ave West"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 407
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 195
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 26,
+      "line": "5",
+      "lineName": "Line 5 Eglinton",
+      "fromStop": "Fairbank Station",
+      "toStop": "Wynford Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 155
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "100",
+      "lineName": "100 Flemingdon Park",
+      "fromStop": "195-205-215 Wynford Dr",
+      "toStop": "Deauville Lane at St Dennis Dr South Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 66
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 26
+     },
+     {
+      "mode": "BUS",
+      "minutes": 13,
+      "line": "403",
+      "lineName": "403 South Don Mills",
+      "fromStop": "St Dennis Dr at Deauville Lane",
+      "toStop": "44 Thorncliffe Park Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 69
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 162
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "72",
+      "lineName": "72 Pape",
+      "fromStop": "44 Thorncliffe Park Dr",
+      "toStop": "Pape Ave at O'Connor Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 217
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 292
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "87",
+      "lineName": "87 Cosburn",
+      "fromStop": "Cosburn Ave at Pape Ave",
+      "toStop": "Cosburn Ave at Roosevelt Rd East Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 206
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 290
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "70",
+      "lineName": "70 O'Connor",
+      "fromStop": "Coxwell Ave at Memorial Park Ave South Side",
+      "toStop": "Coxwell Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 192
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 361
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 6,
+      "line": "2",
+      "lineName": "Line 2 (Bloor - Danforth)",
+      "fromStop": "Coxwell Station",
+      "toStop": "Victoria Park Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 160
+     },
+     {
+      "mode": "BUS",
+      "minutes": 11,
+      "line": "12",
+      "lineName": "12 Kingston Rd",
+      "fromStop": "Victoria Park Station",
+      "toStop": "Kingston Rd at Warden Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 39
+     }
+    ]
+   ]
+  },
+  {
+   "id": 5,
+   "title": "College/Shaw to Leaside",
+   "color": "#0D534D",
+   "walkKm": 4.1,
+   "travelMin": 135,
+   "rides": 13,
+   "branches": [
+    "CS",
+    "LS",
+    "TRL",
+    "DP",
+    "ND",
+    "FH",
+    "BF",
+    "LO",
+    "MP",
+    "LE"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 154
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 9,
+      "line": "506",
+      "lineName": "506 Carlton",
+      "fromStop": "College St at Crawford St",
+      "toStop": "College St at Spadina Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 96
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 201
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 7,
+      "line": "506",
+      "lineName": "506 Carlton",
+      "fromStop": "Spadina Ave at College St North Side",
+      "toStop": "Spadina Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 53
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 5,
+      "line": "2",
+      "lineName": "Line 2 (Bloor - Danforth)",
+      "fromStop": "Spadina Station",
+      "toStop": "Yonge Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 310
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 407
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 4,
+      "line": "1",
+      "lineName": "Line 1 (Yonge-University)",
+      "fromStop": "Bloor Station",
+      "toStop": "St Clair Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 115
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 116
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 4,
+      "line": "1",
+      "lineName": "Line 1 (Yonge-University)",
+      "fromStop": "St Clair Station",
+      "toStop": "Eglinton Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 280
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 309
+     },
+     {
+      "mode": "BUS",
+      "minutes": 11,
+      "line": "34",
+      "lineName": "34 Eglinton",
+      "fromStop": "Eglinton Ave West at Yonge St West Side",
+      "toStop": "Eglinton Ave West at Vesta Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 16
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 451
+     },
+     {
+      "mode": "BUS",
+      "minutes": 9,
+      "line": "7",
+      "lineName": "7 Bathurst",
+      "fromStop": "Bathurst St at Eglinton Ave West North Side",
+      "toStop": "Bathurst St at Douglas Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 173
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 395
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "52",
+      "lineName": "52 Lawrence West",
+      "fromStop": "Lawrence Ave West at Glenmount Ave",
+      "toStop": "Lawrence Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 66
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 84
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 5,
+      "line": "1",
+      "lineName": "Line 1 (Yonge-University)",
+      "fromStop": "Lawrence Station",
+      "toStop": "Davisville Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 200
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "28",
+      "lineName": "28 Bayview South",
+      "fromStop": "Davisville Station",
+      "toStop": "Davisville Ave at Mt Pleasant Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 299
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 198
+     },
+     {
+      "mode": "BUS",
+      "minutes": 2,
+      "line": "74",
+      "lineName": "74 Mount Pleasant",
+      "fromStop": "Mt Pleasant Rd at Manor Rd East",
+      "toStop": "Eglinton Ave East at Mt Pleasant Rd West Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 50
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 4,
+      "line": "5",
+      "lineName": "Line 5 Eglinton",
+      "fromStop": "Mount Pleasant Station",
+      "toStop": "Laird Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 56
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "88",
+      "lineName": "88 South Leaside",
+      "fromStop": "Laird Dr at Parklea Dr South Side",
+      "toStop": "McRae Dr at Rumsey Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 103
+     }
+    ]
+   ]
+  },
+  {
+   "id": 6,
+   "title": "Daniel G. Hill to St. James Town",
+   "color": "#00A189",
+   "walkKm": 4.2,
+   "travelMin": 152,
+   "rides": 13,
+   "branches": [
+    "DGH",
+    "AN",
+    "JT",
+    "PM",
+    "SP",
+    "SA",
+    "FO",
+    "CH",
+    "YO",
+    "SJ"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 38
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "40",
+      "lineName": "40 Junction-Dundas West",
+      "fromStop": "Dundas St West at Jane St",
+      "toStop": "Dundas St West at Pacific Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 361
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 34
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "26",
+      "lineName": "26 Dupont",
+      "fromStop": "Annette St at Medland St",
+      "toStop": "Dupont St at Symington Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 167
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 335
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 4,
+      "line": "512",
+      "lineName": "512 St Clair",
+      "fromStop": "Symington Ave at Antler St",
+      "toStop": "Lansdowne Ave at Wade Ave - Lansdowne Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 79
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 6,
+      "line": "2",
+      "lineName": "Line 2 (Bloor - Danforth)",
+      "fromStop": "Lansdowne Station",
+      "toStop": "Bathurst Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 330
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 375
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 2,
+      "line": "2",
+      "lineName": "Line 2 (Bloor - Danforth)",
+      "fromStop": "Bathurst Station",
+      "toStop": "Spadina Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 122
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 191
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 6,
+      "line": "1",
+      "lineName": "Line 1 (Yonge-University)",
+      "fromStop": "Spadina Station",
+      "toStop": "St Patrick Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 146
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 11,
+      "line": "505",
+      "lineName": "505 Dundas",
+      "fromStop": "Dundas St West at University Ave - St Patrick Station",
+      "toStop": "Dundas St West at Bathurst St - Toronto Western Hospital"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 30
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 152
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 12,
+      "line": "511",
+      "lineName": "511 Bathurst",
+      "fromStop": "Bathurst St at Dundas St West - Toronto Western Hospital",
+      "toStop": "Bathurst St at Fort York Blvd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 64
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 394
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 15,
+      "line": "509",
+      "lineName": "509 Harbourfront",
+      "fromStop": "Fleet St at Bathurst St",
+      "toStop": "Union Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 85
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 3,
+      "line": "1",
+      "lineName": "Line 1 (Yonge-University)",
+      "fromStop": "Union Station",
+      "toStop": "Queen Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 411
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 185
+     },
+     {
+      "mode": "BUS",
+      "minutes": 12,
+      "line": "19",
+      "lineName": "19 Bay",
+      "fromStop": "Bay St at Albert St",
+      "toStop": "Bay St at Cumberland St - Bay Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 227
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 334
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 3,
+      "line": "2",
+      "lineName": "Line 2 (Bloor - Danforth)",
+      "fromStop": "Bay Station",
+      "toStop": "Sherbourne Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 109
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "75",
+      "lineName": "75 Sherbourne",
+      "fromStop": "Sherbourne St at Bloor St East South Side - Sherbourne Station",
+      "toStop": "Sherbourne St at Wellesley St East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 41
+     }
+    ]
+   ]
+  },
+  {
+   "id": 7,
+   "title": "Centennial to Malvern",
+   "color": "#DC4633",
+   "walkKm": 6.1,
+   "travelMin": 181,
+   "rides": 17,
+   "branches": [
+    "CE",
+    "AH",
+    "CL",
+    "EN",
+    "HIL",
+    "ST",
+    "GHP",
+    "WS",
+    "BUR",
+    "MAL"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 9,
+      "meters": 634
+     },
+     {
+      "mode": "BUS",
+      "minutes": 13,
+      "line": "160",
+      "lineName": "160 Bathurst North",
+      "fromStop": "Bathurst St at Finch Ave West South Side",
+      "toStop": "340 Wilson Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 55
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "96",
+      "lineName": "96 Wilson",
+      "fromStop": "379 Wilson Ave",
+      "toStop": "Wilson Ave at Avenue Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 68
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 74
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "96",
+      "lineName": "96 Wilson",
+      "fromStop": "Wilson Ave at Avenue Rd",
+      "toStop": "Wilson Ave at Yonge St"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 132
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 5,
+      "line": "1",
+      "lineName": "Line 1 (Yonge-University)",
+      "fromStop": "York Mills Station",
+      "toStop": "North York Centre Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 302
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 302
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 1,
+      "line": "1",
+      "lineName": "Line 1 (Yonge-University)",
+      "fromStop": "North York Centre Station",
+      "toStop": "Sheppard-Yonge Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 148
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 4,
+      "line": "4",
+      "lineName": "Line 4 (Sheppard)",
+      "fromStop": "Sheppard-Yonge Station",
+      "toStop": "Bessarion Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 118
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 217
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 1,
+      "line": "4",
+      "lineName": "Line 4 (Sheppard)",
+      "fromStop": "Bessarion Station",
+      "toStop": "Leslie Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 106
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "151",
+      "lineName": "151 Leslie North",
+      "fromStop": "Leslie St at Sheppard Ave East",
+      "toStop": "Leslie St at Clansman Blvd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 119
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 7,
+      "meters": 517
+     },
+     {
+      "mode": "BUS",
+      "minutes": 13,
+      "line": "42",
+      "lineName": "42 Cummer",
+      "fromStop": "Cummer Ave at Leslie St",
+      "toStop": "McNicoll Ave at Warden Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 103
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "68",
+      "lineName": "68 Warden",
+      "fromStop": "Warden Ave at McNicoll Ave North Side",
+      "toStop": "3325 Warden Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 234
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 237
+     },
+     {
+      "mode": "BUS",
+      "minutes": 1,
+      "line": "68",
+      "lineName": "68 Warden",
+      "fromStop": "Warden Ave at Bamburgh Cir (North)",
+      "toStop": "Warden Ave at Steeles Ave East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 62
+     },
+     {
+      "mode": "BUS",
+      "minutes": 12,
+      "line": "53",
+      "lineName": "53 Steeles East",
+      "fromStop": "Steeles Ave East at Warden Ave",
+      "toStop": "Steeles Ave East at Strawberry Hills Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 10,
+      "meters": 686
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 7,
+      "meters": 471
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "129",
+      "lineName": "129 McCowan North",
+      "fromStop": "McCowan Rd at Milliken Wells Shopping Centre",
+      "toStop": "McCowan Rd at Sandhurst Cir (North)"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 401
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 440
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "939",
+      "lineName": "939 Finch Express",
+      "fromStop": "Finch Ave East at McCowan Rd",
+      "toStop": "McCowan Rd at Sheppard Ave East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 50
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "985",
+      "lineName": "985 Sheppard East Express",
+      "fromStop": "Sheppard Ave East at McCowan Rd",
+      "toStop": "Sheppard Ave East at Progress Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 184
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 269
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "985",
+      "lineName": "985 Sheppard East Express",
+      "fromStop": "Sheppard Ave East at Progress Ave",
+      "toStop": "Sheppard Ave East at Breckon Gate"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 122
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "132",
+      "lineName": "132 Milner",
+      "fromStop": "Breckon Gate at Sheppard Ave East",
+      "toStop": "Brenyon Way at Sewells Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 92
+     }
+    ]
+   ]
+  },
+  {
+   "id": 8,
+   "title": "Eglinton Square to Brookbanks",
+   "color": "#EBA00F",
+   "walkKm": 6.1,
+   "travelMin": 178,
+   "rides": 14,
+   "branches": [
+    "ES",
+    "VV",
+    "DM",
+    "FV",
+    "PV",
+    "BRW",
+    "AG",
+    "MCG",
+    "MRV",
+    "BB"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 136
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "24",
+      "lineName": "24 Victoria Park",
+      "fromStop": "Victoria Park Ave at Eglinton Sq",
+      "toStop": "Victoria Park Ave at Surrey Ave North Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 111
+     },
+     {
+      "mode": "BUS",
+      "minutes": 1,
+      "line": "91",
+      "lineName": "91 Woodbine",
+      "fromStop": "Sweeney Dr at Victoria Park Ave West Side",
+      "toStop": "Sloane Ave at Sweeney Dr South Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 38
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 146
+     },
+     {
+      "mode": "BUS",
+      "minutes": 3,
+      "line": "91",
+      "lineName": "91 Woodbine",
+      "fromStop": "Sweeney Dr at Sloane Ave West Side",
+      "toStop": "Carnforth Rd at Lawrence Ave East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 84
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "54",
+      "lineName": "54 Lawrence East",
+      "fromStop": "Lawrence Ave East at Carnforth Rd",
+      "toStop": "Don Mills Rd at Lawrence Ave East South Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 445
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 7,
+      "meters": 469
+     },
+     {
+      "mode": "BUS",
+      "minutes": 12,
+      "line": "25",
+      "lineName": "25 Don Mills",
+      "fromStop": "Don Mills Rd at Lawrence Ave East",
+      "toStop": "Don Mills Rd at Sheppard Ave East North Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 7,
+      "meters": 471
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 315
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "169",
+      "lineName": "169 Huntingwood",
+      "fromStop": "Don Mills Rd at Fairview Mall Dr North Side",
+      "toStop": "Van Horne Ave at Bickerton Cres"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 133
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 135
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "169",
+      "lineName": "169 Huntingwood",
+      "fromStop": "Van Horne Ave at Bickerton Cres",
+      "toStop": "Huntingwood Dr at Warden Ave East Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 83
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "68",
+      "lineName": "68 Warden",
+      "fromStop": "Warden Ave at Huntingwood Dr",
+      "toStop": "Opposite 2900 Warden Ave - Bridlewood Mall"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 288
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 9,
+      "meters": 622
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "939",
+      "lineName": "939 Finch Express",
+      "fromStop": "Finch Ave East at Warden Ave",
+      "toStop": "Finch Ave East at Kennedy Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 59
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "43",
+      "lineName": "43 Kennedy",
+      "fromStop": "Kennedy Rd at Finch Ave East",
+      "toStop": "Kennedy Rd at Bonis Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 360
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 8,
+      "meters": 592
+     },
+     {
+      "mode": "BUS",
+      "minutes": 12,
+      "line": "17",
+      "lineName": "17 Birchmount",
+      "fromStop": "Birchmount Rd at Bay Mills Blvd",
+      "toStop": "Birchmount Rd at Lawrence Ave East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 374
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 201
+     },
+     {
+      "mode": "BUS",
+      "minutes": 13,
+      "line": "54",
+      "lineName": "54 Lawrence East",
+      "fromStop": "2216 Lawrence Ave East",
+      "toStop": "Lawrence Ave East at Victoria Park Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 95
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "924",
+      "lineName": "924 Victoria Park Express",
+      "fromStop": "Victoria Park Ave at Lawrence Ave East",
+      "toStop": "Victoria Park Ave at Parkwoods Village Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 350
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 371
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "996",
+      "lineName": "996 Wilson Express",
+      "fromStop": "Ellesmere Rd at Pharmacy Ave",
+      "toStop": "Parkwoods Village Dr at York Mills Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 256
+     }
+    ]
+   ]
+  },
+  {
+   "id": 9,
+   "title": "St. Lawrence to Queen/Saulter",
+   "color": "#6FC7EA",
+   "walkKm": 3.7,
+   "travelMin": 132,
+   "rides": 13,
+   "branches": [
+    "SL",
+    "PL",
+    "RD",
+    "PA",
+    "DR",
+    "MA",
+    "BE",
+    "GE",
+    "JO",
+    "QS"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 77
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "75",
+      "lineName": "75 Sherbourne",
+      "fromStop": "Sherbourne St at Front St East",
+      "toStop": "Sherbourne St at Gerrard St East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 347
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 156
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 6,
+      "line": "506",
+      "lineName": "506 Carlton",
+      "fromStop": "Parliament St at Gerrard St East",
+      "toStop": "Broadview Ave at Gerrard St East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 21
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 74
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 6,
+      "line": "505",
+      "lineName": "505 Dundas",
+      "fromStop": "Broadview Ave at Gerrard St East",
+      "toStop": "Broadview Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 12
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 3,
+      "line": "2",
+      "lineName": "Line 2 (Bloor - Danforth)",
+      "fromStop": "Broadview Station",
+      "toStop": "Pape Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 199
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 231
+     },
+     {
+      "mode": "SUBWAY",
+      "minutes": 6,
+      "line": "2",
+      "lineName": "Line 2 (Bloor - Danforth)",
+      "fromStop": "Pape Station",
+      "toStop": "Main Street Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 185
+     },
+     {
+      "mode": "BUS",
+      "minutes": 9,
+      "line": "23",
+      "lineName": "23 Dawes",
+      "fromStop": "Main Street Station",
+      "toStop": "Dawes Rd at Brenton St"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 41
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 105
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "23",
+      "lineName": "23 Dawes",
+      "fromStop": "Dawes Rd at Gower St",
+      "toStop": "Main Street Station"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 54
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 3,
+      "line": "506",
+      "lineName": "506 Carlton",
+      "fromStop": "Main Street Station",
+      "toStop": "Main St at Gerrard St East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 122
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 126
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "64",
+      "lineName": "64 Main",
+      "fromStop": "Main St at Gerrard St East",
+      "toStop": "Wineva Ave at Queen St East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 324
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 178
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 5,
+      "line": "501",
+      "lineName": "501 Queen",
+      "fromStop": "Queen St East at Bellefair Ave",
+      "toStop": "Queen St East at Kingston Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 104
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "22",
+      "lineName": "22 Coxwell",
+      "fromStop": "Eastern Ave at Queen St East South Side",
+      "toStop": "Coxwell Ave at Eastwood Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 262
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 58
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 6,
+      "line": "506",
+      "lineName": "506 Carlton",
+      "fromStop": "Gerrard St East at Ashdale Ave",
+      "toStop": "Gerrard St East at Jones Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 6,
+      "meters": 429
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 7,
+      "meters": 460
+     },
+     {
+      "mode": "TRAM",
+      "minutes": 6,
+      "line": "501",
+      "lineName": "501 Queen",
+      "fromStop": "Queen St East at Jones Ave",
+      "toStop": "Queen St East at Boulton Ave"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 101
+     }
+    ]
+   ]
+  },
+  {
+   "id": 10,
+   "title": "Albert Campbell to Scarborough Civic Centre",
+   "color": "#8DBF2E",
+   "walkKm": 5.7,
+   "travelMin": 205,
+   "rides": 13,
+   "branches": [
+    "ACD",
+    "CC",
+    "GW",
+    "HC",
+    "PU",
+    "MS",
+    "CED",
+    "BD",
+    "KE",
+    "SC"
+   ],
+   "legs": [
+    [
+     {
+      "mode": "WALK",
+      "minutes": 12,
+      "meters": 839
+     },
+     {
+      "mode": "BUS",
+      "minutes": 14,
+      "line": "102",
+      "lineName": "102 Markham Rd",
+      "fromStop": "St Clair Ave East at Birchmount Rd East Side",
+      "toStop": "Kingston Rd at Cathedral Bluffs Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 95
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 186
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "12",
+      "lineName": "12 Kingston Rd",
+      "fromStop": "Kingston Rd at Cathedral Bluffs Dr",
+      "toStop": "Kingston Rd at Eglinton Ave East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 56
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "116",
+      "lineName": "116 Morningside",
+      "fromStop": "Eglinton Ave East at Kingston Rd",
+      "toStop": "Guildwood Pkwy at Rowatson Rd East Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 66
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 159
+     },
+     {
+      "mode": "BUS",
+      "minutes": 15,
+      "line": "116",
+      "lineName": "116 Morningside",
+      "fromStop": "Guildwood Pkwy at Livingston Rd",
+      "toStop": "Morningside Ave at Ellesmere Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 38
+     },
+     {
+      "mode": "BUS",
+      "minutes": 4,
+      "line": "95",
+      "lineName": "95 York Mills",
+      "fromStop": "Ellesmere Rd at Morningside Ave",
+      "toStop": "Ellesmere Rd at Watson St"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 175
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 121
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "95",
+      "lineName": "95 York Mills",
+      "fromStop": "Ellesmere Rd at Watson St",
+      "toStop": "Sheppard Ave East at Kingston Rd North Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 26
+     },
+     {
+      "mode": "BUS",
+      "minutes": 8,
+      "line": "85",
+      "lineName": "85 Sheppard East",
+      "fromStop": "Sheppard Ave East at Kingston Rd",
+      "toStop": "Rouge Hill GO Station Loop"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 13,
+      "meters": 891
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 220
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "54",
+      "lineName": "54 Lawrence East",
+      "fromStop": "Lawrence Ave East at Charlottetown Blvd West Side",
+      "toStop": "Lawrence Ave East at Manse Rd West Side"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 2,
+      "meters": 158
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 188
+     },
+     {
+      "mode": "BUS",
+      "minutes": 13,
+      "line": "54",
+      "lineName": "54 Lawrence East",
+      "fromStop": "Lawrence Ave East at Manse Rd West Side",
+      "toStop": "Lawrence Ave East at Markham Rd"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 288
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 328
+     },
+     {
+      "mode": "BUS",
+      "minutes": 7,
+      "line": "54",
+      "lineName": "54 Lawrence East",
+      "fromStop": "Lawrence Ave East at Markham Rd",
+      "toStop": "Lawrence Ave East at Valparaiso Ave Scarborough General Hospital"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 8,
+      "meters": 527
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 3,
+      "meters": 197
+     },
+     {
+      "mode": "BUS",
+      "minutes": 6,
+      "line": "16",
+      "lineName": "16 McCowan",
+      "fromStop": "Danforth Rd at Barrymore Rd",
+      "toStop": "Danforth Rd at Eglinton Ave East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 1,
+      "meters": 45
+     },
+     {
+      "mode": "BUS",
+      "minutes": 5,
+      "line": "116",
+      "lineName": "116 Morningside",
+      "fromStop": "Eglinton Ave East at Danforth Rd",
+      "toStop": "North Service Rd at Eglinton Ave East"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 5,
+      "meters": 357
+     }
+    ],
+    [
+     {
+      "mode": "WALK",
+      "minutes": 4,
+      "meters": 259
+     },
+     {
+      "mode": "BUS",
+      "minutes": 23,
+      "line": "43",
+      "lineName": "43 Kennedy",
+      "fromStop": "Eglinton Ave East at Kennedy Rd",
+      "toStop": "Triton Rd at Borough Dr"
+     },
+     {
+      "mode": "WALK",
+      "minutes": 7,
+      "meters": 492
+     }
+    ]
+   ]
+  }
+ ]
+}
