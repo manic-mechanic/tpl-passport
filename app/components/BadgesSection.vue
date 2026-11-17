@@ -1,7 +1,12 @@
 <template>
   <div class="badges-grid">
     <button v-for="badge in displayBadges" :key="badge.id" class="badge-item" @click="openSheet(badge)">
-      <BadgeShape :badge="badge" :ctx="badgeCtx" :size="64" :content-override="badgeShapeContent(badge)" />
+      <span class="badge-shape-wrap">
+        <BadgeShape :badge="badge" :ctx="badgeCtx" :size="64" :content-override="badgeShapeContent(badge)" />
+        <span v-if="showTourPostmark(badge)" class="tour-postmark" role="img" aria-label="Completed during #YourLibraryTour">
+          {{ LIBRARY_TOUR.hashtag }}
+        </span>
+      </span>
       <span class="badge-name" :class="{ earned: badge.earned(badgeCtx) }">{{ badge.title }}</span>
       <div v-if="showBadgeProgress(badge)" class="badge-progress">
         <div class="prog-bar">
@@ -16,7 +21,12 @@
   <BaseSheet v-model:open="sheetOpen" :height="props.sheetHeight" :aria-label="activeBadge?.title + ' badge detail'">
     <div v-if="activeBadge" class="detail-scroll">
       <div class="detail-badge">
-        <BadgeShape :badge="activeBadge" :ctx="badgeCtx" :size="88" :content-override="badgeShapeContent(activeBadge)" />
+        <span class="badge-shape-wrap">
+          <BadgeShape :badge="activeBadge" :ctx="badgeCtx" :size="88" :content-override="badgeShapeContent(activeBadge)" />
+          <span v-if="showTourPostmark(activeBadge)" class="tour-postmark tour-postmark--large" aria-hidden="true">
+            {{ LIBRARY_TOUR.hashtag }}
+          </span>
+        </span>
       </div>
 
       <h2 class="detail-title">{{ activeBadge.title }}</h2>
@@ -26,6 +36,9 @@
         <IconCheckMark />
         Earned{{ earnedDate(activeBadge) ? ' · ' + earnedDate(activeBadge) : '' }}
       </div>
+      <p v-if="showTourPostmark(activeBadge)" class="detail-tour">
+        Every location visited by {{ TOUR_END_LABEL }}, completing the {{ LIBRARY_TOUR.hashtag }} challenge.
+      </p>
       <div v-else-if="activeBadge.progress" class="detail-progress">
         <div class="prog-bar wide">
           <div class="prog-fill" :style="{ width: badgeProgressPct(activeBadge) + '%' }" />
@@ -108,6 +121,8 @@ import type { Badge } from '@tpl-passport/shared'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, BADGE_DISPLAY_ORDER, activityBadgeStat, useBadgeCtx, compassPoints } from '~/composables/useBadges'
 import IconCheckMark from './icons/IconCheckMark.vue'
+import { usePassportStore } from '~/stores/passport'
+import { LIBRARY_TOUR, TOUR_END_LABEL, tourCompletedOn } from '~/lib/libraryTour'
 
 const props = withDefaults(defineProps<{ sheetHeight?: string }>(), {
   sheetHeight: 'calc(100svh - var(--nav-height) - 76px)',
@@ -115,6 +130,13 @@ const props = withDefaults(defineProps<{ sheetHeight?: string }>(), {
 
 const { $posthog } = useNuxtApp()
 const badgeCtx = useBadgeCtx()
+const passport = usePassportStore()
+
+// Full Passport earned by the end of #YourLibraryTour gets the tour's postmark.
+const tourCompletedDay = computed(() => tourCompletedOn(passport.checkIns))
+function showTourPostmark(badge: Badge) {
+  return badge.id === 'complete' && !!tourCompletedDay.value && badge.earned(badgeCtx.value)
+}
 
 const activeBadge = ref<Badge | null>(null)
 const sheetOpen = ref(false)
@@ -280,6 +302,43 @@ const archivistBranchNames = computed(() =>
 /* Sheet content */
 .detail-scroll {
   padding-top: 4px;
+}
+
+.badge-shape-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* A postmark across the bottom of Full Passport for finishing during the tour */
+.tour-postmark {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(-8deg);
+  padding: 1px 5px;
+  border: 1.5px solid var(--color-brand-text);
+  border-radius: 3px;
+  background: var(--color-paper);
+  font-family: var(--font-stamp);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-brand-text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tour-postmark--large {
+  bottom: -4px;
+  font-size: 0.6875rem;
+}
+
+.detail-tour {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--color-text-mid);
 }
 
 .detail-badge {

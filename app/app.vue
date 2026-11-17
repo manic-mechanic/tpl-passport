@@ -4,6 +4,7 @@
     <div class="status-bar-fill" aria-hidden="true" />
     <NuxtPage />
     <BottomNav />
+    <TourWelcomeSheet />
 
     <!-- Passport cover loading screen -->
     <Transition name="cover">
@@ -29,6 +30,7 @@ import { authClient } from '~/lib/auth-client'
 import { reportError } from '~/lib/reportError'
 import { isAuthReachableFrom } from '~/lib/authReachability'
 import { syncAccount } from '~/composables/useAccountSync'
+import { routeProgress, tourRoutes } from '~/lib/libraryTour'
 import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
@@ -53,6 +55,24 @@ watch(badgeCtx, (ctx) => {
     }
   }
 }, { deep: true })
+
+// ── Library Tour route completion tracking ──────────────────────────
+// Report routes completed during this visit. The baseline is taken after the
+// initial account sync (below), so routes finished on another device and
+// synced in on load aren't reported again.
+let routesDoneOnMount: Set<number> | null = null
+const routesDone = computed(() => tourRoutes
+  .filter(r => routeProgress(r, passport.visitedBranchCodes).complete)
+  .map(r => r.id))
+
+watch(routesDone, (ids) => {
+  if (!routesDoneOnMount) return
+  for (const id of ids) {
+    if (routesDoneOnMount.has(id)) continue
+    $posthog?.capture('tour_route_completed', { route_id: id })
+    routesDoneOnMount.add(id)
+  }
+})
 
 // ── Home branch change tracking ──────────────────────────────────────
 const homeBranchReady = ref(false)
@@ -102,6 +122,7 @@ onMounted(async () => {
   // Let auth-synced homeBranch watcher flush before enabling analytics
   await nextTick()
   homeBranchReady.value = true
+  routesDoneOnMount = new Set(routesDone.value)
   earnedOnMount = new Set(BADGES.filter(b => b.earned(badgeCtx.value)).map(b => b.id))
 })
 

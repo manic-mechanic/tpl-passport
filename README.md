@@ -20,13 +20,14 @@ Open the app on your phone for the best experience — it's designed as a mobile
 | Screen | Description |
 |--------|-------------|
 | **Home** | Passport progress, recent visits, and earned badges; sign-in prompt for logged-out users |
-| **Explore** | Four tabs: nearby branches, walking day-trips, upcoming events, and badge suggestions |
+| **Explore** | Four tabs: nearby branches, day trips (walking routes, and the Your Library Tour transit routes), upcoming events, and badge suggestions |
 | **Check In** | Select a branch, add an optional note or photo, verify proximity, earn a stamp |
 | **Passport** | Stamp book across 5 alphabetical pages + an Extra Credit page for badges |
 | **History** | Check-in log grouped by recency; filter to visits with notes or photos |
 | **Branch detail** | Branch info, hours, events, services, and your visits with notes and photos |
 | **All branches** | A–Z directory of every branch with search and visited/unvisited filters |
 | **Day trip** | A curated multi-branch route with its stops and a one-tap Google Maps link |
+| **Library Tour route** | One of the ten [Next Stop: Your Library Tour](https://schoolofcities.utoronto.ca/opportunities/next-stop-your-library-tour/) transit routes: its ten branches, your progress, and the TTC rides between stops |
 | **Settings** | Sign in/out, theme picker (Light / Auto / Dark), install helper, dev-only demo mode |
 | **QR Print** | Printable branch QR codes for check-in campaigns |
 

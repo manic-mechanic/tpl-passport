@@ -1,0 +1,22 @@
+{
+  "busStreetcar": {
+    "limited": [10, 99, 115, 119, 145, 156, 160, 162, 166, 167, 169, 507, 830],
+    "default": { "background": "#DA251D", "color": "#FFFFFF" },
+    "rules": [
+      { "match": "limited", "style": { "background": "#FFFFFF", "color": "#DA251D", "border": "#DA251D" } },
+      { "range": [300, 399], "style": { "background": "#FFFFFF", "color": "#024182", "border": "#024182" } },
+      { "range": [400, 499], "style": { "background": "#FFFFFF", "color": "#808080", "border": "#808080" } },
+      { "range": [900, 999], "style": { "background": "#00923F", "color": "#FFFFFF" } }
+    ]
+  },
+  "subway": {
+    "default": { "color": "#FFFFFF" },
+    "lines": {
+      "1": { "background": "#F8C300", "color": "#000000" },
+      "2": { "background": "#00923F" },
+      "4": { "background": "#A21A68" },
+      "5": { "background": "#EB8738" },
+      "6": { "background": "#969594" }
+    }
+  }
+}
