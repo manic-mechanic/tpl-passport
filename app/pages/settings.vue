@@ -1,9 +1,6 @@
 <template>
   <main class="page-content">
-    <header class="page-header">
-      <h1>Settings</h1>
-    </header>
-    <div class="header-gap" />
+    <PageBanner title="Settings" />
     <p v-if="inlineToast.text" class="inline-toast" :class="inlineToast.kind">{{ inlineToast.text }}</p>
 
     <!-- Account -->
@@ -37,7 +34,7 @@
             <span class="setting-label">Save your progress</span>
             <p class="setting-hint">Access your passport on any device</p>
           </div>
-          <NuxtLink to="/login" class="signin-link">Sign in →</NuxtLink>
+          <NuxtLink to="/login" class="signin-link">Sign in</NuxtLink>
         </div>
       </div>
     </section>
@@ -52,7 +49,7 @@
             <span class="account-email">{{ profileName || '—' }}</span>
           </div>
           <div class="setting-row">
-            <span class="setting-label">Home Branch</span>
+            <span class="setting-label">Home branch</span>
             <span class="account-email">{{ profileHomeBranch || '—' }}</span>
           </div>
           <div class="setting-row">
@@ -67,7 +64,7 @@
             >
           </div>
           <div class="setting-row">
-            <span class="setting-label">Home Branch</span>
+            <span class="setting-label">Home branch</span>
             <div class="profile-branch-wrap">
               <BranchCombobox v-model="profileHomeBranch" placeholder="Search branches…" />
             </div>
@@ -174,11 +171,15 @@
       <div class="about-card card">
         <div class="about-row">
           <span class="setting-label">Version</span>
-          <span class="about-val">1.0 MVP</span>
+          <span class="about-val">{{ appVersion }}</span>
         </div>
         <div class="about-row">
           <span class="setting-label">Developed by</span>
-          <a href="https://www.github.com/bennygoldman" target="_blank" class="about-link">Benny Goldman ↗</a>
+          <a href="https://www.github.com/bennygoldman" target="_blank" rel="noopener" class="about-link"
+             aria-label="Benny Goldman on GitHub (opens another site)"
+          >
+            Benny Goldman<IconExternal class="external-icon" aria-hidden="true" />
+          </a>
         </div>
         <div class="about-row">
           <p class="disclaimer">This is an unofficial app and is not affiliated with or endorsed by Toronto Public Library.</p>
@@ -194,12 +195,17 @@ import { physicalBranches } from '~/composables/useRegion'
 import { authClient } from '~/lib/auth-client'
 import { pushProfile } from '~/composables/useProfileSync'
 import { isRunningStandalone } from '~/lib/installHelper'
+import { useInstallPrompt } from '~/composables/useInstallPrompt'
+import IconExternal from '~/components/icons/IconExternal.vue'
 import { signOutAndClear } from '~/composables/useAccountSync'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
-const { public: { isDev } } = useRuntimeConfig()
-const showInstallSection = ref(false)
+const { public: { isDev, appVersion } } = useRuntimeConfig()
+const { installedThisSession } = useInstallPrompt()
+const runningStandalone = ref(true)
+// Shown once mounted, unless the app is installed or was just installed here.
+const showInstallSection = computed(() => !runningStandalone.value && !installedThisSession.value)
 const isGoogleAccount = ref(false)
 const profileEditing = ref(false)
 type ToastKind = 'success' | 'error'
@@ -212,6 +218,9 @@ watch(() => passport.profile.theme, (theme) => {
 const session = ref<typeof authClient.$Infer.Session | null>(null)
 
 onMounted(async () => {
+  // Before any network call, so the section shows even when auth is slow or offline.
+  runningStandalone.value = isRunningStandalone()
+
   const { data } = await authClient.getSession()
   session.value = data
   profileEditing.value = !data
@@ -227,17 +236,7 @@ onMounted(async () => {
   } catch {
     isGoogleAccount.value = false
   }
-  showInstallSection.value = !isRunningStandalone()
-  window.addEventListener('appinstalled', onAppInstalled)
 })
-
-onBeforeUnmount(() => {
-  window.removeEventListener('appinstalled', onAppInstalled)
-})
-
-function onAppInstalled() {
-  showInstallSection.value = false
-}
 
 // Profile editing
 const profileName = ref(passport.profile.name ?? '')
@@ -317,19 +316,6 @@ function setDemo(mode: DemoMode) {
 </script>
 
 <style scoped>
-.page-header {
-  position: sticky;
-  top: env(safe-area-inset-top);
-  z-index: 10;
-  margin: 0 -18px;
-  padding: 14px 18px 16px;
-  background: var(--tpl-navy);
-}
-
-.header-gap {
-  height: 20px;
-}
-
 .inline-toast {
   margin-bottom: 12px;
   border-radius: var(--radius-sm);
@@ -344,15 +330,6 @@ function setDemo(mode: DemoMode) {
     background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface));
     color: var(--color-error);
   }
-}
-
-.page-header h1 {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
-  letter-spacing: -0.02em;
-  font-optical-sizing: auto;
 }
 
 .settings-group {

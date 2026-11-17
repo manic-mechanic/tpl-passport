@@ -1,23 +1,16 @@
 <template>
   <main class="page-content">
-    <header class="page-header">
-      <button class="back-link" @click="goBack">
-        <IconBack />
-        Passport
-      </button>
-      <h1>History</h1>
-      <p v-if="passport.checkIns.length" class="sub">
-        {{ passport.checkIns.length }} check-in{{ passport.checkIns.length
-          !== 1 ? 's' : '' }}
-      </p>
-    </header>
-    <div class="header-gap" />
+    <PageBanner title="History" back-label="Passport" @back="goBack">
+      <template v-if="passport.checkIns.length" #sub>
+        {{ passport.checkIns.length }} visit{{ passport.checkIns.length !== 1 ? 's' : '' }}
+      </template>
+    </PageBanner>
 
     <!-- Stats summary -->
     <div v-if="passport.checkIns.length" class="stats-strip">
       <div class="stat-item">
         <span class="stat-num">{{ passport.checkIns.length }}</span>
-        <span class="stat-lbl">Total visits</span>
+        <span class="stat-lbl">Visits</span>
       </div>
       <div class="stat-divider" />
       <div class="stat-item">
@@ -63,7 +56,7 @@
 
     <div v-else class="empty-state">
       <IconClock />
-      <p>No check-ins yet.<br>Visit a branch to get started.</p>
+      <p>No visits yet.<br>Check in at any branch to start your history.</p>
     </div>
   </main>
 
@@ -80,7 +73,6 @@ import { branchesByCode } from '~/composables/useRegion'
 import { getCheckInPhotoSrc, releasePhotoSrc } from '~/composables/usePhotoStore'
 import { localDayKey } from '@tpl-passport/shared'
 import IconClock from '~/components/icons/IconClock.vue'
-import IconBack from '~/components/icons/IconBack.vue'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -173,48 +165,6 @@ function goBack() {
 </script>
 
 <style scoped>
-.page-header {
-  position: sticky;
-  top: env(safe-area-inset-top);
-  z-index: 10;
-  margin: 0 -18px;
-  padding: 14px 18px 16px;
-  background: var(--tpl-navy);
-
-  & h1 {
-    margin-bottom: 3px;
-    color: rgba(255, 255, 255, 0.92);
-  }
-}
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.72);
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 6px;
-  cursor: pointer;
-
-  & svg {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-.header-gap {
-  height: 20px;
-}
-
-.sub {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.55);
-}
-
 /* Stats strip */
 .stats-strip {
   display: flex;

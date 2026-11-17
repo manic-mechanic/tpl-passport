@@ -35,12 +35,11 @@ const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
 // ── Achievement tracking ─────────────────────────────────────────────
+// Report badges earned during this visit. The baseline is taken after the
+// initial account sync (below), so badges earned on another device and
+// synced in on load aren't reported again.
 const badgeCtx = useBadgeCtx()
 let earnedOnMount: Set<string> | null = null
-
-onMounted(() => {
-  earnedOnMount = new Set(BADGES.filter(b => b.earned(badgeCtx.value)).map(b => b.id))
-})
 
 watch(badgeCtx, (ctx) => {
   if (!earnedOnMount) return
@@ -103,6 +102,7 @@ onMounted(async () => {
   // Let auth-synced homeBranch watcher flush before enabling analytics
   await nextTick()
   homeBranchReady.value = true
+  earnedOnMount = new Set(BADGES.filter(b => b.earned(badgeCtx.value)).map(b => b.id))
 })
 
 // homeBranch is pushed by whoever changes it while signed in (Settings and

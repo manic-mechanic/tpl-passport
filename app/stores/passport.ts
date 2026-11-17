@@ -5,9 +5,10 @@ import { pushCheckIn, patchCheckInPhoto } from '~/composables/useCheckInSync'
 import { canSyncToServer } from '~/composables/useAuthState'
 import { loadPassportState, savePassportState } from '~/lib/passportStorage'
 import { checkInDayKey } from '@tpl-passport/shared'
+import { randomId } from '~/lib/randomId'
 import type { PassportCheckIn, PassportProfile } from '~/types/passport'
 
-type DemoMode = 'empty' | 'mid' | 'completed'
+import type { DemoMode } from './passport.demo'
 
 const defaultProfile: PassportProfile = {
   name: '',
@@ -22,7 +23,7 @@ export const usePassportStore = defineStore('passport', () => {
   // --- State (hydrated from localStorage on first load) ---
   const saved = loadPassportState()
 
-  const anonymousId = ref(saved.anonymousId ?? (import.meta.client ? crypto.randomUUID() : ''))
+  const anonymousId = ref(saved.anonymousId ?? (import.meta.client ? randomId() : ''))
 
   const checkIns = ref<PassportCheckIn[]>(saved.checkIns ?? [])
   const completedChallenges = ref<string[]>(saved.completedChallenges ?? [])
@@ -134,7 +135,7 @@ export const usePassportStore = defineStore('passport', () => {
       theme: profile.value.theme,
       hasSeenOnboarding: profile.value.hasSeenOnboarding,
     }
-    anonymousId.value = import.meta.client ? crypto.randomUUID() : ''
+    anonymousId.value = import.meta.client ? randomId() : ''
   }
 
   // STASHED: challenges — restore when FEATURES.challenges = true
@@ -156,14 +157,14 @@ export const usePassportStore = defineStore('passport', () => {
   // 'mid'       → ~28 physical branches visited over the last ~4 months
   // 'completed' → all physical branches visited over the last ~2 years
   //
-  // The implementation lives in passport.demo.js and is loaded on demand.
+  // The implementation lives in passport.demo and is loaded on demand.
   // Guarded by the runtime isDev flag so it works on preview deployments
   // (NUXT_PUBLIC_IS_DEV=true) while remaining a no-op in production.
   async function loadDemoState(mode: DemoMode) {
     const { public: { isDev } } = useRuntimeConfig()
     if (!isDev) return
     try {
-      const { applyDemoState } = await import('./passport.demo.js')
+      const { applyDemoState } = await import('./passport.demo')
       applyDemoState(mode, { checkIns, completedChallenges, profile })
     } catch (e) {
       console.error('[demo] loadDemoState failed:', e)

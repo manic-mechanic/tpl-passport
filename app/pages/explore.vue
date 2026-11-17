@@ -1,32 +1,29 @@
 <template>
   <main class="page-content" :class="{ 'has-browse-cta': activeTab === 'near-me' }">
     <!-- Sticky header + tabs -->
-    <div class="sticky-top">
-      <header class="page-header">
-        <div>
-          <h1>Explore</h1>
-        </div>
+    <PageBanner title="Explore">
+      <template #action>
         <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
           <IconSearch />
         </NuxtLink>
-      </header>
+      </template>
 
       <!-- Tab pills -->
       <nav class="tab-bar" role="tablist">
         <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
                 :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'"
         >
-          Near Me
+          Near me
         </button>
         <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
                 :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'"
         >
-          Day Trips
+          Day trips
         </button>
         <button class="tab-pill" :class="{ active: activeTab === 'events' }" role="tab"
                 :aria-selected="activeTab === 'events'" @click="activeTab = 'events'"
         >
-          What's On
+          What's on
         </button>
         <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
                 :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'"
@@ -34,7 +31,7 @@
           Extra Credit
         </button>
       </nav>
-    </div>
+    </PageBanner>
 
     <!-- Near Me -->
     <section v-show="activeTab === 'near-me'" class="explore-section">
@@ -169,27 +166,7 @@ function openBranchSheet(branch: Branch) {
 }
 
 /* ── Sticky header block ─────────────────────────────────────────── */
-.sticky-top {
-  position: sticky;
-  top: env(safe-area-inset-top);
-  z-index: 10;
-  margin: 0 -18px;
-  background: var(--tpl-navy);
-}
-
 /* ── Page header ─────────────────────────────────────────────────── */
-.page-header {
-  padding: 14px 18px 14px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-.page-header h1 {
-  margin-bottom: 3px;
-  color: rgba(255, 255, 255, 0.92);
-}
-
 .sub {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.55);

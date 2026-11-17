@@ -1,4 +1,6 @@
-export function useIsDark() {
+import type { Ref } from 'vue'
+
+export function useIsDark(): Ref<boolean> {
   const isDark = ref(false)
 
   if (import.meta.client) {

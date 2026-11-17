@@ -7,7 +7,7 @@ test('anonymous progress shows sign-in CTA and login screen', async ({ page }) =
 
   await page.goto('/')
   await expect(page.getByText('Save your progress — access your passport on any device')).toBeVisible()
-  await page.getByRole('link', { name: 'Sign in →' }).first().click()
+  await page.getByRole('link', { name: 'Sign in' }).first().click()
   await expect(page).toHaveURL(/\/login/)
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
 })

@@ -34,6 +34,14 @@
   /* Nav */
   --nav-height: calc(68px + env(safe-area-inset-bottom));
 
+  /* Page banner (PageBanner.vue) — the same on every page so navigating
+     between them doesn't shift the title or the content below */
+  --banner-pad-top:     14px;
+  --banner-pad-bottom:  14px;
+  --banner-row-height:  40px;
+  --banner-back-height: 24px;
+  --banner-gap:         20px;
+
   /* Shadows */
   --shadow-sm:  0 1px 2px rgba(0,28,113,0.06);
   --shadow:     0 2px 8px rgba(0,28,113,0.08), 0 0 0 1px rgba(0,28,113,0.04);
@@ -86,7 +94,12 @@ html {
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   scrollbar-gutter: stable;
-  background: var(--color-bg);
+  /* Since iOS 26.1, a Home Screen web app gets an opaque status bar painted
+     with the page's background instead of drawing the page behind it, so
+     make that background the banner navy. body paints the page itself, and
+     overscroll is off so the navy doesn't show past either end. */
+  background: var(--tpl-navy);
+  overscroll-behavior-y: none;
   height: 100%;
 }
 
@@ -306,4 +319,13 @@ a { color: var(--color-accent); text-decoration: none; }
 .page-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+/* Links that leave the app end with IconExternal. Internal text links get no arrow. */
+.external-icon {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-left: 0.3em;
+  vertical-align: -0.05em;
 }

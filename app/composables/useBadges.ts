@@ -2,7 +2,7 @@ import { BADGES, BADGE_DISPLAY_ORDER, activityBadgeStat, buildBadgeCtx, compassP
 export { BADGES, BADGE_DISPLAY_ORDER, activityBadgeStat, buildBadgeCtx, compassPoints, compassBranches }
 
 // Badge background gradients for suggestion cards in /explore.
-const BADGE_BG = {
+const BADGE_BG: Record<string, string> = {
   first:          'radial-gradient(circle, #7ab4ec 0%, #3878c4 100%)',
   explorer:       'radial-gradient(circle, #4a90d9 0%, #0048a8 100%)',
   adventurer:     'radial-gradient(circle, #2e74c8 0%, #0030a0 100%)',
@@ -17,7 +17,7 @@ const BADGE_BG = {
   navigator:      'radial-gradient(circle, #5a8fd8 0%, #1a4490 100%)',
 }
 
-export function badgeBg(id) { return BADGE_BG[id] ?? 'var(--color-border)' }
+export function badgeBg(id: string): string { return BADGE_BG[id] ?? 'var(--color-border)' }
 
 // Reactive composable — returns a computed badge context from the passport store.
 export function useBadgeCtx() {

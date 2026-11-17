@@ -1,20 +1,15 @@
 <template>
   <main class="page-content">
-    <div class="sticky-top">
-      <header class="page-header">
-        <h1>Check In</h1>
-        <p class="sub">
-          <template v-if="scanned">Scanned — <strong>{{ selectedBranch?.BranchName }}</strong></template>
-          <template v-else-if="prefilled">Scanning at <strong>{{ selectedBranch?.BranchName }}</strong></template>
-          <template v-else-if="detecting">Detecting your location…</template>
-          <template v-else-if="autoDetected && selectedBranch">
-            Nearest branch — <strong>{{ selectedBranch.BranchName
-            }}</strong>
-          </template>
-          <template v-else>Select the branch you're visiting</template>
-        </p>
-      </header>
-    </div>
+    <PageBanner title="Check in" />
+
+    <p class="branch-status" aria-live="polite">
+      <template v-if="scanned">Scanned at your branch</template>
+      <template v-else-if="prefilled">Checking in at</template>
+      <template v-else-if="detecting">Detecting your location…</template>
+      <template v-else-if="autoDetected && selectedBranch && !showPicker">Nearest branch</template>
+      <template v-else-if="!selectedBranch || showPicker">Select the branch you're visiting</template>
+      <template v-else>Checking in at</template>
+    </p>
 
     <!-- QR scan button — gated behind FEATURES.qrCheckIn (awaiting QR deployment at branches) -->
     <div v-if="FEATURES.qrCheckIn && !prefilled && !scanned && !selectedBranch" class="qr-primary-area">
@@ -52,13 +47,15 @@
 
     <template v-if="selectedBranch && !showPicker && !alreadyVisitedToday">
       <div class="field-group">
-        <label class="field-label" for="note-input">
-          Note <span class="optional">optional</span>
-        </label>
+        <div class="field-label-row">
+          <label class="field-label" for="note-input">
+            Note <span class="optional">optional</span>
+          </label>
+          <span class="char-count" aria-live="polite">{{ noteText.length }} / 500</span>
+        </div>
         <textarea id="note-input" v-model="noteText" class="note-textarea"
                   placeholder="What did you do? What did you read?" rows="3" maxlength="500"
         />
-        <p class="char-count">{{ noteText.length }} / 500</p>
       </div>
     </template>
 
@@ -277,37 +274,28 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.sticky-top {
-  position: sticky;
-  top: env(safe-area-inset-top);
-  z-index: 10;
-  margin: 0 -18px;
-  background: var(--tpl-navy);
-}
-
-.page-header {
-  padding: 14px 18px 16px;
-
-  & h1 {
-    margin-bottom: 4px;
-    color: rgba(255, 255, 255, 0.92);
-  }
-}
-
-.sub {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.55);
-  line-height: 1.5;
-
-  & strong {
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 600;
-  }
+/* Status line between the banner and the stamp (or branch picker) */
+.branch-status {
+  margin: 4px 0 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: var(--color-text-muted);
 }
 
 /* Fields */
 .field-group {
   margin-bottom: 20px;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .field-label {
@@ -317,7 +305,6 @@ onUnmounted(() => {
   color: var(--color-text-mid);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: 8px;
 }
 
 .optional {
@@ -391,8 +378,7 @@ onUnmounted(() => {
 .char-count {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-  text-align: right;
-  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Photo — used in success sheet */
@@ -401,7 +387,9 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin: 4px 0 28px;
+  /* Room for the stamp's tilt, so its corner doesn't graze the status line */
+  padding-top: 6px;
+  margin: 0 0 28px;
 }
 
 .stamp-preview-unvisited {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { physicalBranches, branchesByAlphaPage } from '../app/composables/useRegion.js'
-import { compassBranches } from '../app/composables/useBadges.js'
+import { physicalBranches, branchesByAlphaPage } from '../app/composables/useRegion'
+import { compassBranches } from '../app/composables/useBadges'
 import {
   BADGES,
   buildBadgeCtx,
@@ -28,8 +28,6 @@ function ctx(overrides = {}) {
 function badge(id) {
   return BADGES.find(a => a.id === id)
 }
-
-// --- Helper function tests ---
 
 describe('maxBranchesInOneDay', () => {
   it('returns 0 for empty check-ins', () => {
@@ -137,8 +135,6 @@ describe('fullyDocumentedCount', () => {
   })
 })
 
-// --- Badge tests ---
-
 describe('badge: first stamp', () => {
   it('not earned with no visits', () => {
     expect(badge('first').earned(ctx())).toBe(false)
@@ -216,26 +212,6 @@ describe('badge: navigator', () => {
   })
 })
 
-// STASHED: quest_master tests — restore when FEATURES.challenges = true
-// describe('badge: quest_master', () => {
-//   it('not earned with no challenges completed', () => {
-//     expect(badge('quest_master').earned(ctx())).toBe(false)
-//   })
-//   it('not earned with only 2 of 3 challenges at one branch', () => {
-//     const code = physicalBranches[0].BranchCode
-//     expect(badge('quest_master').earned(ctx({ completedChallenges: [`${code}:0`, `${code}:1`] }))).toBe(false)
-//   })
-//   it('earned when all 3 challenges at one branch are completed', () => {
-//     const code = physicalBranches[0].BranchCode
-//     expect(badge('quest_master').earned(ctx({ completedChallenges: [`${code}:0`, `${code}:1`, `${code}:2`] }))).toBe(true)
-//   })
-//   it('not earned when challenges are spread across branches with none having all 3', () => {
-//     const [c0, c1, c2] = physicalBranches.slice(0, 3).map(b => b.BranchCode)
-//     expect(badge('quest_master').earned(ctx({ completedChallenges: [`${c0}:0`, `${c1}:1`, `${c2}:2`] }))).toBe(false)
-//   })
-// })
-// END STASHED: quest_master
-
 describe('badge: archivist', () => {
   it('not earned with no check-ins', () => {
     expect(badge('archivist').earned(ctx())).toBe(false)
@@ -283,32 +259,11 @@ describe('badge: familiar_face', () => {
 })
 
 describe('badge: explorer / adventurer / globetrotter / complete', () => {
-  it('explorer: not earned at 9 visits', () => {
-    expect(badge('explorer').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 9 }, (_, i) => `B${i}`) ) }))).toBe(false)
-  })
-  it('explorer: earned at 10 visits', () => {
-    expect(badge('explorer').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 10 }, (_, i) => `B${i}`)) }))).toBe(true)
-  })
+  const visited = n => ctx({ visitedBranchCodes: new Set(Array.from({ length: n }, (_, i) => `B${i}`)) })
 
-  it('adventurer: not earned at 24 visits', () => {
-    expect(badge('adventurer').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 24 }, (_, i) => `B${i}`)) }))).toBe(false)
-  })
-  it('adventurer: earned at 25 visits', () => {
-    expect(badge('adventurer').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 25 }, (_, i) => `B${i}`)) }))).toBe(true)
-  })
-
-  it('globetrotter: not earned at 49 visits', () => {
-    expect(badge('globetrotter').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 49 }, (_, i) => `B${i}`)) }))).toBe(false)
-  })
-  it('globetrotter: earned at 50 visits', () => {
-    expect(badge('globetrotter').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 50 }, (_, i) => `B${i}`)) }))).toBe(true)
-  })
-
-  it('complete: not earned at 99 visits', () => {
-    expect(badge('complete').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 99 }, (_, i) => `B${i}`)) }))).toBe(false)
-  })
-  it('complete: earned at 100 visits', () => {
-    expect(badge('complete').earned(ctx({ visitedBranchCodes: new Set(Array.from({ length: 100 }, (_, i) => `B${i}`)) }))).toBe(true)
+  it.each([['explorer', 10], ['adventurer', 25], ['globetrotter', 50], ['complete', 100]])('%s is earned at %i branches', (id, n) => {
+    expect(badge(id).earned(visited(n - 1))).toBe(false)
+    expect(badge(id).earned(visited(n))).toBe(true)
   })
 })
 

@@ -42,16 +42,17 @@ function openBranchSheet(branch: Branch) {
 
     <PassportCard class="home-passport" />
 
-    <!-- Prompts sit below the passport so first-time users see their passport first -->
+    <!-- Prompts sit below the passport so first-time users see their passport first.
+         One at a time: sign-in (protects their check-ins) wins over install. -->
     <div class="home-prompts">
       <div v-if="showBanner" class="signin-banner">
         <div class="signin-banner__body">
           <p class="signin-banner__text">Save your progress — access your passport on any device</p>
-          <NuxtLink to="/login" class="signin-banner__link">Sign in →</NuxtLink>
+          <NuxtLink to="/login" class="signin-banner__link">Sign in</NuxtLink>
         </div>
         <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>
       </div>
-      <InstallHelperCard />
+      <InstallHelperCard v-else-if="authKnown" dismissible hide-on-desktop />
     </div>
 
     <RecentVisits @select="openBranchSheet" />
@@ -76,7 +77,9 @@ main {
   top: env(safe-area-inset-top);
   z-index: 10;
   margin: 0 -18px;
-  padding: 10px 16px;
+  /* Same height as PageBanner, so switching tabs doesn't shift the page */
+  padding: var(--banner-pad-top) 18px var(--banner-pad-bottom);
+  min-height: calc(var(--banner-pad-top) + var(--banner-row-height) + var(--banner-pad-bottom));
   background: var(--tpl-navy);
   display: flex;
   align-items: center;

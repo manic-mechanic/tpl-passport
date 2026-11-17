@@ -1,13 +1,8 @@
 <template>
   <main class="page-content">
-    <header class="route-header">
-      <NuxtLink to="/explore?tab=routes" class="back-link">
-        <IconBack />
-        Day Trips
-      </NuxtLink>
-      <h1 class="route-title">{{ trip.name }}</h1>
-      <p class="route-chips">{{ trip.area }} · {{ branchObjects.length }} stops · {{ trip.duration }}</p>
-    </header>
+    <PageBanner :title="trip.name" back-label="Day Trips" back-to="/explore?tab=routes">
+      <template #sub>{{ trip.area }} · {{ branchObjects.length }} stops · {{ trip.duration }}</template>
+    </PageBanner>
 
     <p class="route-description">{{ trip.description }}</p>
 
@@ -26,7 +21,7 @@
     </section>
 
     <section class="suggestions-section">
-      <h2 class="stops-title">Local Suggestions</h2>
+      <h2 class="stops-title">Local suggestions</h2>
       <p class="suggestions-empty">
         Curated tips from locals and librarians — coming soon.
       </p>
@@ -43,18 +38,18 @@
 import type { Branch } from '@tpl-passport/shared'
 import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
-import IconBack from '~/components/icons/IconBack.vue'
 import IconMapPin from '~/components/icons/IconMapPin.vue'
+
+// Reject unknown trips before the page renders, so both server and client-side
+// navigation show error.vue's 404. Throwing from setup instead lets the
+// template render with no trip, which crashes in dev.
+definePageMeta({
+  validate: route => routesData.some(r => r.id === route.params.id),
+})
 
 const nuxtRoute = useRoute()
 
-const trip = routesData.find(r => r.id === nuxtRoute.params.id)
-
-if (!trip) {
-  // fatal: on client-side navigation a non-fatal error would leave a blank page
-  // instead of showing error.vue.
-  throw createError({ status: 404, statusText: 'Route not found', fatal: true })
-}
+const trip = routesData.find(r => r.id === nuxtRoute.params.id)!
 
 const branchObjects = trip.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
 
@@ -73,40 +68,6 @@ function openSheet(branch: Branch) {
 <style scoped>
 .page-content {
   padding-bottom: calc(var(--nav-height) + 24px);
-}
-
-.route-header {
-  padding: 16px 0 12px;
-}
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--tpl-blue);
-  text-decoration: none;
-  margin-bottom: 6px;
-}
-
-.back-link svg {
-  width: 16px;
-  height: 16px;
-}
-
-.route-title {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  margin-bottom: 4px;
-}
-
-.route-chips {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
 }
 
 .route-description {

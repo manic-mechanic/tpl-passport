@@ -9,14 +9,12 @@
 // - days: number of days to fetch (1-7)
 import { reportServerError } from '../lib/reportServerError'
 import { eventDates } from '../lib/eventDates'
-
-const EVENTS_RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'
-const CKAN = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action'
+import { compareEvents, fetchCkanEvents, type CkanEventRecord } from '../lib/ckanEvents'
 const CACHE_TTL = 30 * 60 * 1000
 
-const cacheByDate = new Map() // date -> { data, fetchedAt }
+const cacheByDate = new Map<string, { data: CkanEventRecord[], fetchedAt: number }>()
 
-async function fetchEventsForDate(date) {
+async function fetchEventsForDate(date: string): Promise<CkanEventRecord[]> {
   const now = Date.now()
   for (const [key, entry] of cacheByDate) {
     if (now - entry.fetchedAt > CACHE_TTL) cacheByDate.delete(key)
@@ -27,9 +25,7 @@ async function fetchEventsForDate(date) {
   }
 
   try {
-    const filters = encodeURIComponent(JSON.stringify({ StartDateLocal: date }))
-    const result = await $fetch(`${CKAN}/datastore_search?id=${EVENTS_RESOURCE}&filters=${filters}&limit=200&sort=StartTime%20asc`)
-    const data = result?.result?.records ?? []
+    const data = await fetchCkanEvents(date)
     cacheByDate.set(date, { data, fetchedAt: now })
     return data
   } catch (error) {
@@ -48,9 +44,5 @@ export default defineEventHandler(async (event) => {
   const days = Math.max(1, Math.min(7, Number.parseInt(String(query.days ?? '7'), 10) || 7))
   const dates = eventDates(offset, days)
   const results = await Promise.all(dates.map(fetchEventsForDate))
-  const all = results.flatMap(records => records)
-  return all.sort((a, b) => {
-    if (a.StartDateLocal !== b.StartDateLocal) return a.StartDateLocal < b.StartDateLocal ? -1 : 1
-    return (a.StartTime ?? '') < (b.StartTime ?? '') ? -1 : 1
-  })
+  return results.flat().sort(compareEvents)
 })
