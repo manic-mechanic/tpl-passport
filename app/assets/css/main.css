@@ -320,3 +320,12 @@ a { color: var(--color-accent); text-decoration: none; }
   opacity: 0;
   transform: translateY(-4px);
 }
+
+/* Links that leave the app end with IconExternal. Internal text links get no arrow. */
+.external-icon {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-left: 0.3em;
+  vertical-align: -0.05em;
+}

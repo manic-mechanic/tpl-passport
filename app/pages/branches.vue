@@ -1,6 +1,6 @@
 <template>
   <main class="page-content">
-    <PageBanner title="All Branches" back-label="Explore" back-to="/explore">
+    <PageBanner title="All branches" back-label="Explore" back-to="/explore">
       <template #sub>{{ filteredBranches.length }} of {{ physicalBranches.length }}</template>
     </PageBanner>
 
@@ -13,7 +13,7 @@
         <button class="sort-tab" :class="{ 'sort-tab-active': visitFilter === 'unvisited' }"
                 @click="visitFilter = visitFilter === 'unvisited' ? null : 'unvisited'"
         >
-          Unvisited
+          Not visited
         </button>
         <button class="sort-tab" :class="{ 'sort-tab-active': visitFilter === 'visited' }"
                 @click="visitFilter = visitFilter === 'visited' ? null : 'visited'"

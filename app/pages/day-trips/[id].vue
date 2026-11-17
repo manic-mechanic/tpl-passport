@@ -21,7 +21,7 @@
     </section>
 
     <section class="suggestions-section">
-      <h2 class="stops-title">Local Suggestions</h2>
+      <h2 class="stops-title">Local suggestions</h2>
       <p class="suggestions-empty">
         Curated tips from locals and librarians — coming soon.
       </p>
@@ -40,15 +40,16 @@ import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
 import IconMapPin from '~/components/icons/IconMapPin.vue'
 
+// Reject unknown trips before the page renders, so both server and client-side
+// navigation show error.vue's 404. Throwing from setup instead lets the
+// template render with no trip, which crashes in dev.
+definePageMeta({
+  validate: route => routesData.some(r => r.id === route.params.id),
+})
+
 const nuxtRoute = useRoute()
 
-const trip = routesData.find(r => r.id === nuxtRoute.params.id)
-
-if (!trip) {
-  // fatal: on client-side navigation a non-fatal error would leave a blank page
-  // instead of showing error.vue.
-  throw createError({ status: 404, statusText: 'Route not found', fatal: true })
-}
+const trip = routesData.find(r => r.id === nuxtRoute.params.id)!
 
 const branchObjects = trip.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
 

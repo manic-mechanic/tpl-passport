@@ -2,7 +2,7 @@
   <main class="page-content">
     <PageBanner title="History" back-label="Passport" @back="goBack">
       <template v-if="passport.checkIns.length" #sub>
-        {{ passport.checkIns.length }} check-in{{ passport.checkIns.length !== 1 ? 's' : '' }}
+        {{ passport.checkIns.length }} visit{{ passport.checkIns.length !== 1 ? 's' : '' }}
       </template>
     </PageBanner>
 
@@ -10,7 +10,7 @@
     <div v-if="passport.checkIns.length" class="stats-strip">
       <div class="stat-item">
         <span class="stat-num">{{ passport.checkIns.length }}</span>
-        <span class="stat-lbl">Total visits</span>
+        <span class="stat-lbl">Visits</span>
       </div>
       <div class="stat-divider" />
       <div class="stat-item">
@@ -56,7 +56,7 @@
 
     <div v-else class="empty-state">
       <IconClock />
-      <p>No check-ins yet.<br>Visit a branch to get started.</p>
+      <p>No visits yet.<br>Check in at any branch to start your history.</p>
     </div>
   </main>
 

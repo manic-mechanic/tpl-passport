@@ -133,7 +133,7 @@ test('sign-out syncs, then clears this device', async ({ page }) => {
 
   await page.goto('/settings')
   await page.getByRole('button', { name: 'Sign out' }).click()
-  await expect(page.getByRole('link', { name: 'Sign in →' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
 
   expect(server.signedIn).toBe(false)
   expect([...server.checkIns.values()].map(c => c.note)).toEqual(['synced then cleared'])

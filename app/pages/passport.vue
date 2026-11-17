@@ -1,6 +1,6 @@
 <template>
   <main class="page-content">
-    <PageBanner ref="stickyTopRef" title="My Passport">
+    <PageBanner ref="stickyTopRef" title="My passport">
       <template #action>
         <NuxtLink to="/history" class="all-visits-link">All visits</NuxtLink>
       </template>

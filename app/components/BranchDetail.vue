@@ -32,7 +32,7 @@
         {{ checkinState === 'visited' ? 'Check in again' : 'Check in here' }}
       </NuxtLink>
       <button v-else class="checkin-btn blocked" disabled>
-        Already visited today
+        Checked in today
       </button>
     </div>
 
@@ -53,7 +53,11 @@
         </li>
       </ul>
       <p v-else-if="!eventsPending" class="events-empty">No events today or tomorrow.</p>
-      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more" @click="trackTplLinkTapped">All events at this branch ↗</a>
+      <a :href="branch.Website" target="_blank" rel="noopener" class="events-more"
+         aria-label="All events at this branch (opens another site)" @click="trackTplLinkTapped"
+      >
+        All events at this branch<IconExternal class="external-icon" aria-hidden="true" />
+      </a>
     </section>
 
     <section v-if="services.length" class="detail-section">
@@ -64,7 +68,7 @@
     </section>
 
     <section v-if="branchHistoryEntries.length" class="detail-section">
-      <h2 class="detail-heading">Branch History</h2>
+      <h2 class="detail-heading">Branch history</h2>
       <template v-if="pastVisitsHere.length === 0">
         <p class="history-locked">Check in here to start reading this branch's history.</p>
       </template>
@@ -100,6 +104,7 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { compassPoints } from '~/composables/useBadges'
 import { formatAudiences, formatEventTime } from '~/composables/useEvents'
+import IconExternal from './icons/IconExternal.vue'
 import IconParking from './icons/IconParking.vue'
 import IconTelephone from './icons/IconTelephone.vue'
 import IconMapPin from './icons/IconMapPin.vue'

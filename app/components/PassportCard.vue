@@ -14,7 +14,7 @@
             />
           </div>
           <div>
-            <p class="field-label">Home Branch</p>
+            <p class="field-label">Home branch</p>
             <div v-if="isSignedIn" class="field-value">
               {{ passport.profile.homeBranch ? branchNameForCode(passport.profile.homeBranch) : '—' }}
             </div>
