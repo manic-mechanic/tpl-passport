@@ -37,12 +37,3 @@ Say what's empty, then give one next step. No exclamation marks.
 ### 6. Ellipses
 Use the single character `…`, only for something in progress ("Saving…", "Checking location…")
 or a placeholder ("Search branches…").
-
----
-
-## Still to do
-
-- After #34 (Your Library Tour) merges, apply these rules to its copy and to the lines this
-  pass left alone to avoid conflicts:
-  - `app/pages/day-trips/[id].vue`: back label "Day Trips" → "Day trips"
-  - `app/components/ExploreDayTrips.vue` and the new tour pages

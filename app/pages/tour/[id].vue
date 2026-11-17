@@ -1,6 +1,6 @@
 <template>
   <main class="page-content" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }">
-    <PageBanner :title="tour.title" back-label="Library Tour" back-to="/explore?tab=routes&mode=transit">
+    <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore?tab=routes&mode=transit">
       <template #sub>
         Route {{ tour.id }} · {{ formatMinutes(tour.travelMin) }} · {{ tour.rides }} rides · {{ tour.walkKm }} km walking
       </template>
@@ -37,9 +37,10 @@
                 {{ formatMinutes(legMinutes(stop.leg)) }}<template v-if="!legRides(stop.leg).length"> walk</template>
               </span>
               <a :href="transitDirectionsUrl(stop.branch, stop.next)" target="_blank" rel="noopener" class="leg-link"
+                 aria-label="Directions (opens another site)"
                  @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
               >
-                Directions
+                Directions<IconExternal class="external-icon" aria-hidden="true" />
               </a>
             </div>
             <!-- One line per ride: vehicle, route number, and where to board -->
@@ -60,6 +61,7 @@
 
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
+import IconExternal from '~/components/icons/IconExternal.vue'
 import { branchesByCode } from '~/composables/useRegion'
 import { usePassportStore } from '~/stores/passport'
 import {

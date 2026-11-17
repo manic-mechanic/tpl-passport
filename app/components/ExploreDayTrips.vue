@@ -58,8 +58,7 @@
            aria-label="Learn more at UofT School of Cities (opens another site)"
            @click="$posthog?.capture('tour_learn_more_tapped')"
         >
-          Learn more at UofT School of Cities
-          <IconExternal class="tour-learn-icon" aria-hidden="true" />
+          Learn more at UofT School of Cities<IconExternal class="external-icon" aria-hidden="true" />
         </a>
       </template>
     </section>
@@ -410,16 +409,8 @@ const tourWithProgress = computed(() =>
 
 .tour-learn {
   align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
   font-size: 0.8125rem;
   font-weight: 600;
-}
-
-.tour-learn-icon {
-  width: 13px;
-  height: 13px;
 }
 
 .tour-card {
