@@ -42,7 +42,11 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # The home page's HTML is prerendered, which reads NUXT_PUBLIC_* at
+      # build time, so the E2E dev features have to be on for the build too.
       - name: Build
+        env:
+          NUXT_PUBLIC_IS_DEV: 'true'
         run: npm run build
 
       - name: Install Playwright browser

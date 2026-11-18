@@ -1,4 +1,5 @@
-import { readdir } from 'node:fs/promises'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import pkg from './package.json'
 import { fileURLToPath } from 'node:url'
 
@@ -93,6 +94,15 @@ export default defineNuxtConfig({
     server: true,
   },
 
+  // The app is a SPA, so every page gets the same HTML shell. Build it once as
+  // a static index.html instead of rendering it in a server function on each
+  // request, which on Vercel meant a cold start after any idle period.
+  // NUXT_PUBLIC_* values are read at build time for this file, so they must
+  // be set for the build (Vercel sets project env vars for builds too).
+  routeRules: {
+    '/': { prerender: true },
+  },
+
   hooks: {
     // Guard against shipping client source maps: if the Nitro preset's public
     // dir isn't covered by sentry.sourcemaps.filesToDeleteAfterUpload, fail
@@ -107,6 +117,28 @@ export default defineNuxtConfig({
           throw new Error(`${maps.length} source map(s) left in ${publicDir}. Add it to sentry.sourcemaps.filesToDeleteAfterUpload in nuxt.config.ts.`)
         }
       })
+
+      // On Vercel, send page routes to the static shell (see routeRules) in
+      // place of the server function. /api stays a function. This runs after
+      // the Vercel preset has written its config.json.
+      if (nitro.options.preset === 'vercel') {
+        nitro.hooks.hook('compiled', async () => {
+          const configPath = join(nitro.options.output.dir, 'config.json')
+          const config = JSON.parse(await readFile(configPath, 'utf8')) as { routes: { src?: string, dest?: string }[] }
+          const serverOnly = /\/(api|__nuxt_island|__nuxt_error)(\/|\)|$)/
+          let rewritten = 0
+          for (const route of config.routes) {
+            if (!route.dest || serverOnly.test(route.src ?? '') || serverOnly.test(route.dest)) continue
+            route.dest = '/index.html'
+            rewritten++
+          }
+          if (!config.routes.some(r => r.src === '/(.*)' && r.dest === '/index.html')) {
+            throw new Error('Vercel config.json: no catch-all route to rewrite to /index.html. Check the Nitro Vercel preset output.')
+          }
+          await writeFile(configPath, JSON.stringify(config, null, 2))
+          nitro.logger.info(`Routed ${rewritten} page route(s) to the static /index.html shell`)
+        })
+      }
     },
   },
 
