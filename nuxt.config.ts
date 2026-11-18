@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import pkg from './package.json'
 import { fileURLToPath } from 'node:url'
@@ -136,7 +136,16 @@ export default defineNuxtConfig({
             throw new Error('Vercel config.json: no catch-all route to rewrite to /index.html. Check the Nitro Vercel preset output.')
           }
           await writeFile(configPath, JSON.stringify(config, null, 2))
-          nitro.logger.info(`Routed ${rewritten} page route(s) to the static /index.html shell`)
+
+          // The preset also writes a function per page (explore.func and so
+          // on, links to __fallback.func). Vercel matches those before the
+          // routes above, so remove them; only the server routes keep one.
+          const functionsDir = join(nitro.options.output.dir, 'functions')
+          const pageFunctions = (await readdir(functionsDir, { recursive: true }))
+            .filter(path => path.endsWith('.func') && !path.includes('.func/'))
+            .filter(path => !/^(api|__nuxt_island)(\/|$)|^__fallback\.func$|^__nuxt_error\.func$/.test(path))
+          for (const path of pageFunctions) await rm(join(functionsDir, path), { recursive: true })
+          nitro.logger.info(`Routed ${rewritten} page route(s) to the static /index.html shell and removed ${pageFunctions.length} page function(s)`)
         })
       }
     },
