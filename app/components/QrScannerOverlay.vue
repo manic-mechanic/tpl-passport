@@ -23,7 +23,6 @@
 </template>
 
 <script setup lang="ts">
-import jsQR from 'jsqr'
 import IconClose from '~/components/icons/IconClose.vue'
 
 // Camera QR scanner. Emits `scanned` with the branch code from a branch QR
@@ -39,6 +38,9 @@ const scanCanvas = ref<HTMLCanvasElement | null>(null)
 let stream: MediaStream | null = null
 let rafId: number | null = null
 let ctx: CanvasRenderingContext2D | null = null  // canvas 2d context — hoisted so it's not re-fetched every frame
+// jsQR is ~230 KB, so it's loaded when the scanner opens rather than with the
+// check-in page (which every visitor prefetches from the bottom nav).
+let jsQR: typeof import('jsqr').default | null = null
 
 watch(active, (isActive) => {
   if (isActive) void start()
@@ -47,10 +49,25 @@ watch(active, (isActive) => {
 
 async function start() {
   await nextTick()
-  try {
-    const media = await navigator.mediaDevices.getUserMedia({
+  // Load the decoder while the camera permission prompt is up. Both are
+  // settled before acting, so a failed download never strands an open camera.
+  const [camera, decoder] = await Promise.allSettled([
+    navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
-    })
+    }),
+    jsQR ? Promise.resolve({ default: jsQR }) : import('jsqr'),
+  ])
+  const media = camera.status === 'fulfilled' ? camera.value : null
+  if (decoder.status === 'rejected') {
+    media?.getTracks().forEach(t => t.stop())
+    if (!active.value) return
+    emit('error', "Couldn't load the scanner — check your connection and try again.")
+    active.value = false
+    return
+  }
+  jsQR = decoder.value.default
+  try {
+    if (!media) throw camera.status === 'rejected' ? camera.reason : new Error('No camera')
     // Closed while the permission prompt was open: release the camera.
     if (!active.value || !videoEl.value) {
       media.getTracks().forEach(t => t.stop())
@@ -75,7 +92,7 @@ async function start() {
 function scanLoop() {
   const video = videoEl.value
   const canvas = scanCanvas.value
-  if (!video || !canvas || !ctx || !active.value) return
+  if (!video || !canvas || !ctx || !jsQR || !active.value) return
 
   if (video.readyState < video.HAVE_ENOUGH_DATA) {
     rafId = requestAnimationFrame(scanLoop)
