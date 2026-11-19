@@ -1,0 +1,53 @@
+name: Refresh branch hours
+
+# Re-scrapes opening hours from tpl.ca each week and opens (or updates) a PR
+# when any branch's hours changed. Hours change seasonally and for closures,
+# and the app shows packages/shared/data/branch-hours.json as-is.
+#
+# Needs: Settings → Actions → General → "Allow GitHub Actions to create and
+# approve pull requests". A PR opened with the default GITHUB_TOKEN doesn't
+# start other workflows, so CI won't run on it until it's updated by a push
+# (or closed and reopened).
+on:
+  schedule:
+    - cron: '17 9 * * 1' # Mondays, 09:17 UTC (4:17/5:17am Toronto)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: refresh-hours
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No dependencies: the script only uses Node built-ins and fetch.
+      - name: Scrape hours from tpl.ca
+        run: node scripts/scrape-hours.mjs
+
+      - name: Open or update the PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/refresh-branch-hours
+          base: main
+          add-paths: packages/shared/data/branch-hours.json
+          commit-message: Refresh branch hours from tpl.ca
+          title: Refresh branch hours from tpl.ca
+          body: |
+            The weekly scrape of tpl.ca found changed opening hours.
+            Review the diff in `packages/shared/data/branch-hours.json` before merging.
+
+            Opened by the `Refresh branch hours` workflow.
+          labels: data
+          delete-branch: true

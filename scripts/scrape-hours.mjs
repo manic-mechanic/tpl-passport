@@ -1,17 +1,23 @@
 // Scrapes opening hours from tpl.ca/locations/{BranchCode}/ for all 100 physical branches.
 // Parses the JSON-LD openingHoursSpecification embedded in each page.
-// Writes data/branch-hours.json keyed by BranchCode.
+// Writes packages/shared/data/branch-hours.json keyed by BranchCode.
 //
 // Usage: node scripts/scrape-hours.mjs
 //
-// Re-run whenever hours change (e.g. seasonally). No external dependencies needed.
+// Runs weekly in CI (.github/workflows/refresh-hours.yml), which opens a PR
+// when hours change. A branch whose page fails keeps its previous hours, and
+// the run fails if more than 10% of branches fail, so a site outage or a
+// page redesign can't wipe the file. No external dependencies needed.
 
 import { readFileSync, writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const branchData = JSON.parse(readFileSync(join(__dirname, '../data/updated-branch-info.json'), 'utf8'))
+const DATA_DIR   = join(__dirname, '../packages/shared/data')
+const outPath    = join(DATA_DIR, 'branch-hours.json')
+const branchData = JSON.parse(readFileSync(join(DATA_DIR, 'branch-info.json'), 'utf8'))
+const previous   = JSON.parse(readFileSync(outPath, 'utf8'))
 const physical   = branchData.filter(b => b.PhysicalBranch === 1)
 
 const DELAY_MS = 300  // be polite — ~30 seconds total for 100 branches
@@ -45,10 +51,12 @@ function parseHours(html) {
         for (const day of days) {
           // dayOfWeek can be a full URL ("https://schema.org/Monday") or just "Monday"
           const dayName = String(day).replace(/.*\//, '')
-          if (entry.opens && entry.closes) {
-            hours[dayName] = `${formatTime(entry.opens)} – ${formatTime(entry.closes)}`
-          } else if (entry.opens === '' || entry.closes === '') {
+          // tpl.ca marks a closed day as opens = closes = 00:00:00 (e.g. a
+          // branch closed for renovation); empty values also mean closed.
+          if (!entry.opens || !entry.closes || entry.opens === entry.closes) {
             hours[dayName] = 'Closed'
+          } else {
+            hours[dayName] = `${formatTime(entry.opens)} – ${formatTime(entry.closes)}`
           }
         }
       }
@@ -77,7 +85,8 @@ async function fetchHours(branchCode) {
 }
 
 const results = {}
-let ok = 0, fail = 0
+let ok = 0
+const failed = []
 
 for (let i = 0; i < physical.length; i++) {
   const branch = physical[i]
@@ -88,11 +97,18 @@ for (let i = 0; i < physical.length; i++) {
     console.log(`✓ (${Object.keys(hours).length} days)`)
     ok++
   } else {
-    fail++
+    failed.push(branch.BranchCode)
+    if (previous[branch.BranchCode]) results[branch.BranchCode] = previous[branch.BranchCode]
   }
   if (i < physical.length - 1) await sleep(DELAY_MS)
 }
 
-const outPath = join(__dirname, '../data/branch-hours.json')
-writeFileSync(outPath, JSON.stringify(results, null, 2))
-console.log(`\nDone. ${ok} ok, ${fail} failed → ${outPath}`)
+if (failed.length > physical.length * 0.1) {
+  console.error(`\n${failed.length} of ${physical.length} branches failed (${failed.join(', ')}); not writing ${outPath}.`)
+  process.exit(1)
+}
+
+// Sorted keys, so a rerun with the same hours produces no diff.
+const sorted = Object.fromEntries(Object.entries(results).sort(([a], [b]) => a.localeCompare(b)))
+writeFileSync(outPath, JSON.stringify(sorted, null, 2) + '\n')
+console.log(`\nDone. ${ok} ok, ${failed.length} failed${failed.length ? ` (kept previous hours: ${failed.join(', ')})` : ''} → ${outPath}`)
