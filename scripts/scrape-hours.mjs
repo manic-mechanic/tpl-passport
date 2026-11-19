@@ -20,6 +20,8 @@ const branchData = JSON.parse(readFileSync(join(DATA_DIR, 'branch-info.json'), '
 const previous   = JSON.parse(readFileSync(outPath, 'utf8'))
 const physical   = branchData.filter(b => b.PhysicalBranch === 1)
 
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
 const DELAY_MS = 300  // be polite — ~30 seconds total for 100 branches
 
 function sleep(ms) {
@@ -51,13 +53,13 @@ function parseHours(html) {
         for (const day of days) {
           // dayOfWeek can be a full URL ("https://schema.org/Monday") or just "Monday"
           const dayName = String(day).replace(/.*\//, '')
+          // An entry without both times isn't an hours entry; skip it.
+          if (entry.opens == null || entry.closes == null) continue
           // tpl.ca marks a closed day as opens = closes = 00:00:00 (e.g. a
-          // branch closed for renovation); empty values also mean closed.
-          if (!entry.opens || !entry.closes || entry.opens === entry.closes) {
-            hours[dayName] = 'Closed'
-          } else {
-            hours[dayName] = `${formatTime(entry.opens)} – ${formatTime(entry.closes)}`
-          }
+          // branch closed for renovation); two empty values also mean closed.
+          hours[dayName] = entry.opens === entry.closes
+            ? 'Closed'
+            : `${formatTime(entry.opens)} – ${formatTime(entry.closes)}`
         }
       }
     }
@@ -76,8 +78,11 @@ async function fetchHours(branchCode) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const html  = await res.text()
     const hours = parseHours(html)
-    if (!Object.keys(hours).length) throw new Error('no hours found in page')
-    return hours
+    // A page with some days missing (e.g. after a redesign) would replace
+    // a full week with a partial one, so count it as failed.
+    const missing = DAYS.filter(day => !hours[day])
+    if (missing.length) throw new Error(`no hours for ${missing.join(', ')}`)
+    return Object.fromEntries(DAYS.map(day => [day, hours[day]]))
   } catch (err) {
     console.warn(`  ✗ ${branchCode}: ${err.message}`)
     return null
@@ -111,4 +116,21 @@ if (failed.length > physical.length * 0.1) {
 // Sorted keys, so a rerun with the same hours produces no diff.
 const sorted = Object.fromEntries(Object.entries(results).sort(([a], [b]) => a.localeCompare(b)))
 writeFileSync(outPath, JSON.stringify(sorted, null, 2) + '\n')
+
+// A Markdown list of what changed, for the weekly PR's description. tpl.ca's
+// hours are the current week's, so a holiday shows up as a closed day here
+// (and reverts the week after); the list makes those easy to spot.
+if (process.env.HOURS_CHANGES_FILE) {
+  const names = Object.fromEntries(physical.map(b => [b.BranchCode, b.BranchName]))
+  const lines = []
+  for (const [code, week] of Object.entries(sorted)) {
+    const before = previous[code]
+    if (!before) { lines.push(`- **${names[code] ?? code}** (${code}): added`); continue }
+    const changes = DAYS.filter(day => before[day] !== week[day])
+      .map(day => `${day}: ${before[day] ?? '—'} → ${week[day]}${week[day] === 'Closed' ? ' ⚠️' : ''}`)
+    if (changes.length) lines.push(`- **${names[code] ?? code}** (${code}): ${changes.join('; ')}`)
+  }
+  if (failed.length) lines.push('', `Pages that failed (previous hours kept): ${failed.join(', ')}`)
+  writeFileSync(process.env.HOURS_CHANGES_FILE, lines.join('\n') + '\n')
+}
 console.log(`\nDone. ${ok} ok, ${failed.length} failed${failed.length ? ` (kept previous hours: ${failed.join(', ')})` : ''} → ${outPath}`)

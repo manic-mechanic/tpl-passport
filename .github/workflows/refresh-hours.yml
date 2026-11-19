@@ -6,8 +6,8 @@ name: Refresh branch hours
 #
 # Needs: Settings → Actions → General → "Allow GitHub Actions to create and
 # approve pull requests". A PR opened with the default GITHUB_TOKEN doesn't
-# start other workflows, so CI won't run on it until it's updated by a push
-# (or closed and reopened).
+# start other workflows, so this workflow runs the unit tests itself before
+# opening it; full CI runs once the PR is updated by a push.
 on:
   schedule:
     - cron: '17 9 * * 1' # Mondays, 09:17 UTC (4:17/5:17am Toronto)
@@ -32,11 +32,49 @@ jobs:
         with:
           node-version: 24
 
-      # No dependencies: the script only uses Node built-ins and fetch.
+      # The script only uses Node built-ins and fetch; dependencies are for
+      # the tests below.
       - name: Scrape hours from tpl.ca
+        env:
+          HOURS_CHANGES_FILE: ${{ runner.temp }}/hours-changes.md
         run: node scripts/scrape-hours.mjs
 
-      - name: Open or update the PR
+      # The PR below is opened with GITHUB_TOKEN, which doesn't start CI on
+      # it, so run the unit tests against the new data here.
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet -- packages/shared/data/branch-hours.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.changes.outputs.changed == 'true'
+        run: npm ci
+
+      - name: Unit tests
+        if: steps.changes.outputs.changed == 'true'
+        run: npm test
+
+      - name: PR description
+        if: steps.changes.outputs.changed == 'true'
+        id: body
+        run: |
+          {
+            echo 'text<<EOF'
+            echo 'The weekly scrape of tpl.ca found changed opening hours. tpl.ca lists the current week, so a day marked ⚠️ Closed may be a one-off holiday closure that reverts next week: check those before merging.'
+            echo
+            cat "${{ runner.temp }}/hours-changes.md"
+            echo
+            echo 'Unit tests passed against the new data in the workflow run. Opened by the `Refresh branch hours` workflow.'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # Runs even with no changes: then it closes last week's PR, if any
+      # (e.g. a holiday closure that has since reverted).
+      - name: Open, update or close the PR
         uses: peter-evans/create-pull-request@v7
         with:
           branch: chore/refresh-branch-hours
@@ -44,10 +82,6 @@ jobs:
           add-paths: packages/shared/data/branch-hours.json
           commit-message: Refresh branch hours from tpl.ca
           title: Refresh branch hours from tpl.ca
-          body: |
-            The weekly scrape of tpl.ca found changed opening hours.
-            Review the diff in `packages/shared/data/branch-hours.json` before merging.
-
-            Opened by the `Refresh branch hours` workflow.
+          body: ${{ steps.body.outputs.text }}
           labels: data
           delete-branch: true
