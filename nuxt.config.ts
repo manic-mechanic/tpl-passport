@@ -28,6 +28,16 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-title', content: 'Library Passport' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
       ],
+      script: [
+        // Mark the installed app before first paint; main.css switches it to
+        // the pinned-document layout ("Installed app scrolling"). iOS Home
+        // Screen apps don't always match display-mode: standalone, so also
+        // check Safari's navigator.standalone.
+        {
+          innerHTML: "if(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)document.documentElement.classList.add('standalone')",
+          tagPosition: 'head',
+        },
+      ],
       link: [
         // Fonts
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },

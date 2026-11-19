@@ -1,7 +1,7 @@
 // Which element scrolls the app's pages.
 //
 // In a browser tab the document scrolls, as usual. In the installed app
-// (display-mode: standalone) the document is pinned to the screen and
+// (html.standalone) the document is pinned to the screen and
 // #__nuxt scrolls instead, so iOS bounces #__nuxt rather than revealing the
 // navy root background past the bottom of a page (see main.css, "Installed
 // app scrolling"). The CSS decides; this just reads which one it chose.
