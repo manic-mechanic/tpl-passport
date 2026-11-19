@@ -26,12 +26,22 @@ export function compressPhoto(file: Blob, maxWidth = 1200, quality = 0.82): Prom
   })
 }
 
-// Uploads a compressed photo and returns its hosted URL, or null on failure.
-// A 401 just means the user isn't signed in, and a 429 is the auth server's
-// per-user upload rate limit (a big backlog syncing at sign-in can hit it),
-// so neither is reported. The photo stays on the device either way, and the
-// next sync uploads it.
-export async function uploadCheckInPhoto(blob: Blob): Promise<string | null> {
+// Why an upload didn't produce a hosted copy. The photo stays on the device
+// in every case, and the next sync tries it again.
+// - unauthorized: not signed in (401).
+// - rate_limited: the auth server's per-user upload limit, 20 a minute
+//   (429). A big backlog syncing at sign-in can hit it.
+// - quota: the account's photo storage is full (507, code photo_quota),
+//   after the server has already deleted photos no check-in uses.
+// - failed: anything else, including network errors.
+export type UploadFailure = 'unauthorized' | 'rate_limited' | 'quota' | 'failed'
+export type UploadResult = { ok: true, url: string } | { ok: false, reason: UploadFailure }
+
+// Uploads a compressed photo. Only unexpected failures are reported to
+// Sentry: not being signed in and hitting the rate limit are normal, and a
+// full account is reported once, not on every retry.
+let quotaReported = false
+export async function uploadCheckInPhotoResult(blob: Blob): Promise<UploadResult> {
   try {
     const res = await fetch(`${getAuthBase()}/api/upload/photo?ext=jpg`, {
       method: 'POST',
@@ -39,21 +49,35 @@ export async function uploadCheckInPhoto(blob: Blob): Promise<string | null> {
       headers: { 'Content-Type': 'image/jpeg' },
       body: blob,
     })
-    if (!res.ok) {
-      if (res.status !== 401 && res.status !== 429) {
-        reportError(new Error(`uploadCheckInPhoto failed: HTTP ${res.status}`), {
-          area: 'sync',
-          operation: 'upload_photo',
-          status: res.status,
-          endpoint: '/api/upload/photo',
-        })
-      }
-      return null
+    if (res.ok) {
+      const { publicUrl } = await res.json() as { publicUrl?: string }
+      return publicUrl ? { ok: true, url: publicUrl } : { ok: false, reason: 'failed' }
     }
-    const { publicUrl } = await res.json() as { publicUrl?: string }
-    return publicUrl || null
+    if (res.status === 401) return { ok: false, reason: 'unauthorized' }
+    if (res.status === 429) return { ok: false, reason: 'rate_limited' }
+    const code = await res.json().then((b: { code?: string }) => b?.code, () => undefined)
+    if (code === 'photo_quota') {
+      if (!quotaReported) {
+        quotaReported = true
+        reportError(new Error('uploadCheckInPhoto: photo quota reached'), { area: 'sync', operation: 'upload_photo', status: res.status })
+      }
+      return { ok: false, reason: 'quota' }
+    }
+    reportError(new Error(`uploadCheckInPhoto failed: HTTP ${res.status}`), {
+      area: 'sync',
+      operation: 'upload_photo',
+      status: res.status,
+      endpoint: '/api/upload/photo',
+    })
+    return { ok: false, reason: 'failed' }
   } catch (error) {
     reportError(error, { area: 'sync', operation: 'upload_photo', endpoint: '/api/upload/photo' })
-    return null
+    return { ok: false, reason: 'failed' }
   }
+}
+
+// The hosted URL, or null if the upload didn't go through (see above).
+export async function uploadCheckInPhoto(blob: Blob): Promise<string | null> {
+  const result = await uploadCheckInPhotoResult(blob)
+  return result.ok ? result.url : null
 }

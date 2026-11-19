@@ -8,7 +8,7 @@ import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
 import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 import { clearPhotos, getPhotoBlob, movePhoto } from '~/composables/usePhotoStore'
 import { authClient } from '~/lib/auth-client'
-import { uploadCheckInPhoto } from '~/lib/checkInPhoto'
+import { uploadCheckInPhotoResult, type UploadFailure } from '~/lib/checkInPhoto'
 import { reportError } from '~/lib/reportError'
 import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
 import { reconcileProfile } from '~/lib/profileSyncMerge'
@@ -16,12 +16,16 @@ import { useSignedIn } from '~/composables/useAuthState'
 
 // Make sure everything on this device is on the server: merge with the server
 // list, push local-only and merged records, and upload photos that only exist
-// in IndexedDB. Resolves to true only if every step succeeded.
-async function flushToServer(): Promise<boolean> {
+// in IndexedDB. ok is true only if every step succeeded; when photo uploads
+// stopped at the server's rate limit or the account's photo quota, reason
+// says which, so sign-out can say what to do.
+type FlushResult = { ok: true } | { ok: false, reason: 'rate_limited' | 'quota' | 'failed' }
+
+async function flushToServer(): Promise<FlushResult> {
   const passport = usePassportStore()
 
   const serverCheckIns = await fetchCheckIns()
-  if (!serverCheckIns) return false
+  if (!serverCheckIns) return { ok: false, reason: 'failed' }
 
   const { merged, localOnly, updated, photoMoves } = reconcileCheckIns(serverCheckIns, passport.checkIns)
   passport.setCheckIns(merged)
@@ -39,20 +43,31 @@ async function flushToServer(): Promise<boolean> {
   const pushes = await Promise.all([...localOnly, ...updated].map(ci => pushCheckIn(ci)))
   if (pushes.includes(false)) ok = false
 
-  // Photos saved on this device that never got a hosted copy.
+  // Photos saved on this device that never got a hosted copy. Stop at the
+  // rate limit or a full account: the rest would only get the same answer.
+  let stoppedAt: Extract<UploadFailure, 'rate_limited' | 'quota'> | null = null
   for (const ci of passport.checkIns.filter(c => c.hasPhoto && !c.photoUri)) {
     try {
       const blob = await getPhotoBlob(ci.timestamp)
       if (!blob) continue
-      const publicUrl = await uploadCheckInPhoto(blob)
-      if (!publicUrl || !(await passport.markCheckInHasPhoto(ci.timestamp, publicUrl))) ok = false
+      const upload = await uploadCheckInPhotoResult(blob)
+      if (!upload.ok) {
+        ok = false
+        if (upload.reason === 'rate_limited' || upload.reason === 'quota') {
+          stoppedAt = upload.reason
+          break
+        }
+        continue
+      }
+      if (!(await passport.markCheckInHasPhoto(ci.timestamp, upload.url))) ok = false
     } catch (error) {
       ok = false
       reportError(error, { area: 'sync', operation: 'upload_pending_photo' })
     }
   }
 
-  return ok
+  if (ok) return { ok: true }
+  return { ok: false, reason: stoppedAt ?? 'failed' }
 }
 
 // Pull the server profile and check-ins into the local store and push up
@@ -82,6 +97,14 @@ export async function syncAccount(fallbackName = '') {
 
 export type SignOutResult = { ok: true } | { ok: false, reason: string }
 
+// Why sign-out waits: signing out clears this device, so anything not yet on
+// the server would be lost.
+const SIGN_OUT_BLOCKED = {
+  rate_limited: 'Your photos are still uploading. Try signing out again in a minute.',
+  quota: "Your account's photo storage is full, so some photos on this device can't be saved. Signing out now would lose them.",
+  failed: "Some check-ins or photos haven't synced yet. Check your connection and try again.",
+} as const
+
 // Sign out and wipe this device's copy of the account's data so it can't be
 // merged into the next account that signs in here. Nothing is wiped unless
 // everything on the device is confirmed on the server and sign-out succeeded.
@@ -90,8 +113,9 @@ export async function signOutAndClear(): Promise<SignOutResult> {
   const passport = usePassportStore()
   const { $posthog } = useNuxtApp()
 
-  if (!(await flushToServer())) {
-    return { ok: false, reason: "Some check-ins or photos haven't synced yet. Check your connection and try again." }
+  const flushed = await flushToServer()
+  if (!flushed.ok) {
+    return { ok: false, reason: SIGN_OUT_BLOCKED[flushed.reason] }
   }
 
   const { error } = await authClient.signOut()
