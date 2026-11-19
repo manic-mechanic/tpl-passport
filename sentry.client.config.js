@@ -12,7 +12,9 @@ Sentry.init({
   environment: sentryEnvironment({ vercelEnv, vercelTargetEnv, isDev: !!isDev }),
   dataCollection: sentryDataCollection,
   ignoreErrors: sentryIgnoreErrors,
-  tracesSampleRate: 0.2,
+  // Every page load is traced, so a slow one shows up with its timings.
+  // Traffic is low enough that this stays well within the free quota.
+  tracesSampleRate: 1,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: 0,
 })

@@ -48,7 +48,7 @@
   --shadow-md:  0 4px 16px rgba(0,28,113,0.12), 0 1px 4px rgba(0,28,113,0.08);
 
   /* Typography */
-  --font-display:       'Fraunces', Georgia, serif;
+  --font-display:       'Fraunces Variable', 'Fraunces', Georgia, serif;
   --font-body:          'Roboto', system-ui, sans-serif;
   --font-stamp:         'Roboto Condensed', 'Roboto', sans-serif;
   --font-stamp-elite:   'Special Elite', cursive;
