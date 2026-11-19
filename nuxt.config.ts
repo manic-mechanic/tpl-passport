@@ -1,9 +1,12 @@
-import { readdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { readdir } from 'node:fs/promises'
 import pkg from './package.json'
 import { fileURLToPath } from 'node:url'
+import { routePagesToStaticShell } from './build/vercelStaticShell'
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
+
+// Vercel sets VERCEL=1 for its builds; NITRO_PRESET=vercel is a local Vercel build.
+const isVercelBuild = process.env.VERCEL === '1' || process.env.NITRO_PRESET === 'vercel'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -60,6 +63,8 @@ export default defineNuxtConfig({
   // Dev-only features (demo mode, location fence bypass, QR scanner).
   // On by default only under `nuxt dev`; production builds default to off.
   // Set NUXT_PUBLIC_IS_DEV=true on preview/tester deployments to turn them on.
+  // On Vercel, NUXT_PUBLIC_* values are read at build time (see routeRules),
+  // so changing one needs a redeploy.
   // Set NUXT_PUBLIC_BYPASS_GEOFENCE=true to allow check-ins from any location (e.g. for testers);
   // it only takes effect when isDev is on, so it can't switch off the check in production.
   runtimeConfig: {
@@ -78,7 +83,7 @@ export default defineNuxtConfig({
       // (VERCEL_ENV is 'preview' for those). Sentry's v11 bundler plugins tag
       // deploys with it, so events use it too.
       vercelTargetEnv: process.env.VERCEL_TARGET_ENV ?? '',
-      // Overridden at runtime by NUXT_PUBLIC_SENTRY_DSN.
+      // Set by NUXT_PUBLIC_SENTRY_DSN (at build time on Vercel).
       sentry: {
         dsn: '',
       },
@@ -94,14 +99,13 @@ export default defineNuxtConfig({
     server: true,
   },
 
-  // The app is a SPA, so every page gets the same HTML shell. Build it once as
-  // a static index.html instead of rendering it in a server function on each
-  // request, which on Vercel meant a cold start after any idle period.
-  // NUXT_PUBLIC_* values are read at build time for this file, so they must
-  // be set for the build (Vercel sets project env vars for builds too).
-  routeRules: {
-    '/': { prerender: true },
-  },
+  // The app is a SPA, so every page gets the same HTML shell. On Vercel it's
+  // built once as a static index.html and served for every page (see the
+  // nitro:init hook), in place of a server function that cold-started after
+  // any idle period. That bakes NUXT_PUBLIC_* values into the HTML at build
+  // time, so on Vercel they take effect on the next deploy, not at runtime.
+  // Other builds (CI's node server) keep reading them per request.
+  routeRules: isVercelBuild ? { '/': { prerender: true } } : {},
 
   hooks: {
     // Guard against shipping client source maps: if the Nitro preset's public
@@ -118,34 +122,16 @@ export default defineNuxtConfig({
         }
       })
 
-      // On Vercel, send page routes to the static shell (see routeRules) in
-      // place of the server function. /api stays a function. This runs after
-      // the Vercel preset has written its config.json.
+      // On Vercel, serve pages from the prerendered index.html in place of
+      // the server function. See build/vercelStaticShell.ts.
       if (nitro.options.preset === 'vercel') {
         nitro.hooks.hook('compiled', async () => {
-          const configPath = join(nitro.options.output.dir, 'config.json')
-          const config = JSON.parse(await readFile(configPath, 'utf8')) as { routes: { src?: string, dest?: string }[] }
-          const serverOnly = /\/(api|__nuxt_island|__nuxt_error)(\/|\)|$)/
-          let rewritten = 0
-          for (const route of config.routes) {
-            if (!route.dest || serverOnly.test(route.src ?? '') || serverOnly.test(route.dest)) continue
-            route.dest = '/index.html'
-            rewritten++
-          }
-          if (!config.routes.some(r => r.src === '/(.*)' && r.dest === '/index.html')) {
-            throw new Error('Vercel config.json: no catch-all route to rewrite to /index.html. Check the Nitro Vercel preset output.')
-          }
-          await writeFile(configPath, JSON.stringify(config, null, 2))
-
-          // The preset also writes a function per page (explore.func and so
-          // on, links to __fallback.func). Vercel matches those before the
-          // routes above, so remove them; only the server routes keep one.
-          const functionsDir = join(nitro.options.output.dir, 'functions')
-          const pageFunctions = (await readdir(functionsDir, { recursive: true }))
-            .filter(path => path.endsWith('.func') && !path.includes('.func/'))
-            .filter(path => !/^(api|__nuxt_island)(\/|$)|^__fallback\.func$|^__nuxt_error\.func$/.test(path))
-          for (const path of pageFunctions) await rm(join(functionsDir, path), { recursive: true })
-          nitro.logger.info(`Routed ${rewritten} page route(s) to the static /index.html shell and removed ${pageFunctions.length} page function(s)`)
+          const { pageRoutes, removedFunctions } = await routePagesToStaticShell({
+            outputDir: nitro.options.output.dir,
+            pageRoutes: nitro.options.ssrRoutes ?? [],
+            buildAssetsDir: nitro.options.runtimeConfig.app.buildAssetsDir,
+          })
+          nitro.logger.info(`Routed ${pageRoutes} page route(s) and the catch-all to the static /index.html shell; removed ${removedFunctions} page function(s)`)
         })
       }
     },
