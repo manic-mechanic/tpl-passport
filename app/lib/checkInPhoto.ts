@@ -27,7 +27,10 @@ export function compressPhoto(file: Blob, maxWidth = 1200, quality = 0.82): Prom
 }
 
 // Uploads a compressed photo and returns its hosted URL, or null on failure.
-// A 401 just means the user isn't signed in, so it isn't reported.
+// A 401 just means the user isn't signed in, and a 429 is the auth server's
+// per-user upload rate limit (a big backlog syncing at sign-in can hit it),
+// so neither is reported. The photo stays on the device either way, and the
+// next sync uploads it.
 export async function uploadCheckInPhoto(blob: Blob): Promise<string | null> {
   try {
     const res = await fetch(`${getAuthBase()}/api/upload/photo?ext=jpg`, {
@@ -37,7 +40,7 @@ export async function uploadCheckInPhoto(blob: Blob): Promise<string | null> {
       body: blob,
     })
     if (!res.ok) {
-      if (res.status !== 401) {
+      if (res.status !== 401 && res.status !== 429) {
         reportError(new Error(`uploadCheckInPhoto failed: HTTP ${res.status}`), {
           area: 'sync',
           operation: 'upload_photo',
