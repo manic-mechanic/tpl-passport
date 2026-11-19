@@ -4,7 +4,7 @@ import { sentryDataCollection } from './app/lib/sentryDataCollection'
 import { sentryIgnoreErrors } from './app/lib/sentryIgnore'
 
 // The browser bundle has no process.env, so read the DSN from runtime config
-// (set via NUXT_PUBLIC_SENTRY_DSN).
+// (set via NUXT_PUBLIC_SENTRY_DSN, read at build time on Vercel).
 const { public: { isDev, sentry, vercelEnv, vercelTargetEnv } } = useRuntimeConfig()
 
 Sentry.init({
