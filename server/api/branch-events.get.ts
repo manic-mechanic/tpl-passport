@@ -9,7 +9,7 @@
 // for busy branches with 100+ past or far-future records.
 import { reportServerError } from '../lib/reportServerError'
 import { eventDates } from '../lib/eventDates'
-import { compareEvents, fetchCkanEvents } from '../lib/ckanEvents'
+import { compareEvents, fetchCkanEvents, setEventsCacheHeaders } from '../lib/ckanEvents'
 
 export default defineEventHandler(async (event) => {
   const { library } = getQuery(event)
@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const results = await Promise.all(dates.map(date => fetchCkanEvents(date, shortName)))
+    setEventsCacheHeaders(event, true)
     return results.flat().sort(compareEvents)
   } catch (error) {
     reportServerError(error, {
@@ -27,6 +28,7 @@ export default defineEventHandler(async (event) => {
       operation: 'branch_events_fetch',
       library: shortName,
     })
+    setEventsCacheHeaders(event, false)
     return []
   }
 })
