@@ -23,7 +23,7 @@
     <NuxtLink v-for="tripRoute in routesWithProgress" :key="tripRoute.id" :to="'/day-trips/' + tripRoute.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: tripRoute.id, route_name: tripRoute.name, visited: tripRoute.visited, total: tripRoute.total })">
       <div class="route-meta-row">
         <span class="area-chip">{{ tripRoute.area }}</span>
-        <span class="route-info">🚶 {{ tripRoute.duration }} · {{ tripRoute.total }} stops</span>
+        <span class="route-info">{{ tripRoute.duration }} · {{ tripRoute.total }} stops</span>
         <IconChevron class="route-chevron" />
       </div>
       <p class="route-name">{{ tripRoute.name }}</p>

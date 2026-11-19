@@ -75,7 +75,7 @@ const photoPath = path.resolve(process.cwd(), 'tests/e2e/fixtures/photo.png')
 async function signUp(page: Page) {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByPlaceholder('Your name').fill('Reader')
+  await page.getByLabel('Name', { exact: true }).fill('Reader')
   await page.getByPlaceholder('you@example.com').fill('reader@example.com')
   const passwords = page.locator('input[type="password"]')
   await passwords.nth(0).fill('password123')

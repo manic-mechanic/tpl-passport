@@ -6,9 +6,10 @@
     </button>
   </div>
   <div v-if="showChangeEmail" class="inline-form">
-    <input v-model="newEmail" class="inline-input" type="email" placeholder="New email address"
-           autocomplete="email" autocapitalize="none"
-    >
+    <label class="inline-field">
+      <span class="inline-label">New email</span>
+      <input v-model="newEmail" class="inline-input" type="email" autocomplete="email" autocapitalize="none">
+    </label>
     <p v-if="emailError" class="inline-error">{{ emailError }}</p>
     <div class="inline-actions">
       <button class="inline-cancel" @click="cancelChangeEmail">Cancel</button>
@@ -25,15 +26,18 @@
     </button>
   </div>
   <div v-if="showChangePassword" class="inline-form">
-    <input v-model="currentPassword" class="inline-input" type="password" placeholder="Current password"
-           autocomplete="current-password"
-    >
-    <input v-model="newPassword" class="inline-input" type="password" placeholder="New password"
-           autocomplete="new-password"
-    >
-    <input v-model="confirmPassword" class="inline-input" type="password" placeholder="Confirm new password"
-           autocomplete="new-password"
-    >
+    <label class="inline-field">
+      <span class="inline-label">Current password</span>
+      <input v-model="currentPassword" class="inline-input" type="password" autocomplete="current-password">
+    </label>
+    <label class="inline-field">
+      <span class="inline-label">New password</span>
+      <input v-model="newPassword" class="inline-input" type="password" autocomplete="new-password">
+    </label>
+    <label class="inline-field">
+      <span class="inline-label">Confirm new password</span>
+      <input v-model="confirmPassword" class="inline-input" type="password" autocomplete="new-password">
+    </label>
     <p v-if="passwordError" class="inline-error">{{ passwordError }}</p>
     <div class="inline-actions">
       <button class="inline-cancel" @click="cancelChangePassword">Cancel</button>
@@ -195,6 +199,18 @@ async function submitChangePassword() {
   flex-direction: column;
   gap: 8px;
   background: var(--color-bg);
+}
+
+.inline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inline-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .inline-input {

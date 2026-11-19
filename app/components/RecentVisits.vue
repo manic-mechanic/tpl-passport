@@ -22,7 +22,7 @@
     </div>
 
     <p v-if="!recentBranches.length" class="empty-message">
-      Check in at any branch — your recent visits will appear here.
+      Check in at any branch to see your recent visits here.
     </p>
   </section>
 </template>

@@ -1,7 +1,6 @@
 <template>
   <BaseSheet v-model:open="open" aria-label="Welcome to TPL Passport">
     <div class="welcome">
-      <p class="welcome-tag">{{ LIBRARY_TOUR.hashtag }}</p>
       <h2 class="welcome-title">Welcome to TPL Passport</h2>
       <p class="welcome-text">
         TPL Passport is a free companion to
@@ -98,13 +97,6 @@ onMounted(async () => {
   flex-direction: column;
   gap: 12px;
   padding: 8px 20px 24px;
-}
-
-.welcome-tag {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--color-brand-text);
 }
 
 .welcome-title {

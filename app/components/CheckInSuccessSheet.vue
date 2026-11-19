@@ -38,7 +38,7 @@
       </div>
 
       <div v-if="showSignInNudge" class="signin-nudge">
-        <p class="signin-nudge__text">Save your progress — access your passport on any device</p>
+        <p class="signin-nudge__text">Save your progress and open your passport on any device</p>
         <NuxtLink to="/login" class="signin-nudge__link" @click="open = false; $posthog?.capture('signin_nudge_tapped')">Sign in</NuxtLink>
       </div>
 

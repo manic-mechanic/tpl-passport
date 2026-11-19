@@ -52,7 +52,7 @@
              class="detail-row" :class="{ done: badgeCtx.visitedBranchCodes.has(compassPoints[dir]) }"
         >
           <span class="detail-check">{{ badgeCtx.visitedBranchCodes.has(compassPoints[dir]) ? '✓' : '·' }}</span>
-          <span class="detail-text"><span class="detail-dir">{{ label }}</span> — {{ branchName(compassPoints[dir])
+          <span class="detail-text"><span class="detail-dir">{{ label }}:</span> {{ branchName(compassPoints[dir])
           }}</span>
         </div>
       </div>

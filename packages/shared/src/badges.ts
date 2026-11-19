@@ -243,7 +243,7 @@ export const BADGES: Badge[] = [
       const unvisited = best.page.branches.filter(b => !ctx.visitedBranchCodes.has(b.BranchCode))
       return {
         pct:      best.pct,
-        message:  `Fill the ${best.page.label} page — ${best.visitedCount}/${best.page.branches.length} done`,
+        message:  `Fill the ${best.page.label} page: ${best.visitedCount}/${best.page.branches.length} done`,
         branches: unvisited.slice(0, 3),
       }
     } },

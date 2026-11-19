@@ -1,10 +1,6 @@
 <template>
   <main class="page-content">
-    <PageBanner title="History" back-label="Passport" @back="goBack">
-      <template v-if="passport.checkIns.length" #sub>
-        {{ passport.checkIns.length }} visit{{ passport.checkIns.length !== 1 ? 's' : '' }}
-      </template>
-    </PageBanner>
+    <PageBanner title="History" back-label="Passport" @back="goBack" />
 
     <!-- Stats summary -->
     <div v-if="passport.checkIns.length" class="stats-strip">
