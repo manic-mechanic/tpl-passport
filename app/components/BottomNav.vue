@@ -13,7 +13,7 @@ const router = useRouter()
 // a native tab bar. (In the installed app, tapping the status bar no longer
 // does this: the page scrolls inside #__nuxt, not the document.)
 function scrollToTopIfCurrent(to: string) {
-  if (route.path !== to) return
+  if ((route.path.replace(/\/$/, '') || '/') !== to) return
   scrollAppTo({ top: 0, behavior: 'smooth' })
 }
 

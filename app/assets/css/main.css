@@ -158,7 +158,10 @@ html.standalone body {
 html.standalone #__nuxt {
   overflow-y: auto;
   overscroll-behavior-y: auto;
-  scrollbar-gutter: stable;
+  /* Both edges, so the page column stays centred in the full width like the
+     fixed nav and sheets, where a desktop install shows a classic
+     scrollbar. (iOS scrollbars overlay and take no space.) */
+  scrollbar-gutter: stable both-edges;
   /* Navy behind the 480px column's top half, paper everywhere else. The
      pages cover it; it only shows while bouncing past an end. */
   background:

@@ -27,13 +27,26 @@ export function scrollAppTo(options: ScrollToOptions) {
 // the top.
 const savedTops = new Map<number, number>()
 let shownEntry: number | null = null
+let popEntry: number | null = null
+
+/** Note a back/forward (popstate) to the entry now in history.state. */
+export function notePopNavigation() {
+  popEntry = currentHistoryEntry()
+}
+
+/** Whether the navigation to `entry` came from back/forward. */
+export function consumePopNavigation(entry: number | null): boolean {
+  const pop = entry !== null && popEntry === entry
+  popEntry = null
+  return pop
+}
 
 export function currentHistoryEntry(): number | null {
   const position = (window.history.state as { position?: unknown } | null)?.position
   return typeof position === 'number' ? position : null
 }
 
-/** Record the history entry now on screen (called when its page is shown). */
+/** Record the history entry whose page is on screen, once its scroll is set. */
 export function markShownEntry(entry: number | null) {
   shownEntry = entry
 }
