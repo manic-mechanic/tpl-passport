@@ -185,7 +185,13 @@ body {
   padding: env(safe-area-inset-top) 18px calc(var(--nav-height) + 16px);
   min-height: 100svh;
   min-height: 100dvh;
-  background: var(--color-bg);
+  /* The top padding sits under .status-bar-fill. Paint it navy too, so that
+     when a pull past the top drags the page down, the navy runs unbroken
+     from the status bar into the page's banner instead of showing a paper
+     strip between them. */
+  background:
+    linear-gradient(var(--tpl-navy), var(--tpl-navy)) top / 100% env(safe-area-inset-top) no-repeat,
+    var(--color-bg);
 }
 
 /* ─── Typography ─────────────────────────────── */
