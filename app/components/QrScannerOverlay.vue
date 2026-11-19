@@ -49,14 +49,25 @@ watch(active, (isActive) => {
 
 async function start() {
   await nextTick()
+  // Load the decoder while the camera permission prompt is up. Both are
+  // settled before acting, so a failed download never strands an open camera.
+  const [camera, decoder] = await Promise.allSettled([
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+    }),
+    jsQR ? Promise.resolve({ default: jsQR }) : import('jsqr'),
+  ])
+  const media = camera.status === 'fulfilled' ? camera.value : null
+  if (decoder.status === 'rejected') {
+    media?.getTracks().forEach(t => t.stop())
+    if (!active.value) return
+    emit('error', "Couldn't load the scanner — check your connection and try again.")
+    active.value = false
+    return
+  }
+  jsQR = decoder.value.default
   try {
-    const [media, decoder] = await Promise.all([
-      navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      }),
-      import('jsqr'),
-    ])
-    jsQR = decoder.default
+    if (!media) throw camera.status === 'rejected' ? camera.reason : new Error('No camera')
     // Closed while the permission prompt was open: release the camera.
     if (!active.value || !videoEl.value) {
       media.getTracks().forEach(t => t.stop())

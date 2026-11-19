@@ -29,8 +29,11 @@ export default defineNuxtPlugin(() => {
         client.capture(event, properties)
         return
       }
+      // Replayed later, so pin what PostHog would otherwise read at send
+      // time: when it happened and the page it happened on.
       const timestamp = new Date()
-      run(posthog => posthog.capture(event, properties, { timestamp }))
+      const page = { $current_url: window.location.href, $pathname: window.location.pathname }
+      run(posthog => posthog.capture(event, { ...page, ...properties }, { timestamp }))
     },
     reset() {
       run(posthog => posthog.reset())
