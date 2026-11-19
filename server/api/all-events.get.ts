@@ -10,7 +10,9 @@
 import { reportServerError } from '../lib/reportServerError'
 import { eventDates } from '../lib/eventDates'
 import { compareEvents, fetchCkanEvents, setEventsCacheHeaders, type CkanEventRecord } from '../lib/ckanEvents'
-const CACHE_TTL = 30 * 60 * 1000
+// Short, since the CDN caches the response on top of this (see
+// eventsCacheControl): together an event change shows within about 25 min.
+const CACHE_TTL = 5 * 60 * 1000
 
 const cacheByDate = new Map<string, { data: CkanEventRecord[], fetchedAt: number }>()
 

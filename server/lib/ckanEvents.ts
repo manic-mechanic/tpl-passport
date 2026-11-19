@@ -1,5 +1,7 @@
 // Shared CKAN (Toronto Open Data) access for the TPL events routes.
-import { setResponseHeader, type H3Event } from 'h3'
+import type { H3Event } from 'h3'
+import { dayRangeUtc } from '@tpl-passport/shared'
+import { torontoDayKey } from './eventDates'
 
 // A TPL event record from the CKAN datastore (only the fields used here).
 export interface CkanEventRecord {
@@ -9,6 +11,7 @@ export interface CkanEventRecord {
 }
 
 interface CkanSearchResponse {
+  success?: boolean
   result?: { records?: CkanEventRecord[] }
 }
 
@@ -17,24 +20,40 @@ export function compareEvents(a: CkanEventRecord, b: CkanEventRecord): number {
   return (a.StartTime ?? '') < (b.StartTime ?? '') ? -1 : 1
 }
 
-// Lets Vercel's CDN keep an events response for 15 minutes, then serve it
-// stale for up to 5 more while it refreshes in the background. Most
-// requests then skip the function (and its cold start) and the CKAN calls,
-// whose in-memory cache is lost whenever an instance is recycled. After
-// midnight in Toronto, "today" can lag by up to that 20 minutes. A
+// How long Vercel's CDN may keep an events response. The routes take
+// relative days (offset=0 is "today"), so a cached copy must not outlive
+// the Toronto day it was made on: both windows are capped at midnight.
+// Within the day, the CDN keeps it for up to 15 minutes and may serve it
+// stale for up to 5 more while it refreshes in the background, so most
+// requests skip the function (and its cold start) and the CKAN calls. A
 // response missing a day because CKAN failed isn't cached at all.
+export const EVENTS_CDN_MAX_AGE = 900
+export const EVENTS_CDN_STALE = 300
+
+export function eventsCacheControl(complete: boolean, now: Date = new Date()): string {
+  const midnight = dayRangeUtc(torontoDayKey(now))?.end
+  const untilMidnight = midnight ? Math.floor((Date.parse(midnight) - now.getTime()) / 1000) : 0
+  const maxAge = Math.min(EVENTS_CDN_MAX_AGE, untilMidnight)
+  const stale = Math.min(EVENTS_CDN_STALE, untilMidnight - maxAge)
+  if (!complete || maxAge < 1) return 'no-store'
+  return `public, max-age=0, s-maxage=${maxAge}` + (stale > 0 ? `, stale-while-revalidate=${stale}` : '')
+}
+
 export function setEventsCacheHeaders(event: H3Event, complete: boolean): void {
-  setResponseHeader(event, 'cache-control', complete
-    ? 'public, max-age=0, s-maxage=900, stale-while-revalidate=300'
-    : 'no-store')
+  setResponseHeader(event, 'cache-control', eventsCacheControl(complete))
 }
 
 export const EVENTS_RESOURCE = 'c73bbe54-3a48-4ada-8eef-a1a2864021e4'
 export const CKAN = 'https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action'
 
-// One day's events, optionally for one branch (CKAN LocationName).
+// One day's events, optionally for one branch (CKAN LocationName). Throws
+// when CKAN answers without results (it can send success: false with a
+// 200), so callers don't cache an error as "no events".
 export async function fetchCkanEvents(date: string, locationName?: string): Promise<CkanEventRecord[]> {
   const filters = encodeURIComponent(JSON.stringify(locationName ? { LocationName: locationName, StartDateLocal: date } : { StartDateLocal: date }))
   const res = await $fetch<CkanSearchResponse>(`${CKAN}/datastore_search?id=${EVENTS_RESOURCE}&filters=${filters}&limit=200&sort=StartTime%20asc`)
-  return res?.result?.records ?? []
+  if (!res?.success || !Array.isArray(res.result?.records)) {
+    throw new Error(`CKAN datastore_search returned no records for ${date}${locationName ? ` (${locationName})` : ''}`)
+  }
+  return res.result.records
 }
