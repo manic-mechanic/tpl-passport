@@ -10,9 +10,25 @@ updates:
       day: monday
       timezone: America/Toronto
     open-pull-requests-limit: 5
+    # Groups apply to every update type (majors included), and a dependency
+    # goes in the first group it matches, so packages that only work at
+    # matching versions move together in one PR.
     groups:
+      pinia:
+        patterns: ["pinia", "@pinia/*"]
+      eslint:
+        patterns: ["eslint", "@eslint/*", "eslint-plugin-*", "typescript-eslint"]
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Types should match the Node version the app runs on (24 on Vercel and
+      # in CI); bump this by hand when that changes.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # TypeScript majors (e.g. 7, the rewritten compiler) need vue-tsc and
+      # Nuxt support and should move with tpl-passport-auth: done by hand.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
