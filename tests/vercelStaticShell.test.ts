@@ -62,11 +62,11 @@ describe('routePagesToStaticShell', () => {
     expect(dests['(?<__isr_route>/__nuxt_error)']).toBe('/__fallback')
   })
 
-  it('keeps missing build assets off the HTML shell', async () => {
+  it('returns an uncached 404 for missing build assets, not the HTML shell', async () => {
     await run()
     const tail = (await routes()).slice(-2)
     expect(tail).toEqual([
-      { src: '/_nuxt/(.*)', dest: '/__fallback' },
+      { src: '/_nuxt/(.*)', status: 404, headers: { 'cache-control': 'no-store' } },
       { src: '/(.*)', dest: '/index.html' },
     ])
   })
