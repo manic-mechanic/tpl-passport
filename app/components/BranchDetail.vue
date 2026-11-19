@@ -99,7 +99,7 @@
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
 import branchHours from '#data/branch-hours.json'
-import branchHistoryData from '#data/branch-history.json'
+import { loadBranchHistory, loadedBranchHistory } from '~/lib/branchHistory'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { compassPoints } from '~/composables/useBadges'
@@ -129,7 +129,11 @@ interface BranchEvent {
   Audiences?: string
 }
 const hoursByBranch: Record<string, Record<string, string> | undefined> = branchHours
-const historyByBranch: Record<string, { year: string, detail: string }[] | undefined> = branchHistoryData
+const historyByBranch = shallowRef(loadedBranchHistory())
+if (!historyByBranch.value) {
+  // The section stays hidden if it can't load (offline); there's nothing to report.
+  loadBranchHistory().then((history) => { historyByBranch.value = history }, () => {})
+}
 const passport = usePassportStore()
 const { $posthog } = useNuxtApp()
 
@@ -211,7 +215,7 @@ const pastVisitsHere = computed(() =>
 
 // Branch history
 const branchHistoryEntries = computed(() =>
-  historyByBranch[props.branch.BranchCode] ?? []
+  historyByBranch.value?.[props.branch.BranchCode] ?? []
 )
 
 const COMPASS_DIR_LABELS: Record<string, string> = { n: 'North', e: 'East', s: 'South', w: 'West' }
