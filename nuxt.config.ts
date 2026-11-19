@@ -22,17 +22,19 @@ export default defineNuxtConfig({
   // stylesheet from fonts.googleapis.com in <head> blocks the first paint, so
   // when that connection stalls (Private Relay, content blockers, flaky
   // networks) the page stays blank until the browser gives up on it.
+  // Each file covers every subset (latin-ext, cyrillic, vietnamese, ...) by
+  // unicode-range, as Google did, so browsers only download what a page uses.
   css: [
     '@fontsource-variable/fraunces/opsz.css',
     '@fontsource-variable/fraunces/opsz-italic.css',
-    '@fontsource/roboto/latin-400.css',
-    '@fontsource/roboto/latin-500.css',
-    '@fontsource/roboto/latin-600.css',
-    '@fontsource/roboto/latin-700.css',
-    '@fontsource/roboto-condensed/latin-600.css',
-    '@fontsource/roboto-condensed/latin-700.css',
-    '@fontsource/allerta-stencil/latin-400.css',
-    '@fontsource/special-elite/latin-400.css',
+    '@fontsource/roboto/400.css',
+    '@fontsource/roboto/500.css',
+    '@fontsource/roboto/600.css',
+    '@fontsource/roboto/700.css',
+    '@fontsource/roboto-condensed/600.css',
+    '@fontsource/roboto-condensed/700.css',
+    '@fontsource/allerta-stencil/400.css',
+    '@fontsource/special-elite/400.css',
     '~/assets/css/main.css',
   ],
 

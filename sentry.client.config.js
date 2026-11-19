@@ -6,15 +6,17 @@ import { sentryIgnoreErrors } from './app/lib/sentryIgnore'
 // The browser bundle has no process.env, so read the DSN from runtime config
 // (set via NUXT_PUBLIC_SENTRY_DSN, read at build time on Vercel).
 const { public: { isDev, sentry, vercelEnv, vercelTargetEnv } } = useRuntimeConfig()
+const environment = sentryEnvironment({ vercelEnv, vercelTargetEnv, isDev: !!isDev })
 
 Sentry.init({
   dsn: sentry?.dsn || undefined,
-  environment: sentryEnvironment({ vercelEnv, vercelTargetEnv, isDev: !!isDev }),
+  environment,
   dataCollection: sentryDataCollection,
   ignoreErrors: sentryIgnoreErrors,
-  // Every page load is traced, so a slow one shows up with its timings.
-  // Traffic is low enough that this stays well within the free quota.
-  tracesSampleRate: 1,
+  // Trace every production page load, so a slow one shows up with its
+  // timings. Dev and preview builds keep sampling so they don't use up the
+  // span quota that production traces need.
+  tracesSampleRate: environment === 'production' ? 1 : 0.2,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: 0,
 })
