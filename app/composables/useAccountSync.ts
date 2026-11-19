@@ -88,9 +88,7 @@ export type SignOutResult = { ok: true } | { ok: false, reason: string }
 export async function signOutAndClear(): Promise<SignOutResult> {
   const signedIn = useSignedIn()
   const passport = usePassportStore()
-  const { $posthog } = useNuxtApp() as unknown as {
-    $posthog: { capture: (event: string) => void, reset: () => void } | null
-  }
+  const { $posthog } = useNuxtApp()
 
   if (!(await flushToServer())) {
     return { ok: false, reason: "Some check-ins or photos haven't synced yet. Check your connection and try again." }
