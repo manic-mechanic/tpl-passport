@@ -94,12 +94,11 @@ html {
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   scrollbar-gutter: stable;
-  /* Since iOS 26.1, a Home Screen web app gets an opaque status bar painted
-     with the page's background instead of drawing the page behind it, so
-     make that background the banner navy. body paints the page itself, and
-     overscroll is off so the navy doesn't show past either end. */
-  background: var(--tpl-navy);
-  overscroll-behavior-y: none;
+  /* In a browser tab the document scrolls and bounces natively (and keeps
+     Safari's collapsing toolbar and pull-to-refresh), so the canvas that
+     overscroll reveals is the page's own paper. The installed app is
+     different: see "Installed app scrolling" below. */
+  background: var(--color-bg);
   height: 100%;
 }
 
@@ -108,7 +107,6 @@ body {
   color: var(--color-text);
   min-height: 100svh;
   min-height: 100dvh;
-  overscroll-behavior-y: none;
   height: 100%;
   /* Subtle paper grain texture */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
@@ -129,6 +127,45 @@ body {
   min-height: 100dvh;
   background: var(--color-bg);
   height: 100%;
+}
+
+/* ─── Installed app scrolling ────────────────── */
+/* Since iOS 26.1, a Home Screen web app gets an opaque status bar painted
+   with the root background, so the root has to be the banner navy. If the
+   document scrolled, its rubber-band would show that navy past the bottom of
+   every page, so the document itself never scrolls here: html and body are
+   pinned to the screen with overscroll off, and #__nuxt is the scroller.
+   iOS bounces #__nuxt instead and shows #__nuxt's own background past either
+   end: navy at the top (under the banner column), paper at the bottom.
+   JavaScript finds the scroller with getAppScroller() (~/lib/appScroller). */
+@media (display-mode: standalone) {
+  html {
+    background: var(--tpl-navy);
+    scrollbar-gutter: auto;
+  }
+
+  html,
+  body {
+    overflow: hidden;
+    overscroll-behavior-y: none;
+  }
+
+  #__nuxt {
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+    scrollbar-gutter: stable;
+    /* Navy behind the 480px column's top half, paper everywhere else. The
+       pages cover it; it only shows while bouncing past an end. */
+    background:
+      linear-gradient(var(--tpl-navy), var(--tpl-navy)) center top / min(100%, 480px) 50% no-repeat,
+      var(--color-bg);
+  }
+
+  /* One pixel taller than the scroller so that short pages still bounce:
+     iOS only rubber-bands an element that can scroll. */
+  .app-shell {
+    min-height: calc(100% + 1px);
+  }
 }
 
 .status-bar-fill {
