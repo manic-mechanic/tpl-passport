@@ -45,11 +45,11 @@
     "Sunday": "12pm – 5pm"
   },
   "AN": {
-    "Monday": "10am – 8:30pm",
-    "Tuesday": "12:30pm – 8:30pm",
-    "Wednesday": "10am – 6pm",
-    "Thursday": "12:30pm – 8:30pm",
-    "Friday": "10am – 6pm",
+    "Monday": "9am – 8:30pm",
+    "Tuesday": "9am – 8:30pm",
+    "Wednesday": "9am – 8:30pm",
+    "Thursday": "9am – 8:30pm",
+    "Friday": "9am – 5pm",
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
@@ -153,13 +153,13 @@
     "Sunday": "12pm – 5pm"
   },
   "CE": {
-    "Monday": "12am – 12am",
-    "Tuesday": "12am – 12am",
-    "Wednesday": "12am – 12am",
-    "Thursday": "12am – 12am",
-    "Friday": "12am – 12am",
-    "Saturday": "12am – 12am",
-    "Sunday": "12am – 12am"
+    "Monday": "Closed",
+    "Tuesday": "Closed",
+    "Wednesday": "Closed",
+    "Thursday": "Closed",
+    "Friday": "Closed",
+    "Saturday": "Closed",
+    "Sunday": "Closed"
   },
   "CED": {
     "Monday": "9am – 8:30pm",
@@ -206,6 +206,15 @@
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
+  "DGH": {
+    "Monday": "9am – 8:30pm",
+    "Tuesday": "9am – 8:30pm",
+    "Wednesday": "9am – 8:30pm",
+    "Thursday": "9am – 8:30pm",
+    "Friday": "9am – 8:30pm",
+    "Saturday": "9am – 5pm",
+    "Sunday": "12pm – 5pm"
+  },
   "DM": {
     "Monday": "9am – 8:30pm",
     "Tuesday": "9am – 8:30pm",
@@ -234,16 +243,16 @@
     "Sunday": "12pm – 5pm"
   },
   "DR": {
-    "Monday": "12am – 12am",
-    "Tuesday": "12am – 12am",
-    "Wednesday": "12am – 12am",
-    "Thursday": "12am – 12am",
-    "Friday": "12am – 12am",
-    "Saturday": "12am – 12am",
-    "Sunday": "12am – 12am"
+    "Monday": "Closed",
+    "Tuesday": "Closed",
+    "Wednesday": "Closed",
+    "Thursday": "Closed",
+    "Friday": "Closed",
+    "Saturday": "Closed",
+    "Sunday": "Closed"
   },
   "DT": {
-    "Monday": "12am – 12am",
+    "Monday": "10am – 8:30pm",
     "Tuesday": "12:30pm – 8:30pm",
     "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
@@ -252,11 +261,11 @@
     "Sunday": "12pm – 5pm"
   },
   "DU": {
-    "Monday": "10am – 8:30pm",
-    "Tuesday": "12:30pm – 8:30pm",
-    "Wednesday": "10am – 6pm",
-    "Thursday": "12:30pm – 8:30pm",
-    "Friday": "10am – 6pm",
+    "Monday": "9am – 8:30pm",
+    "Tuesday": "9am – 8:30pm",
+    "Wednesday": "9am – 8:30pm",
+    "Thursday": "9am – 8:30pm",
+    "Friday": "9am – 5pm",
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
@@ -270,9 +279,9 @@
     "Sunday": "12pm – 5pm"
   },
   "EB": {
-    "Monday": "12am – 12am",
-    "Tuesday": "10am – 6pm",
-    "Wednesday": "12:30pm – 8:30pm",
+    "Monday": "10am – 8:30pm",
+    "Tuesday": "12:30pm – 8:30pm",
+    "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
     "Friday": "10am – 6pm",
     "Saturday": "9am – 5pm",
@@ -301,7 +310,7 @@
     "Tuesday": "9am – 8:30pm",
     "Wednesday": "9am – 8:30pm",
     "Thursday": "9am – 8:30pm",
-    "Friday": "9am – 5pm",
+    "Friday": "9am – 8:30pm",
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
@@ -324,13 +333,13 @@
     "Sunday": "12pm – 5pm"
   },
   "FP": {
-    "Monday": "12am – 12am",
-    "Tuesday": "12am – 12am",
-    "Wednesday": "12am – 12am",
-    "Thursday": "12am – 12am",
-    "Friday": "12am – 12am",
-    "Saturday": "12am – 12am",
-    "Sunday": "12am – 12am"
+    "Monday": "9am – 8:30pm",
+    "Tuesday": "9am – 8:30pm",
+    "Wednesday": "9am – 8:30pm",
+    "Thursday": "9am – 8:30pm",
+    "Friday": "9am – 8:30pm",
+    "Saturday": "9am – 5pm",
+    "Sunday": "12pm – 5pm"
   },
   "FV": {
     "Monday": "9am – 8:30pm",
@@ -342,11 +351,11 @@
     "Sunday": "12pm – 5pm"
   },
   "GE": {
-    "Monday": "10am – 8:30pm",
-    "Tuesday": "12:30pm – 8:30pm",
-    "Wednesday": "10am – 6pm",
-    "Thursday": "12:30pm – 8:30pm",
-    "Friday": "10am – 6pm",
+    "Monday": "9am – 8:30pm",
+    "Tuesday": "9am – 8:30pm",
+    "Wednesday": "9am – 8:30pm",
+    "Thursday": "9am – 8:30pm",
+    "Friday": "9am – 5pm",
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
@@ -360,7 +369,7 @@
     "Sunday": "12pm – 5pm"
   },
   "GW": {
-    "Monday": "12am – 12am",
+    "Monday": "10am – 8:30pm",
     "Tuesday": "12:30pm – 8:30pm",
     "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
@@ -369,16 +378,16 @@
     "Sunday": "12pm – 5pm"
   },
   "HB": {
-    "Monday": "12am – 12am",
-    "Tuesday": "10am – 6pm",
-    "Wednesday": "12:30pm – 8:30pm",
+    "Monday": "10am – 8:30pm",
+    "Tuesday": "12:30pm – 8:30pm",
+    "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
     "Friday": "10am – 6pm",
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
   "HC": {
-    "Monday": "12am – 12am",
+    "Monday": "10am – 8:30pm",
     "Tuesday": "12:30pm – 8:30pm",
     "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
@@ -440,6 +449,15 @@
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
+  "JT": {
+    "Monday": "10am – 8:30pm",
+    "Tuesday": "12:30pm – 8:30pm",
+    "Wednesday": "10am – 6pm",
+    "Thursday": "12:30pm – 8:30pm",
+    "Friday": "10am – 6pm",
+    "Saturday": "9am – 5pm",
+    "Sunday": "12pm – 5pm"
+  },
   "KE": {
     "Monday": "9am – 8:30pm",
     "Tuesday": "9am – 8:30pm",
@@ -450,7 +468,7 @@
     "Sunday": "12pm – 5pm"
   },
   "LB": {
-    "Monday": "12am – 12am",
+    "Monday": "10am – 8:30pm",
     "Tuesday": "12:30pm – 8:30pm",
     "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
@@ -540,7 +558,7 @@
     "Sunday": "12pm – 5pm"
   },
   "MP": {
-    "Monday": "12am – 12am",
+    "Monday": "10am – 8:30pm",
     "Tuesday": "12:30pm – 8:30pm",
     "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
@@ -562,7 +580,7 @@
     "Tuesday": "9am – 8:30pm",
     "Wednesday": "9am – 8:30pm",
     "Thursday": "9am – 8:30pm",
-    "Friday": "9am – 5pm",
+    "Friday": "9am – 8:30pm",
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
@@ -585,9 +603,9 @@
     "Sunday": "12pm – 5pm"
   },
   "NT": {
-    "Monday": "12am – 12am",
-    "Tuesday": "10am – 6pm",
-    "Wednesday": "12:30pm – 8:30pm",
+    "Monday": "10am – 8:30pm",
+    "Tuesday": "12:30pm – 8:30pm",
+    "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
     "Friday": "10am – 6pm",
     "Saturday": "9am – 5pm",
@@ -630,11 +648,11 @@
     "Sunday": "12pm – 5pm"
   },
   "PM": {
-    "Monday": "10am – 8:30pm",
-    "Tuesday": "12:30pm – 8:30pm",
-    "Wednesday": "10am – 6pm",
-    "Thursday": "12:30pm – 8:30pm",
-    "Friday": "10am – 6pm",
+    "Monday": "9am – 8:30pm",
+    "Tuesday": "9am – 8:30pm",
+    "Wednesday": "9am – 8:30pm",
+    "Thursday": "9am – 8:30pm",
+    "Friday": "9am – 5pm",
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
@@ -648,13 +666,13 @@
     "Sunday": "12pm – 5pm"
   },
   "PV": {
-    "Monday": "12am – 12am",
-    "Tuesday": "12am – 12am",
-    "Wednesday": "12am – 12am",
-    "Thursday": "12am – 12am",
-    "Friday": "12am – 12am",
-    "Saturday": "12am – 12am",
-    "Sunday": "12am – 12am"
+    "Monday": "Closed",
+    "Tuesday": "Closed",
+    "Wednesday": "Closed",
+    "Thursday": "Closed",
+    "Friday": "Closed",
+    "Saturday": "Closed",
+    "Sunday": "Closed"
   },
   "QS": {
     "Monday": "10am – 8:30pm",
@@ -702,20 +720,20 @@
     "Sunday": "12pm – 5pm"
   },
   "SA": {
-    "Monday": "9am – 8:30pm",
-    "Tuesday": "9am – 8:30pm",
-    "Wednesday": "9am – 8:30pm",
-    "Thursday": "9am – 8:30pm",
-    "Friday": "9am – 8:30pm",
-    "Saturday": "9am – 5pm",
-    "Sunday": "12pm – 5pm"
+    "Monday": "Closed",
+    "Tuesday": "Closed",
+    "Wednesday": "Closed",
+    "Thursday": "Closed",
+    "Friday": "Closed",
+    "Saturday": "Closed",
+    "Sunday": "Closed"
   },
   "SC": {
     "Monday": "9am – 8:30pm",
     "Tuesday": "9am – 8:30pm",
     "Wednesday": "9am – 8:30pm",
     "Thursday": "9am – 8:30pm",
-    "Friday": "9am – 5pm",
+    "Friday": "9am – 8:30pm",
     "Saturday": "9am – 5pm",
     "Sunday": "12pm – 5pm"
   },
@@ -783,7 +801,7 @@
     "Sunday": "12pm – 5pm"
   },
   "TA": {
-    "Monday": "12am – 12am",
+    "Monday": "10am – 8:30pm",
     "Tuesday": "12:30pm – 8:30pm",
     "Wednesday": "10am – 6pm",
     "Thursday": "12:30pm – 8:30pm",
@@ -801,11 +819,11 @@
     "Sunday": "12pm – 5pm"
   },
   "TOD": {
-    "Monday": "12am – 12am",
+    "Monday": "Closed",
     "Tuesday": "6pm – 8:30pm",
     "Wednesday": "1pm – 5pm",
     "Thursday": "6pm – 8:30pm",
-    "Friday": "12am – 12am",
+    "Friday": "Closed",
     "Saturday": "1pm – 5pm",
     "Sunday": "12pm – 5pm"
   },
@@ -846,13 +864,13 @@
     "Sunday": "12pm – 5pm"
   },
   "WS": {
-    "Monday": "12am – 12am",
-    "Tuesday": "12am – 12am",
-    "Wednesday": "12am – 12am",
-    "Thursday": "12am – 12am",
-    "Friday": "12am – 12am",
-    "Saturday": "12am – 12am",
-    "Sunday": "12am – 12am"
+    "Monday": "9am – 8:30pm",
+    "Tuesday": "9am – 8:30pm",
+    "Wednesday": "9am – 8:30pm",
+    "Thursday": "9am – 8:30pm",
+    "Friday": "9am – 8:30pm",
+    "Saturday": "9am – 5pm",
+    "Sunday": "12pm – 5pm"
   },
   "WY": {
     "Monday": "9am – 8:30pm",
@@ -873,15 +891,6 @@
     "Sunday": "12pm – 5pm"
   },
   "YW": {
-    "Monday": "9am – 8:30pm",
-    "Tuesday": "9am – 8:30pm",
-    "Wednesday": "9am – 8:30pm",
-    "Thursday": "9am – 8:30pm",
-    "Friday": "9am – 8:30pm",
-    "Saturday": "9am – 5pm",
-    "Sunday": "12pm – 5pm"
-  },
-  "DGH": {
     "Monday": "9am – 8:30pm",
     "Tuesday": "9am – 8:30pm",
     "Wednesday": "9am – 8:30pm",

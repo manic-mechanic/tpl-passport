@@ -1,0 +1,24 @@
+# Weekly dependency update PRs. Minor and patch updates are grouped into one
+# PR per ecosystem; majors come one at a time. Security updates are separate
+# and immediate (enable "Dependabot security updates" in repo settings).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Toronto
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Toronto
+    groups:
+      actions:
+        patterns: ["*"]
