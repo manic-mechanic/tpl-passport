@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { scrollAppTo } from '~/lib/appScroller'
 import IconNavCheckIn from './icons/IconNavCheckIn.vue';
 import IconNavExplore from './icons/IconNavExplore.vue';
 import IconNavHome from './icons/IconNavHome.vue';
@@ -7,6 +8,14 @@ import IconSettingsGear from './icons/IconSettingsGear.vue';
 
 const route = useRoute()
 const router = useRouter()
+
+// Tapping the tab you're already on scrolls its page back to the top, like
+// a native tab bar. (In the installed app, tapping the status bar no longer
+// does this: the page scrolls inside #__nuxt, not the document.)
+function scrollToTopIfCurrent(to: string) {
+  if (route.path !== to) return
+  scrollAppTo({ top: 0, behavior: 'smooth' })
+}
 
 const isBranchDetail = computed(() => route.path.startsWith('/branch/'))
 
@@ -27,23 +36,23 @@ const contextualTab = computed(() => {
 
 <template>
   <nav class="bottom-nav">
-    <NuxtLink to="/" class="nav-item" active-class="nav-item-active"
-              :class="{ 'nav-item-active': contextualTab === '/' }" exact
+    <NuxtLink to="/" class="nav-item" active-class="nav-item-active" :class="{ 'nav-item-active': contextualTab === '/' }"
+              exact @click="scrollToTopIfCurrent('/')"
     >
       <IconNavHome class="nav-icon" />
       <span class="nav-label">Home</span>
     </NuxtLink>
 
-    <NuxtLink to="/explore" class="nav-item" active-class="nav-item-active"
-              :class="{ 'nav-item-active': contextualTab === '/explore' }"
+    <NuxtLink to="/explore" class="nav-item" active-class="nav-item-active" :class="{ 'nav-item-active': contextualTab === '/explore' }"
+              @click="scrollToTopIfCurrent('/explore')"
     >
       <IconNavExplore class="nav-icon" />
       <span class="nav-label">Explore</span>
     </NuxtLink>
 
     <!-- Primary action — check-in (center) -->
-    <NuxtLink to="/check-in" class="nav-item nav-item-checkin" active-class="nav-item-active"
-              :class="{ 'nav-item-active': contextualTab === '/check-in' }"
+    <NuxtLink to="/check-in" class="nav-item nav-item-checkin" active-class="nav-item-active" :class="{ 'nav-item-active': contextualTab === '/check-in' }"
+              @click="scrollToTopIfCurrent('/check-in')"
     >
       <div class="checkin-orb">
         <IconNavCheckIn class="nav-icon" />
@@ -51,14 +60,14 @@ const contextualTab = computed(() => {
       <span class="nav-label">Check in</span>
     </NuxtLink>
 
-    <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active"
-              :class="{ 'nav-item-active': contextualTab === '/passport' }"
+    <NuxtLink to="/passport" class="nav-item" active-class="nav-item-active" :class="{ 'nav-item-active': contextualTab === '/passport' }"
+              @click="scrollToTopIfCurrent('/passport')"
     >
       <IconNavPassport class="nav-icon" />
       <span class="nav-label">Passport</span>
     </NuxtLink>
 
-    <NuxtLink to="/settings" class="nav-item" active-class="nav-item-active">
+    <NuxtLink to="/settings" class="nav-item" active-class="nav-item-active" @click="scrollToTopIfCurrent('/settings')">
       <IconSettingsGear class="nav-icon" />
       <span class="nav-label">Settings</span>
     </NuxtLink>
@@ -75,6 +84,10 @@ const contextualTab = computed(() => {
   width: 100%;
   max-width: 480px;
   height: var(--nav-height);
+  /* Centre the tabs in the bar above the home indicator, not in the whole
+     height, so the check-in orb overhangs the top edge by the same amount
+     whatever the inset (it's larger in the installed app). */
+  padding-bottom: env(safe-area-inset-bottom);
   background: var(--tpl-navy);
   display: flex;
   align-items: center;
