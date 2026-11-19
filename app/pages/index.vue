@@ -2,8 +2,13 @@
 import type { Branch } from '@tpl-passport/shared'
 import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 import { usePassportStore } from '~/stores/passport'
+import { useIsDark } from '~/composables/useIsDark'
 
 const passport = usePassportStore()
+
+// iOS can drop the seal image in the sticky top bar when the theme changes
+// (it stays blank until a reload), so re-create it on each change.
+const isDark = useIsDark()
 
 const isSignedIn = useSignedIn()
 const authKnown = useAuthKnown()
@@ -36,7 +41,7 @@ function openBranchSheet(branch: Branch) {
 <template>
   <main class="page-content">
     <div class="home-top-bar">
-      <img src="/tpl-meta-card.png" class="top-bar-seal" alt="" aria-hidden="true" />
+      <img :key="isDark ? 'dark' : 'light'" src="/tpl-meta-card.png" class="top-bar-seal" alt="" aria-hidden="true" />
       <p class="top-bar-wordmark">passport<span>:</span></p>
     </div>
 

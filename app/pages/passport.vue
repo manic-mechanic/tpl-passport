@@ -102,6 +102,7 @@
 import type { ComponentPublicInstance } from 'vue'
 import type { AlphaPage, Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
+import { scrollAppTo } from '~/lib/appScroller'
 import { physicalBranches, branchesByAlphaPage } from '~/composables/useRegion'
 import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 import IconPageSeal from '~/components/icons/IconPageSeal.vue'
@@ -144,7 +145,7 @@ const extraCreditEarned = computed(() => BADGES.filter(a => a.earned(badgeCtx.va
 
 function goToPage(i: number) {
   activePage.value = i
-  window.scrollTo({ top: 0, behavior: 'instant' })
+  scrollAppTo({ top: 0, behavior: 'instant' })
 }
 
 function openSheet(branch: Branch) {

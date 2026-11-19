@@ -30,7 +30,23 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#111850', media: '(prefers-color-scheme: dark)' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-title', content: 'Library Passport' },
-        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        // Default, not black-translucent: since iOS 26.1, iOS draws a blur over
+        // a translucent status bar that the page can't turn off, and its edge
+        // shows as a hairline under the bar. With the default style iOS paints
+        // a solid bar from theme-color (the banner navy above). iOS reads this
+        // when the app is added to the Home Screen, so existing installs keep
+        // the old bar until they're removed and added again.
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+      ],
+      script: [
+        // Mark the installed app before first paint; main.css switches it to
+        // the pinned-document layout ("Installed app scrolling"). iOS Home
+        // Screen apps don't always match display-mode: standalone, so also
+        // check Safari's navigator.standalone.
+        {
+          innerHTML: "if(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)document.documentElement.classList.add('standalone')",
+          tagPosition: 'head',
+        },
       ],
       link: [
         // Fonts
