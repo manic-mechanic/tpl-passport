@@ -13,22 +13,26 @@ import { compareEvents, fetchCkanEvents, setEventsCacheHeaders } from '../lib/ck
 
 export default defineEventHandler(async (event) => {
   const { library } = getQuery(event)
-  if (!library || typeof library !== 'string') return []
+  if (!library || typeof library !== 'string') {
+    setEventsCacheHeaders(event, false)
+    return []
+  }
 
   const shortName = library.replace(/ Branch$/i, '')
   const dates = eventDates(0, 2)
 
-  try {
-    const results = await Promise.all(dates.map(date => fetchCkanEvents(date, shortName)))
-    setEventsCacheHeaders(event, true)
-    return results.flat().sort(compareEvents)
-  } catch (error) {
-    reportServerError(error, {
-      area: 'events',
-      operation: 'branch_events_fetch',
-      library: shortName,
-    })
-    setEventsCacheHeaders(event, false)
-    return []
+  // Keep the days that loaded if one fails; the response then isn't cached.
+  const results = await Promise.allSettled(dates.map(date => fetchCkanEvents(date, shortName)))
+  for (const [i, result] of results.entries()) {
+    if (result.status === 'rejected') {
+      reportServerError(result.reason, {
+        area: 'events',
+        operation: 'branch_events_fetch',
+        library: shortName,
+        date: dates[i],
+      })
+    }
   }
+  setEventsCacheHeaders(event, results.every(r => r.status === 'fulfilled'))
+  return results.flatMap(r => r.status === 'fulfilled' ? r.value : []).sort(compareEvents)
 })
