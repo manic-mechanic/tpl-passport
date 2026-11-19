@@ -9,8 +9,10 @@
 //
 // - routes whose destination is a page function now go to /index.html
 // - the final catch-all goes to /index.html too, except under the build
-//   assets dir, where a missing file stays a 404 from the function rather
-//   than becoming HTML under a JS URL with an immutable cache header
+//   assets dir: a missing chunk there (e.g. an old one after a deploy) is
+//   a plain, uncached 404. Without this it got the HTML shell with a 200
+//   and the dir's year-long immutable cache header, from the function as
+//   well as from the static shell, so the browser cached HTML as JS.
 // - the per-page functions are removed, since Vercel matches them before
 //   any route
 //
@@ -20,7 +22,7 @@
 import { access, readdir, readFile, rm, rmdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
-type Route = { src?: string, dest?: string, handle?: string, status?: number }
+type Route = { src?: string, dest?: string, handle?: string, status?: number, headers?: Record<string, string> }
 
 const FALLBACK = '/__fallback'
 const SHELL = '/index.html'
@@ -70,7 +72,7 @@ export async function routePagesToStaticShell(opts: {
   }
   const assetsPrefix = '/' + buildAssetsDir.replace(/^\/|\/$/g, '')
   config.routes.splice(catchAll, 1,
-    { src: `${assetsPrefix}/(.*)`, dest: FALLBACK },
+    { src: `${assetsPrefix}/(.*)`, status: 404, headers: { 'cache-control': 'no-store' } },
     { src: '/(.*)', dest: SHELL },
   )
   await writeFile(configPath, JSON.stringify(config, null, 2))
