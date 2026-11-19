@@ -9,12 +9,15 @@
 // - days: number of days to fetch (1-7)
 import { reportServerError } from '../lib/reportServerError'
 import { eventDates } from '../lib/eventDates'
-import { compareEvents, fetchCkanEvents, type CkanEventRecord } from '../lib/ckanEvents'
-const CACHE_TTL = 30 * 60 * 1000
+import { compareEvents, fetchCkanEvents, setEventsCacheHeaders, type CkanEventRecord } from '../lib/ckanEvents'
+// Short, since the CDN caches the response on top of this (see
+// eventsCacheControl): together an event change shows within about 25 min.
+const CACHE_TTL = 5 * 60 * 1000
 
 const cacheByDate = new Map<string, { data: CkanEventRecord[], fetchedAt: number }>()
 
-async function fetchEventsForDate(date: string): Promise<CkanEventRecord[]> {
+// Returns null when CKAN fails, so the response isn't cached without that day.
+async function fetchEventsForDate(date: string): Promise<CkanEventRecord[] | null> {
   const now = Date.now()
   for (const [key, entry] of cacheByDate) {
     if (now - entry.fetchedAt > CACHE_TTL) cacheByDate.delete(key)
@@ -34,7 +37,7 @@ async function fetchEventsForDate(date: string): Promise<CkanEventRecord[]> {
       operation: 'all_events_fetch_date',
       date,
     })
-    return []
+    return null
   }
 }
 
@@ -44,5 +47,6 @@ export default defineEventHandler(async (event) => {
   const days = Math.max(1, Math.min(7, Number.parseInt(String(query.days ?? '7'), 10) || 7))
   const dates = eventDates(offset, days)
   const results = await Promise.all(dates.map(fetchEventsForDate))
-  return results.flat().sort(compareEvents)
+  setEventsCacheHeaders(event, results.every(r => r !== null))
+  return results.flatMap(r => r ?? []).sort(compareEvents)
 })

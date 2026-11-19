@@ -1,8 +1,12 @@
 import { readdir } from 'node:fs/promises'
 import pkg from './package.json'
 import { fileURLToPath } from 'node:url'
+import { routePagesToStaticShell } from './build/vercelStaticShell'
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
+
+// Vercel sets VERCEL=1 for its builds; NITRO_PRESET=vercel is a local Vercel build.
+const isVercelBuild = process.env.VERCEL === '1' || process.env.NITRO_PRESET === 'vercel'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -59,6 +63,8 @@ export default defineNuxtConfig({
   // Dev-only features (demo mode, location fence bypass, QR scanner).
   // On by default only under `nuxt dev`; production builds default to off.
   // Set NUXT_PUBLIC_IS_DEV=true on preview/tester deployments to turn them on.
+  // On Vercel, NUXT_PUBLIC_* values are read at build time (see routeRules),
+  // so changing one needs a redeploy.
   // Set NUXT_PUBLIC_BYPASS_GEOFENCE=true to allow check-ins from any location (e.g. for testers);
   // it only takes effect when isDev is on, so it can't switch off the check in production.
   runtimeConfig: {
@@ -77,7 +83,7 @@ export default defineNuxtConfig({
       // (VERCEL_ENV is 'preview' for those). Sentry's v11 bundler plugins tag
       // deploys with it, so events use it too.
       vercelTargetEnv: process.env.VERCEL_TARGET_ENV ?? '',
-      // Overridden at runtime by NUXT_PUBLIC_SENTRY_DSN.
+      // Set by NUXT_PUBLIC_SENTRY_DSN (at build time on Vercel).
       sentry: {
         dsn: '',
       },
@@ -93,6 +99,14 @@ export default defineNuxtConfig({
     server: true,
   },
 
+  // The app is a SPA, so every page gets the same HTML shell. On Vercel it's
+  // built once as a static index.html and served for every page (see the
+  // nitro:init hook), in place of a server function that cold-started after
+  // any idle period. That bakes NUXT_PUBLIC_* values into the HTML at build
+  // time, so on Vercel they take effect on the next deploy, not at runtime.
+  // Other builds (CI's node server) keep reading them per request.
+  routeRules: isVercelBuild ? { '/': { prerender: true } } : {},
+
   hooks: {
     // Guard against shipping client source maps: if the Nitro preset's public
     // dir isn't covered by sentry.sourcemaps.filesToDeleteAfterUpload, fail
@@ -107,6 +121,19 @@ export default defineNuxtConfig({
           throw new Error(`${maps.length} source map(s) left in ${publicDir}. Add it to sentry.sourcemaps.filesToDeleteAfterUpload in nuxt.config.ts.`)
         }
       })
+
+      // On Vercel, serve pages from the prerendered index.html in place of
+      // the server function. See build/vercelStaticShell.ts.
+      if (nitro.options.preset === 'vercel') {
+        nitro.hooks.hook('compiled', async () => {
+          const { pageRoutes, removedFunctions } = await routePagesToStaticShell({
+            outputDir: nitro.options.output.dir,
+            pageRoutes: nitro.options.ssrRoutes ?? [],
+            buildAssetsDir: nitro.options.runtimeConfig.app.buildAssetsDir,
+          })
+          nitro.logger.info(`Routed ${pageRoutes} page route(s) and the catch-all to the static /index.html shell; removed ${removedFunctions} page function(s)`)
+        })
+      }
     },
   },
 
