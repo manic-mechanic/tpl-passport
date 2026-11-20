@@ -10,7 +10,12 @@
         <template v-if="isSignedIn">
           <div class="setting-row">
             <span class="setting-label">Signed in as</span>
-            <span class="account-email">{{ account?.email ?? '…' }}</span>
+            <span class="account-id">
+              <span v-if="account?.isGoogle" class="account-provider" role="img" aria-label="Google account">
+                <IconGoogle class="account-provider-icon" />
+              </span>
+              <span class="account-email">{{ account?.email ?? '…' }}</span>
+            </span>
           </div>
 
           <SettingsCredentialForms
@@ -19,15 +24,11 @@
             :disabled="!authKnown"
             @toast="showToast"
           />
-          <p v-else-if="account?.isGoogle" class="provider-note">Signed in with Google. Google manages your email and password.</p>
 
           <div class="setting-row">
-            <div>
-              <button class="signout-btn" :disabled="signingOut || !authKnown" @click="signOut">
-                {{ signingOut ? 'Syncing…' : 'Sign out' }}
-              </button>
-              <p class="setting-hint">Your passport stays in your account and is removed from this device.</p>
-            </div>
+            <button class="signout-btn" :disabled="signingOut || !authKnown" @click="signOut">
+              {{ signingOut ? 'Syncing…' : 'Sign out' }}
+            </button>
           </div>
         </template>
         <div v-else-if="authSettled" class="setting-row">
@@ -47,11 +48,11 @@
         <template v-if="isSignedIn && !profileEditing">
           <div class="setting-row">
             <span class="setting-label">Name</span>
-            <span class="account-email">{{ profileName || '—' }}</span>
+            <span class="account-email setting-value">{{ profileName || '—' }}</span>
           </div>
           <div class="setting-row">
             <span class="setting-label">Home branch</span>
-            <span class="account-email">{{ profileHomeBranch || '—' }}</span>
+            <span class="account-email setting-value">{{ profileHomeBranch || '—' }}</span>
           </div>
           <div class="setting-row">
             <button class="inline-open" @click="profileEditing = true">Edit profile</button>
@@ -198,6 +199,7 @@ import { pushProfile } from '~/composables/useProfileSync'
 import { isRunningStandalone } from '~/lib/installHelper'
 import { useInstallPrompt } from '~/composables/useInstallPrompt'
 import IconExternal from '~/components/icons/IconExternal.vue'
+import IconGoogle from '~/components/icons/IconGoogle.vue'
 import { signOutAndClear } from '~/composables/useAccountSync'
 import { useAccount, useAuthKnown, useAuthSettled, useSignedIn } from '~/composables/useAuthState'
 
@@ -438,11 +440,22 @@ function setDemo(mode: DemoMode) {
   cursor: pointer;
 }
 
-.provider-note {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border-soft);
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
+.account-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 55%;
+}
+
+.account-provider {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.account-provider-icon {
+  width: 14px;
+  height: 14px;
 }
 
 /* ── Account ──────────────────────────────────── */
@@ -452,8 +465,12 @@ function setDemo(mode: DemoMode) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 55%;
   text-align: right;
+}
+
+/* Right-hand value in a setting row; .account-id sets its own limit */
+.setting-value {
+  max-width: 55%;
 }
 
 .signin-link {
@@ -471,6 +488,11 @@ function setDemo(mode: DemoMode) {
   border: none;
   padding: 0;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
 }
 
 /* ── Shared settings card ─────────────────────── */
