@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
-import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
+import { useAuthSettled, useSignedIn } from '~/composables/useAuthState'
 import { usePassportStore } from '~/stores/passport'
 import { useIsDark } from '~/composables/useIsDark'
 
@@ -11,17 +11,21 @@ const passport = usePassportStore()
 const isDark = useIsDark()
 
 const isSignedIn = useSignedIn()
-const authKnown = useAuthKnown()
+const authSettled = useAuthSettled()
 const bannerDismissed = ref(false)
 
 onMounted(() => {
   bannerDismissed.value = localStorage.getItem('signin_banner_dismissed') === '1'
 })
 
-// Wait until app.vue has checked the session so signed-in users never see it flash.
+// Wait for an answer about the session (the last visit's, or the server's)
+// so signed-in users never see it flash.
 const showBanner = computed(() =>
-  authKnown.value && !isSignedIn.value && passport.checkIns.length > 0 && !bannerDismissed.value
+  authSettled.value && !isSignedIn.value && passport.checkIns.length > 0 && !bannerDismissed.value
 )
+// The install card shares the banner's slot. Without check-ins the banner
+// can't show, so the card doesn't need to wait for the session.
+const promptsReady = computed(() => authSettled.value || passport.checkIns.length === 0)
 
 const branchSheetOpen = ref(false)
 const activeBranch = ref<Branch | null>(null)
@@ -57,7 +61,7 @@ function openBranchSheet(branch: Branch) {
         </div>
         <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>
       </div>
-      <InstallHelperCard v-else-if="authKnown" dismissible hide-on-desktop />
+      <InstallHelperCard v-else-if="promptsReady" dismissible hide-on-desktop />
     </div>
 
     <RecentVisits @select="openBranchSheet" />

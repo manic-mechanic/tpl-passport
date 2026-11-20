@@ -31,7 +31,7 @@ import { reportError } from '~/lib/reportError'
 import { isAuthReachableFrom } from '~/lib/authReachability'
 import { syncAccount } from '~/composables/useAccountSync'
 import { routeProgress, tourRoutes } from '~/lib/libraryTour'
-import { useAuthKnown, useSignedIn } from '~/composables/useAuthState'
+import { rememberAuthState, restoreAuthState, useAccount, useAuthKnown, useAuthSettled, useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -88,6 +88,13 @@ const showCover = ref(false)
 // Track session so the homeBranch watcher knows whether to push updates.
 const isSignedIn = useSignedIn()
 const authKnown = useAuthKnown()
+const authSettled = useAuthSettled()
+const account = useAccount()
+
+// Start from the last visit's answer so signed-in screens draw at once,
+// then keep it up to date for the next visit.
+restoreAuthState()
+watch([isSignedIn, account], rememberAuthState, { deep: true })
 
 onMounted(async () => {
   if ('serviceWorker' in navigator) {
@@ -107,7 +114,15 @@ onMounted(async () => {
     }
   }
   isSignedIn.value = !!data
+  account.value = data
+    ? {
+        email: data.user.email,
+        // Same account as last time: keep what Settings learned about it.
+        isGoogle: account.value?.email === data.user.email ? account.value.isGoogle : null,
+      }
+    : null
   authKnown.value = true
+  authSettled.value = true
   const googlePendingTs = sessionStorage.getItem('google_signin_pending')
   if (googlePendingTs) sessionStorage.removeItem('google_signin_pending')
   if (data) {

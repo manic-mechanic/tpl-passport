@@ -89,11 +89,12 @@ import { usePassportStore } from '~/stores/passport'
 import { pushProfile } from '~/composables/useProfileSync'
 import { reportError } from '~/lib/reportError'
 import { syncAccount } from '~/composables/useAccountSync'
-import { useSignedIn } from '~/composables/useAuthState'
+import { useAccount, useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 const signedIn = useSignedIn()
+const account = useAccount()
 
 const mode = ref<'signin' | 'signup'>('signin')
 const name = ref(passport.profile.name ?? '')
@@ -122,6 +123,7 @@ async function submitEmail() {
       })
       if (err) { error.value = err.message || 'Sign-in failed. Please try again.'; return }
       signedIn.value = true
+      account.value = { email: data.user.email, isGoogle: false }
       await syncAccount(data?.user?.name ?? '')
       Sentry.setUser({ id: data.user.id })
       $posthog?.capture('sign_in_completed', { method: 'email' })
@@ -134,6 +136,7 @@ async function submitEmail() {
       })
       if (err) { error.value = err.message || 'Sign-up failed. Please try again.'; return }
       signedIn.value = true
+      account.value = { email: signUpData.user.email, isGoogle: false }
       if (!passport.profile.name && name.value) passport.profile.name = name.value
       await pushProfile({ name: name.value, homeBranch: null })
       // Upload anything recorded before the account existed.
