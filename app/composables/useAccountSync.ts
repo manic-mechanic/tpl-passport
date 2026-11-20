@@ -12,7 +12,7 @@ import { uploadCheckInPhotoResult, type UploadFailure } from '~/lib/checkInPhoto
 import { reportError } from '~/lib/reportError'
 import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
 import { reconcileProfile } from '~/lib/profileSyncMerge'
-import { useSignedIn } from '~/composables/useAuthState'
+import { useAccount, useSignedIn } from '~/composables/useAuthState'
 
 // Make sure everything on this device is on the server: merge with the server
 // list, push local-only and merged records, and upload photos that only exist
@@ -125,6 +125,7 @@ export async function signOutAndClear(): Promise<SignOutResult> {
   }
 
   signedIn.value = false
+  useAccount().value = null
   passport.clearLocalData()
   try {
     await clearPhotos()

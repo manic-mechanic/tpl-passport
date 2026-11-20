@@ -7,29 +7,30 @@
     <section class="settings-group">
       <p class="section-label">Account</p>
       <div class="settings-card card">
-        <template v-if="session">
+        <template v-if="isSignedIn">
           <div class="setting-row">
             <span class="setting-label">Signed in as</span>
-            <span class="account-email">{{ session.user.email }}</span>
+            <span class="account-email">{{ account?.email ?? '…' }}</span>
           </div>
 
           <SettingsCredentialForms
-            v-if="!isGoogleAccount"
-            :current-email="session.user.email"
+            v-if="showCredentialForms && account"
+            :current-email="account.email"
+            :disabled="!authKnown"
             @toast="showToast"
           />
-          <p v-else class="provider-note">Signed in with Google. Google manages your email and password.</p>
+          <p v-else-if="account?.isGoogle" class="provider-note">Signed in with Google. Google manages your email and password.</p>
 
           <div class="setting-row">
             <div>
-              <button class="signout-btn" :disabled="signingOut" @click="signOut">
+              <button class="signout-btn" :disabled="signingOut || !authKnown" @click="signOut">
                 {{ signingOut ? 'Syncing…' : 'Sign out' }}
               </button>
               <p class="setting-hint">Your passport stays in your account and is removed from this device.</p>
             </div>
           </div>
         </template>
-        <div v-else class="setting-row">
+        <div v-else-if="authSettled" class="setting-row">
           <div>
             <span class="setting-label">Save your progress</span>
             <p class="setting-hint">Access your passport on any device</p>
@@ -43,7 +44,7 @@
     <section class="settings-group">
       <p class="section-label">Profile</p>
       <div class="settings-card card">
-        <template v-if="session && !profileEditing">
+        <template v-if="isSignedIn && !profileEditing">
           <div class="setting-row">
             <span class="setting-label">Name</span>
             <span class="account-email">{{ profileName || '—' }}</span>
@@ -73,7 +74,7 @@
             <button class="profile-save-btn" :disabled="profileSaving" @click="saveProfile">
               {{ profileSaving ? 'Saving…' : 'Save' }}
             </button>
-            <button v-if="session" class="profile-cancel-btn" @click="cancelProfileEdit">Cancel</button>
+            <button v-if="isSignedIn" class="profile-cancel-btn" @click="cancelProfileEdit">Cancel</button>
           </div>
         </template>
       </div>
@@ -198,6 +199,7 @@ import { isRunningStandalone } from '~/lib/installHelper'
 import { useInstallPrompt } from '~/composables/useInstallPrompt'
 import IconExternal from '~/components/icons/IconExternal.vue'
 import { signOutAndClear } from '~/composables/useAccountSync'
+import { useAccount, useAuthKnown, useAuthSettled, useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -206,8 +208,17 @@ const { installedThisSession } = useInstallPrompt()
 const runningStandalone = ref(true)
 // Shown once mounted, unless the app is installed or was just installed here.
 const showInstallSection = computed(() => !runningStandalone.value && !installedThisSession.value)
-const isGoogleAccount = ref(false)
-const profileEditing = ref(false)
+const isSignedIn = useSignedIn()
+const account = useAccount()
+// Until there's an answer (only on a device's very first visit), the account
+// card stays empty rather than showing "Sign in" to someone signed in.
+const authSettled = useAuthSettled()
+// Account actions wait for the server to confirm the session, in case the
+// remembered one has expired.
+const authKnown = useAuthKnown()
+// Signed-out users edit the profile straight away; signed-in users see it
+// read-only with an Edit button.
+const profileEditing = ref(!isSignedIn.value)
 type ToastKind = 'success' | 'error'
 const inlineToast = ref<{ text: string, kind: ToastKind }>({ text: '', kind: 'success' })
 
@@ -215,27 +226,52 @@ watch(() => passport.profile.theme, (theme) => {
   $posthog?.capture('theme_changed', { theme: theme || 'system' })
 })
 
-const session = ref<typeof authClient.$Infer.Session | null>(null)
+// Set when the accounts lookup can't answer, so the change-email and password
+// forms still show (the safe default) without remembering a guess.
+const accountsLookupFailed = ref(false)
+const showCredentialForms = computed(() =>
+  account.value?.isGoogle === false || (account.value?.isGoogle == null && accountsLookupFailed.value)
+)
 
-onMounted(async () => {
-  // Before any network call, so the section shows even when auth is slow or offline.
-  runningStandalone.value = isRunningStandalone()
-
-  const { data } = await authClient.getSession()
-  session.value = data
-  profileEditing.value = !data
-  try {
-    if (typeof authClient.listAccounts === 'function') {
-      const { data: accounts } = await authClient.listAccounts()
-      // Hide the change-email/password forms only when the user has no
-      // password (credential) account, i.e. signs in with Google alone. A user
-      // with both a password and a linked Google login keeps the forms.
-      isGoogleAccount.value = Array.isArray(accounts) && accounts.length > 0
-        && !accounts.some(account => account.providerId === 'credential')
-    }
-  } catch {
-    isGoogleAccount.value = false
+// Whether the account signs in with Google alone. The remembered answer shows
+// at once; it's checked again on each visit, once app.vue has confirmed the
+// session, since a password can be added to the account at any time.
+let checkedThisVisit = false
+async function checkAccountType() {
+  if (checkedThisVisit || !authKnown.value || !isSignedIn.value || !account.value) return
+  checkedThisVisit = true
+  accountsLookupFailed.value = false
+  if (typeof authClient.listAccounts !== 'function') {
+    accountsLookupFailed.value = true
+    return
   }
+  try {
+    const { data: accounts, error } = await authClient.listAccounts()
+    if (error || !Array.isArray(accounts)) {
+      accountsLookupFailed.value = true
+      return
+    }
+    // Hide the change-email/password forms only when the user has no
+    // password (credential) account, i.e. signs in with Google alone. A user
+    // with both a password and a linked Google login keeps the forms.
+    const isGoogle = accounts.length > 0 && !accounts.some(a => a.providerId === 'credential')
+    if (account.value) account.value = { ...account.value, isGoogle }
+  } catch {
+    accountsLookupFailed.value = true
+  }
+}
+
+// Sign-in and sign-out elsewhere, or app.vue's session check finishing after
+// this page opened, switch the profile between read-only and editable.
+watch(isSignedIn, (signedIn) => {
+  profileEditing.value = !signedIn
+  if (!signedIn) checkedThisVisit = false
+})
+watch([authKnown, isSignedIn, () => account.value?.email], () => { void checkAccountType() })
+
+onMounted(() => {
+  runningStandalone.value = isRunningStandalone()
+  void checkAccountType()
 })
 
 // Profile editing
@@ -291,7 +327,6 @@ async function signOut() {
   } finally {
     signingOut.value = false
   }
-  session.value = null
   profileName.value = ''
   profileHomeBranch.value = ''
   profileEditing.value = true
