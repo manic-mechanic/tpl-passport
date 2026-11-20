@@ -23,7 +23,10 @@
           <img :src="photoUrls[visit.timestamp] ?? undefined" class="visit-photo-thumb" alt="Check-in photo" />
         </button>
         <template v-if="editingNote === visit.timestamp">
-          <textarea v-model="noteInputs[visit.timestamp]" class="visit-note-input" placeholder="Add a note…" rows="3" />
+          <label class="visit-note-field">
+            <span class="visit-note-label">Note</span>
+            <textarea v-model="noteInputs[visit.timestamp]" class="visit-note-input" rows="3" />
+          </label>
           <div class="visit-note-actions">
             <button class="note-save-btn" @click="saveNote(visit.timestamp)">Save</button>
             <button class="note-cancel-btn" @click="editingNote = null">Cancel</button>
@@ -229,10 +232,22 @@ async function onVisitPhotoCapture(event: Event, timestamp: string) {
   display: none;
 }
 
+.visit-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.visit-note-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .visit-note-input {
   width: 100%;
   padding: 8px 10px;
-  margin-top: 8px;
   font-size: 0.875rem;
   font-family: var(--font-body);
   color: var(--color-text);

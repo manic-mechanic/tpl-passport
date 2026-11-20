@@ -1,6 +1,6 @@
 <template>
   <div v-if="badgeSuggestions.length === 0" class="extra-credit-empty">
-    <p>You've earned every badge. Well done!</p>
+    <p>You've earned every badge.</p>
   </div>
   <div v-else class="badge-suggestions">
     <div v-for="s in badgeSuggestions" :key="s.id" class="suggestion-card">

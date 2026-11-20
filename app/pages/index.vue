@@ -52,7 +52,7 @@ function openBranchSheet(branch: Branch) {
     <div class="home-prompts">
       <div v-if="showBanner" class="signin-banner">
         <div class="signin-banner__body">
-          <p class="signin-banner__text">Save your progress — access your passport on any device</p>
+          <p class="signin-banner__text">Save your progress and open your passport on any device</p>
           <NuxtLink to="/login" class="signin-banner__link">Sign in</NuxtLink>
         </div>
         <button class="signin-banner__dismiss" aria-label="Dismiss" @click="dismissBanner">✕</button>

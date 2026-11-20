@@ -66,7 +66,7 @@
 
     <!-- Browse All CTA -->
     <div v-if="activeTab === 'near-me'" class="browse-cta">
-      <NuxtLink to="/branches" class="browse-btn">Browse all Branches</NuxtLink>
+      <NuxtLink to="/branches" class="browse-btn">Browse all branches</NuxtLink>
     </div>
   </main>
 

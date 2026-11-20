@@ -61,7 +61,7 @@ async function start() {
   if (decoder.status === 'rejected') {
     media?.getTracks().forEach(t => t.stop())
     if (!active.value) return
-    emit('error', "Couldn't load the scanner — check your connection and try again.")
+    emit('error', "Couldn't load the scanner. Check your connection and try again.")
     active.value = false
     return
   }
@@ -84,7 +84,7 @@ async function start() {
   } catch {
     if (!active.value) return
     stop()
-    emit('error', 'Camera access denied — check your browser settings.')
+    emit('error', 'Camera access denied. Check your browser settings.')
     active.value = false
   }
 }

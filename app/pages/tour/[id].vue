@@ -2,7 +2,7 @@
   <main class="page-content" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }">
     <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore?tab=routes&mode=transit">
       <template #sub>
-        Route {{ tour.id }} · {{ formatMinutes(tour.travelMin) }} · {{ tour.rides }} rides · {{ tour.walkKm }} km walking
+        {{ formatMinutes(tour.travelMin) }} · {{ tour.rides }} rides · {{ tour.walkKm }} km walking
       </template>
     </PageBanner>
 
@@ -17,7 +17,7 @@
       <div class="tour-progress-bar" role="progressbar" :aria-valuenow="visited" aria-valuemin="0" :aria-valuemax="stops.length">
         <span :style="{ width: `${Math.round(visited / stops.length * 100)}%` }" />
       </div>
-      <p class="tour-hint">Times are by TTC from one branch to the next. Tap a branch for hours and events.</p>
+      <p class="tour-hint">Times are by TTC from one branch to the next.</p>
     </section>
 
     <ol class="stops">

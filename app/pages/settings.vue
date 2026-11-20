@@ -18,7 +18,7 @@
             :current-email="session.user.email"
             @toast="showToast"
           />
-          <p v-else class="provider-note">Signed in with Google — email and password are managed by Google.</p>
+          <p v-else class="provider-note">Signed in with Google. Google manages your email and password.</p>
 
           <div class="setting-row">
             <div>
@@ -60,7 +60,7 @@
           <div class="setting-row">
             <label class="setting-label" for="profile-name">Name</label>
             <input id="profile-name" v-model="profileName" class="profile-input" type="text"
-                   placeholder="Your name" maxlength="40" autocomplete="given-name"
+                   maxlength="40" autocomplete="given-name"
             >
           </div>
           <div class="setting-row">

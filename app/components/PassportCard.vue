@@ -8,18 +8,19 @@
       <div class="profile-row">
         <div class="profile-fields">
           <div>
-            <p class="field-label">Name / Nom</p>
-            <input v-model="passport.profile.name" class="name-input" type="text" placeholder="Your name" maxlength="40"
+            <label class="field-label" for="passport-name">Name / Nom</label>
+            <input id="passport-name" v-model="passport.profile.name" class="name-input" type="text" placeholder="Your name" maxlength="40"
                    autocomplete="given-name" :readonly="isSignedIn"
             />
           </div>
           <div>
-            <p class="field-label">Home branch</p>
+            <p v-if="isSignedIn" class="field-label">Home branch</p>
+            <label v-else class="field-label" for="passport-home-branch">Home branch</label>
             <div v-if="isSignedIn" class="field-value">
               {{ passport.profile.homeBranch ? branchNameForCode(passport.profile.homeBranch) : '—' }}
             </div>
             <div v-else class="combobox-wrap">
-              <BranchCombobox v-model="passport.profile.homeBranch" variant="inline" placeholder="—" />
+              <BranchCombobox id="passport-home-branch" v-model="passport.profile.homeBranch" variant="inline" placeholder="—" />
             </div>
           </div>
         </div>
@@ -61,9 +62,9 @@
           <span class="stat-num">{{ passport.checkIns.length }}</span>
           <span class="stat-label">Visits</span>
         </div>
-        <div class="stat">
-          <span class="stat-num">{{ overallPct }}%</span>
-          <span class="stat-label">Complete</span>
+        <div v-if="badgesEarned > 0" class="stat">
+          <span class="stat-num">{{ badgesEarned }}</span>
+          <span class="stat-label">{{ badgesEarned === 1 ? 'Badge' : 'Badges' }}</span>
         </div>
         <div class="count-chip">
           <span class="count-chip__num">{{ passport.visitCount }}</span>
@@ -90,6 +91,7 @@ import { usePassportStore } from '~/stores/passport'
 import { storeToRefs } from 'pinia'
 import { physicalBranches } from '~/composables/useRegion'
 import { useSignedIn } from '~/composables/useAuthState'
+import { BADGES, useBadgeCtx } from '~/composables/useBadges'
 
 // boring-avatars beam algorithm (inlined — package utilities not exported at runtime)
 function _hash(name: string) {
@@ -155,6 +157,11 @@ const passport = usePassportStore()
 
 const isSignedIn = useSignedIn()
 const { progressPct, overallPct } = storeToRefs(passport)
+
+// Extra Credit badges earned. Shown only once there's one, so a new passport
+// doesn't open on a row of zeros.
+const badgeCtx = useBadgeCtx()
+const badgesEarned = computed(() => BADGES.filter(b => b.earned(badgeCtx.value)).length)
 
 const totalBranches = physicalBranches.length
 const issueYear = new Date().getFullYear()
@@ -247,6 +254,7 @@ const mrzLine2 = computed(() => {
 }
 
 .field-label {
+  display: block;
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.1em;

@@ -16,7 +16,7 @@
       <form class="auth-form" @submit.prevent="submitEmail">
         <div v-if="mode === 'signup'" class="field">
           <label class="field-label" for="name">Name</label>
-          <input id="name" v-model="name" type="text" class="field-input" placeholder="Your name" autocomplete="name"
+          <input id="name" v-model="name" type="text" class="field-input" autocomplete="name"
                  required
           />
         </div>

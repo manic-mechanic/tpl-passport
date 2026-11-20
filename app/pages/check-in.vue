@@ -68,7 +68,7 @@
       </button>
 
       <p v-if="locationStatus === 'too-far'" class="location-error">
-        You're {{ locationDistFormatted }} away — you need to be within 100 m to check in.
+        You're {{ locationDistFormatted }} away. Check in from within 100 m of the branch.
         <NuxtLink :to="`/branch/${selectedBranch?.BranchCode}`" class="error-link">View branch page</NuxtLink>
       </p>
       <p v-else-if="locationStatus === 'timeout'" class="location-error">
