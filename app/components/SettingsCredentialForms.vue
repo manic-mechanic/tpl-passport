@@ -1,7 +1,7 @@
 <template>
   <div class="setting-row">
     <span class="setting-label">Email</span>
-    <button class="inline-open" @click="toggleChangeEmail">
+    <button class="inline-open" :disabled="disabled" @click="toggleChangeEmail">
       {{ showChangeEmail ? 'Close' : 'Change email' }}
     </button>
   </div>
@@ -21,7 +21,7 @@
 
   <div class="setting-row">
     <span class="setting-label">Password</span>
-    <button class="inline-open" @click="toggleChangePassword">
+    <button class="inline-open" :disabled="disabled" @click="toggleChangePassword">
       {{ showChangePassword ? 'Close' : 'Change password' }}
     </button>
   </div>
@@ -53,8 +53,13 @@ import { authClient } from '~/lib/auth-client'
 
 // Change-email and change-password rows for email/password accounts.
 // Emits `toast` with a success message for the settings page to show.
-const props = withDefaults(defineProps<{ currentEmail?: string }>(), {
+const props = withDefaults(defineProps<{
+  currentEmail?: string
+  // Until the session is confirmed: the forms can't be opened.
+  disabled?: boolean
+}>(), {
   currentEmail: '',
+  disabled: false,
 })
 const emit = defineEmits<{ toast: [message: string] }>()
 
@@ -190,6 +195,11 @@ async function submitChangePassword() {
   border: none;
   padding: 0;
   cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
 }
 
 .inline-form {

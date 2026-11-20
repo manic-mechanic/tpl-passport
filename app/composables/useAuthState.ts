@@ -57,8 +57,15 @@ export function restoreAuthState() {
   }
   if (!stored || typeof stored.signedIn !== 'boolean') return
   useSignedIn().value = stored.signedIn
-  useAccount().value = stored.signedIn ? stored.account ?? null : null
+  useAccount().value = stored.signedIn && isAccountInfo(stored.account) ? stored.account : null
   useAuthSettled().value = true
+}
+
+function isAccountInfo(value: unknown): value is AccountInfo {
+  if (!value || typeof value !== 'object') return false
+  const { email, isGoogle } = value as Record<string, unknown>
+  return typeof email === 'string' && email.length > 0
+    && (isGoogle === null || typeof isGoogle === 'boolean')
 }
 
 export function rememberAuthState() {

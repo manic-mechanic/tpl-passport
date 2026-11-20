@@ -104,23 +104,30 @@ onMounted(async () => {
 
   // Sync auth → passport on every app load.
   // Covers: returning signed-in users, Google OAuth redirects (full page reload).
-  // If the auth server can't be reached, carry on as signed out.
+  // If the auth server can't be reached, keep the last visit's answer (signed
+  // out on a first visit) rather than replacing it with a guess.
   let data: typeof authClient.$Infer.Session | null = null
+  let checked = false
   try {
-    data = (await authClient.getSession()).data
+    const result = await authClient.getSession()
+    if (result.error) throw new Error(`getSession failed: ${result.error.message ?? result.error.status}`)
+    data = result.data
+    checked = true
   } catch (error) {
     if (isAuthReachableFrom(window.location.hostname)) {
       reportError(error, { area: 'auth', operation: 'get_session' })
     }
   }
-  isSignedIn.value = !!data
-  account.value = data
-    ? {
-        email: data.user.email,
-        // Same account as last time: keep what Settings learned about it.
-        isGoogle: account.value?.email === data.user.email ? account.value.isGoogle : null,
-      }
-    : null
+  if (checked) {
+    isSignedIn.value = !!data
+    account.value = data
+      ? {
+          email: data.user.email,
+          // Same account as last time: keep what Settings learned about it.
+          isGoogle: account.value?.email === data.user.email ? account.value.isGoogle : null,
+        }
+      : null
+  }
   authKnown.value = true
   authSettled.value = true
   const googlePendingTs = sessionStorage.getItem('google_signin_pending')

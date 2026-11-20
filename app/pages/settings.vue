@@ -16,13 +16,14 @@
           <SettingsCredentialForms
             v-if="showCredentialForms && account"
             :current-email="account.email"
+            :disabled="!authKnown"
             @toast="showToast"
           />
           <p v-else-if="account?.isGoogle" class="provider-note">Signed in with Google. Google manages your email and password.</p>
 
           <div class="setting-row">
             <div>
-              <button class="signout-btn" :disabled="signingOut" @click="signOut">
+              <button class="signout-btn" :disabled="signingOut || !authKnown" @click="signOut">
                 {{ signingOut ? 'Syncing…' : 'Sign out' }}
               </button>
               <p class="setting-hint">Your passport stays in your account and is removed from this device.</p>
@@ -198,7 +199,7 @@ import { isRunningStandalone } from '~/lib/installHelper'
 import { useInstallPrompt } from '~/composables/useInstallPrompt'
 import IconExternal from '~/components/icons/IconExternal.vue'
 import { signOutAndClear } from '~/composables/useAccountSync'
-import { useAccount, useAuthSettled, useSignedIn } from '~/composables/useAuthState'
+import { useAccount, useAuthKnown, useAuthSettled, useSignedIn } from '~/composables/useAuthState'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -212,6 +213,9 @@ const account = useAccount()
 // Until there's an answer (only on a device's very first visit), the account
 // card stays empty rather than showing "Sign in" to someone signed in.
 const authSettled = useAuthSettled()
+// Account actions wait for the server to confirm the session, in case the
+// remembered one has expired.
+const authKnown = useAuthKnown()
 // Signed-out users edit the profile straight away; signed-in users see it
 // read-only with an Edit button.
 const profileEditing = ref(!isSignedIn.value)
@@ -222,41 +226,38 @@ watch(() => passport.profile.theme, (theme) => {
   $posthog?.capture('theme_changed', { theme: theme || 'system' })
 })
 
-// Set when the accounts lookup fails, so the change-email and password forms
-// still show (the safe default) without remembering a guess.
+// Set when the accounts lookup can't answer, so the change-email and password
+// forms still show (the safe default) without remembering a guess.
 const accountsLookupFailed = ref(false)
 const showCredentialForms = computed(() =>
   account.value?.isGoogle === false || (account.value?.isGoogle == null && accountsLookupFailed.value)
 )
 
-// The signed-in state and email come from app.vue's session check (or the
-// last visit's answer), so the page draws once. Only ask the server for what
-// isn't known yet: the email after an OAuth redirect, and whether the account
-// signs in with Google alone. Remembered with the rest of the auth state.
-let loadingAccount = false
-async function loadAccountDetails() {
-  if (!isSignedIn.value || account.value?.isGoogle != null || loadingAccount) return
-  loadingAccount = true
+// Whether the account signs in with Google alone. The remembered answer shows
+// at once; it's checked again on each visit, once app.vue has confirmed the
+// session, since a password can be added to the account at any time.
+let checkedThisVisit = false
+async function checkAccountType() {
+  if (checkedThisVisit || !authKnown.value || !isSignedIn.value || !account.value) return
+  checkedThisVisit = true
   accountsLookupFailed.value = false
+  if (typeof authClient.listAccounts !== 'function') {
+    accountsLookupFailed.value = true
+    return
+  }
   try {
-    if (!account.value) {
-      const { data } = await authClient.getSession()
-      if (!data) return
-      account.value = { email: data.user.email, isGoogle: null }
+    const { data: accounts, error } = await authClient.listAccounts()
+    if (error || !Array.isArray(accounts)) {
+      accountsLookupFailed.value = true
+      return
     }
-    if (typeof authClient.listAccounts === 'function') {
-      const { data: accounts } = await authClient.listAccounts()
-      // Hide the change-email/password forms only when the user has no
-      // password (credential) account, i.e. signs in with Google alone. A user
-      // with both a password and a linked Google login keeps the forms.
-      const isGoogle = Array.isArray(accounts) && accounts.length > 0
-        && !accounts.some(a => a.providerId === 'credential')
-      if (account.value) account.value = { ...account.value, isGoogle }
-    }
+    // Hide the change-email/password forms only when the user has no
+    // password (credential) account, i.e. signs in with Google alone. A user
+    // with both a password and a linked Google login keeps the forms.
+    const isGoogle = accounts.length > 0 && !accounts.some(a => a.providerId === 'credential')
+    if (account.value) account.value = { ...account.value, isGoogle }
   } catch {
     accountsLookupFailed.value = true
-  } finally {
-    loadingAccount = false
   }
 }
 
@@ -264,13 +265,13 @@ async function loadAccountDetails() {
 // this page opened, switch the profile between read-only and editable.
 watch(isSignedIn, (signedIn) => {
   profileEditing.value = !signedIn
-  void loadAccountDetails()
+  if (!signedIn) checkedThisVisit = false
 })
-watch(() => account.value?.email, () => { void loadAccountDetails() })
+watch([authKnown, isSignedIn, () => account.value?.email], () => { void checkAccountType() })
 
 onMounted(() => {
   runningStandalone.value = isRunningStandalone()
-  void loadAccountDetails()
+  void checkAccountType()
 })
 
 // Profile editing

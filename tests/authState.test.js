@@ -49,6 +49,16 @@ describe('restoreAuthState', () => {
     expect(useAuthSettled().value).toBe(true)
   })
 
+  it('keeps a signed-in answer but drops a malformed account', () => {
+    for (const account of ['x', {}, { email: '' }, { email: 'a@example.com', isGoogle: 'yes' }]) {
+      nuxtState = {}
+      store.set('auth_state', JSON.stringify({ signedIn: true, account }))
+      restoreAuthState()
+      expect(useSignedIn().value).toBe(true)
+      expect(useAccount().value).toBeNull()
+    }
+  })
+
   it('ignores unreadable stored state', () => {
     store.set('auth_state', '{not json')
     restoreAuthState()
