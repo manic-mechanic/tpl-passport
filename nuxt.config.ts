@@ -18,7 +18,25 @@ export default defineNuxtConfig({
 
   modules: ['@pinia/nuxt', '@sentry/nuxt/module'],
 
-  css: ['~/assets/css/main.css'],
+  // Fonts are bundled with the app instead of loaded from Google Fonts. A
+  // stylesheet from fonts.googleapis.com in <head> blocks the first paint, so
+  // when that connection stalls (Private Relay, content blockers, flaky
+  // networks) the page stays blank until the browser gives up on it.
+  // Each file covers every subset (latin-ext, cyrillic, vietnamese, ...) by
+  // unicode-range, as Google did, so browsers only download what a page uses.
+  css: [
+    '@fontsource-variable/fraunces/opsz.css',
+    '@fontsource-variable/fraunces/opsz-italic.css',
+    '@fontsource/roboto/400.css',
+    '@fontsource/roboto/500.css',
+    '@fontsource/roboto/600.css',
+    '@fontsource/roboto/700.css',
+    '@fontsource/roboto-condensed/600.css',
+    '@fontsource/roboto-condensed/700.css',
+    '@fontsource/allerta-stencil/400.css',
+    '@fontsource/special-elite/400.css',
+    '~/assets/css/main.css',
+  ],
 
   app: {
     head: {
@@ -49,13 +67,6 @@ export default defineNuxtConfig({
         },
       ],
       link: [
-        // Fonts
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        {
-          rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Allerta+Stencil&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,600&family=Roboto:wght@400;500;600;700&family=Roboto+Condensed:wght@600;700&family=Special+Elite&display=swap',
-        },
         // PWA
         { rel: 'manifest', href: '/manifest.json' },
         { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/icon-192.png' },
