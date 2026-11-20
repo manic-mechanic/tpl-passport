@@ -48,11 +48,11 @@
         <template v-if="isSignedIn && !profileEditing">
           <div class="setting-row">
             <span class="setting-label">Name</span>
-            <span class="account-email">{{ profileName || '—' }}</span>
+            <span class="account-email setting-value">{{ profileName || '—' }}</span>
           </div>
           <div class="setting-row">
             <span class="setting-label">Home branch</span>
-            <span class="account-email">{{ profileHomeBranch || '—' }}</span>
+            <span class="account-email setting-value">{{ profileHomeBranch || '—' }}</span>
           </div>
           <div class="setting-row">
             <button class="inline-open" @click="profileEditing = true">Edit profile</button>
@@ -458,11 +458,6 @@ function setDemo(mode: DemoMode) {
   height: 14px;
 }
 
-/* Inside .account-id the wrapper sets the width limit */
-.account-id .account-email {
-  max-width: none;
-}
-
 /* ── Account ──────────────────────────────────── */
 .account-email {
   font-size: 0.875rem;
@@ -470,8 +465,12 @@ function setDemo(mode: DemoMode) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 55%;
   text-align: right;
+}
+
+/* Right-hand value in a setting row; .account-id sets its own limit */
+.setting-value {
+  max-width: 55%;
 }
 
 .signin-link {
