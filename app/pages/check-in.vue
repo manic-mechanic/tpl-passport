@@ -5,10 +5,11 @@
     <p class="branch-status" aria-live="polite">
       <template v-if="scanned">Scanned at your branch</template>
       <template v-else-if="prefilled">Checking in at</template>
-      <template v-else-if="detecting">Detecting your location…</template>
-      <template v-else-if="autoDetected && selectedBranch && !showPicker">Nearest branch</template>
-      <template v-else-if="locateFailed">Couldn't get your location. Select your branch</template>
-      <template v-else-if="!selectedBranch || showPicker">Select the branch you're visiting</template>
+      <template v-else-if="detecting">Finding your branch…</template>
+      <template v-else-if="showPicker && locateFailed">Couldn't get your location. Select your branch</template>
+      <template v-else-if="showPicker">Select the branch you're visiting</template>
+      <template v-else-if="!selectedBranch">Where are you checking in?</template>
+      <template v-else-if="autoDetected">Nearest branch</template>
       <template v-else>Checking in at</template>
     </p>
 
@@ -34,10 +35,18 @@
       </button>
     </div>
 
-    <!-- Branch picker — shown when no branch selected or user wants to change -->
+    <!-- No branch yet: an empty stamp that finds the nearest one on tap -->
+    <div v-else-if="showLocatePrompt" class="stamp-area">
+      <button class="locate-stamp-btn" :disabled="detecting" aria-label="Find my nearest branch" @click="detectNearest">
+        <LocateStamp :busy="detecting" />
+      </button>
+      <p class="stamp-name">{{ detecting ? 'Looking for the nearest branch…' : 'Find your nearest branch' }}</p>
+    </div>
+
+    <!-- Branch picker — shown when the user chooses a branch by hand -->
     <CheckInBranchPicker
-      v-if="(!selectedBranch || showPicker) && !detecting && !prefilled && !scanned"
-      @select="selectedCode = $event"
+      v-if="showPicker && !prefilled && !scanned"
+      @select="selectedCode = $event; autoDetected = false"
       @locate="detectNearest"
     />
 
@@ -61,6 +70,16 @@
     </template>
 
     <div class="cta-area">
+      <template v-if="showLocatePrompt">
+        <button class="checkin-btn" :disabled="detecting" @click="detectNearest">
+          <span v-if="detecting" class="btn-spinner" />
+          {{ detecting ? 'Finding your branch…' : 'Use my location' }}
+        </button>
+        <button class="change-branch-btn" :disabled="detecting" @click="showPicker = true">
+          Choose a branch instead
+        </button>
+      </template>
+
       <button v-if="selectedBranch && !showPicker" class="checkin-btn" :disabled="alreadyVisitedToday || isCheckingLocation"
               @click="doCheckIn"
       >
@@ -134,7 +153,6 @@ const locateFailed = ref(false)
 async function detectNearest() {
   detecting.value = true
   locateFailed.value = false
-  const wasPicking = showPicker.value
   showPicker.value = false
   try {
     const pos = await getPosition({ timeout: 5000 })
@@ -146,7 +164,7 @@ async function detectNearest() {
   } catch {
     // Don't guess a branch and call it "nearest": leave the picker up.
     locateFailed.value = true
-    showPicker.value = wasPicking
+    showPicker.value = true
   } finally {
     detecting.value = false
   }
@@ -162,6 +180,12 @@ onMounted(async () => {
   // user picked or scanned in the meantime.
   if (canLocate && !selectedCode.value && !scanned.value) void detectNearest()
 })
+
+// Before a branch is known (and the user hasn't opened the picker), show the
+// empty stamp with "Use my location" instead of the branch list.
+const showLocatePrompt = computed(() =>
+  !selectedBranch.value && !showPicker.value && !prefilled && !scanned.value
+)
 
 const selectedBranch = computed(() =>
   selectedCode.value
@@ -418,6 +442,23 @@ onUnmounted(() => {
   color: var(--color-text);
   text-align: center;
   font-optical-sizing: auto;
+}
+
+.locate-stamp-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
+
+  &:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
 }
 
 .change-branch-btn {

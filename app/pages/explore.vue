@@ -35,25 +35,40 @@
 
     <!-- Near Me -->
     <section v-show="activeTab === 'near-me'" class="explore-section">
-      <div v-if="geoStatus === 'loading'" class="geo-state">
-        <span class="geo-spinner" />
-        <span>Finding branches near you…</span>
+      <!-- No location yet: a prompt card above the full branch list -->
+      <div v-if="geoStatus !== 'ready'" class="locate-card">
+        <button class="locate-card-stamp" :disabled="geoStatus === 'loading'" aria-label="Find branches near me"
+                @click="locate"
+        >
+          <LocateStamp :size="64" :busy="geoStatus === 'loading'" />
+        </button>
+        <div class="locate-card-body">
+          <p class="locate-card-title">Find branches near you</p>
+          <p class="locate-card-text">{{ locateCardText }}</p>
+          <button v-if="geoStatus !== 'denied' || hasGeolocation" class="locate-card-btn"
+                  :disabled="geoStatus === 'loading'" @click="locate"
+          >
+            {{ geoStatus === 'loading' ? 'Finding you…' : geoStatus === 'idle' && !geoTimedOut ? 'Use my location' : 'Try again' }}
+          </button>
+        </div>
       </div>
 
-      <div v-else-if="geoStatus === 'idle'" class="geo-ask">
-        <p class="geo-ask-text">{{ geoTimedOut ? "Couldn't get your location in time." : 'See the branches closest to you.' }}</p>
-        <button class="geo-ask-btn" @click="locate">
-          <svg class="geo-ask-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-          </svg>
-          {{ geoTimedOut ? 'Try again' : 'Use my location' }}
+      <!-- Located: switch between the closest few and every branch by distance -->
+      <div v-else class="near-toggle" role="tablist" aria-label="Branches near you">
+        <button class="near-toggle-btn" :class="{ active: nearView === 'closest' }" role="tab"
+                :aria-selected="nearView === 'closest'" @click="nearView = 'closest'"
+        >
+          Closest
+        </button>
+        <button class="near-toggle-btn" :class="{ active: nearView === 'all' }" role="tab"
+                :aria-selected="nearView === 'all'" @click="nearView = 'all'"
+        >
+          All branches
         </button>
       </div>
 
-      <p v-else-if="geoStatus === 'denied'" class="geo-denied">{{ geoDeniedMessage }}</p>
-
-      <div v-else-if="geoStatus === 'ready'" class="near-me-list">
-        <BranchCard v-for="item in nearMeBranches" :key="item.branch.BranchCode" :branch="item.branch"
+      <div class="near-me-list">
+        <BranchCard v-for="item in nearMeList" :key="item.branch.BranchCode" :branch="item.branch"
                     :distance="item.distanceLabel" as-button @select="openBranchSheet"
         />
       </div>
@@ -89,7 +104,7 @@
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
+import { physicalBranches, sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import IconSearch from '~/components/icons/IconSearch.vue'
 import { cachedPosition, getPosition, locationPermission } from '~/lib/geolocation'
 
@@ -114,15 +129,27 @@ const userLat = ref<number | null>(null)
 const userLng = ref<number | null>(null)
 // idle: waiting for a tap on "Use my location", so opening Explore doesn't
 // bring up the location prompt by itself.
-const geoStatus = ref<'idle' | 'loading' | 'ready' | 'denied'>('loading')
+const geoStatus = ref<'idle' | 'loading' | 'ready' | 'denied'>('idle')
 const geoTimedOut = ref(false)
-const geoDeniedMessage = computed(() =>
-  navigator?.geolocation
-    ? 'Allow location access to see branches near you.'
-    : 'Geolocation not available on this device.'
-)
+const hasGeolocation = import.meta.client && !!navigator?.geolocation
+const nearView = ref<'closest' | 'all'>('closest')
+
+const locateCardText = computed(() => {
+  if (geoStatus.value === 'denied') {
+    return hasGeolocation
+      ? 'Location access is off. Allow it in your browser settings, then try again.'
+      : "This device can't share its location."
+  }
+  if (geoTimedOut.value) return "Couldn't get your location in time."
+  return "We'll show the closest branches and how far away each one is."
+})
+
+watch(nearView, (view) => {
+  $posthog?.capture('near_me_view_changed', { view })
+})
 
 async function locate() {
+  if (geoStatus.value === 'loading') return
   geoStatus.value = 'loading'
   geoTimedOut.value = false
   try {
@@ -154,6 +181,24 @@ onMounted(async () => {
   if (permission === 'granted') void locate()
   else if (permission === 'denied') geoStatus.value = 'denied'
   else geoStatus.value = 'idle'
+})
+
+// Before we have a location, the full A–Z list.
+const nearMeList = computed(() => {
+  if (geoStatus.value !== 'ready') {
+    return sortedBranches.map(branch => ({ branch, distanceLabel: null as string | null }))
+  }
+  return nearView.value === 'closest' ? nearMeBranches.value : allByDistance.value
+})
+
+const allByDistance = computed(() => {
+  const lat = userLat.value
+  const lng = userLng.value
+  if (lat === null || lng === null) return []
+  return physicalBranches
+    .map(branch => ({ branch, km: haversineKm(lat, lng, branch.Lat, branch.Long) }))
+    .sort((a, b) => a.km - b.km)
+    .map(item => ({ branch: item.branch, distanceLabel: formatDist(item.km) as string | null }))
 })
 
 const nearMeBranches = computed(() => {
@@ -280,69 +325,100 @@ function openBranchSheet(branch: Branch) {
 
 
 /* ── Near Me ─────────────────────────────────────────────────────── */
-.geo-state {
+.locate-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  padding: 14px 0;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
 }
 
-.geo-ask {
+.locate-card-stamp {
+  padding: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.locate-card-body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 8px 0;
+  gap: 4px;
+  min-width: 0;
 }
 
-.geo-ask-text {
-  font-size: 0.875rem;
+.locate-card-title {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.locate-card-text {
+  font-size: 0.8125rem;
+  line-height: 1.45;
   color: var(--color-text-muted);
 }
 
-.geo-ask-btn {
+.locate-card-btn {
+  margin-top: 8px;
+  padding: 9px 16px;
+  background: var(--tpl-blue);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s, opacity 0.15s;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  &:not(:disabled):active {
+    transform: scale(0.97);
+  }
+}
+
+.near-toggle {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  padding: 3px;
+  margin-bottom: 14px;
+  background: color-mix(in srgb, var(--tpl-blue) 7%, var(--color-surface));
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+}
+
+.near-toggle-btn {
+  padding: 7px 16px;
   background: none;
   border: none;
-  font-size: 0.875rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
   font-weight: 600;
   font-family: var(--font-body);
-  color: var(--tpl-blue);
-  cursor: pointer;
-  padding: 2px 0;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.geo-ask-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.geo-denied {
-  font-size: 0.875rem;
   color: var(--color-text-muted);
-  padding: 8px 0;
-}
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, color 0.15s;
 
-.geo-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--tpl-blue);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  &.active {
+    background: var(--color-surface);
+    color: var(--color-brand-text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   }
 }
 
