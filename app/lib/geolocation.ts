@@ -6,8 +6,11 @@
 //   - a recent position is reused for NEARBY_MAX_AGE_MS, across pages and
 //     reloads within the session, instead of asking again;
 //   - calls made at the same time with the same timeout share one request;
-//   - pages call locationPermission() first and only ask on page load when
-//     access is already granted; otherwise they wait for a tap.
+//   - pages call locationAccess() first and only ask on page load when
+//     access is granted; otherwise they wait for a tap.
+//
+// Safari often reports "prompt" even for a site the user has allowed, so a
+// successful fix is remembered on the device and counts as granted later.
 
 export interface Coords {
   latitude: number
@@ -20,6 +23,7 @@ export type LocationPermission = 'granted' | 'denied' | 'prompt' | 'unknown'
 export const NEARBY_MAX_AGE_MS = 5 * 60 * 1000
 
 const STORAGE_KEY = 'tpl-passport:last-position'
+const ALLOWED_KEY = 'tpl-passport:location-allowed'
 
 interface Cached extends Coords {
   at: number
@@ -73,9 +77,13 @@ export function freshPosition(opts: { timeout?: number } = {}): Promise<Coords> 
       (pos) => {
         const c = { latitude: pos.coords.latitude, longitude: pos.coords.longitude }
         store({ ...c, at: Date.now() })
+        rememberAllowed(true)
         resolve(c)
       },
-      reject,
+      (err) => {
+        if (err?.code === 1) rememberAllowed(false)
+        reject(err)
+      },
       { timeout },
     )
   }).finally(() => { inFlight.delete(timeout) })
@@ -102,9 +110,45 @@ export async function locationPermission(): Promise<LocationPermission> {
   }
 }
 
+function rememberAllowed(allowed: boolean) {
+  try {
+    if (allowed) globalThis.localStorage?.setItem(ALLOWED_KEY, '1')
+    else globalThis.localStorage?.removeItem(ALLOWED_KEY)
+  } catch { /* storage blocked: we just ask on tap */ }
+}
+
+function wasAllowed(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(ALLOWED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export type LocationAccess = 'granted' | 'denied' | 'unknown' | 'unavailable'
+
+// What a page can expect from asking, without asking. 'granted' includes a
+// device that has given a location before, even if the browser now reports
+// "prompt" (Safari): asking on load is then expected, not a surprise.
+export async function locationAccess(): Promise<LocationAccess> {
+  if (!globalThis.navigator?.geolocation) return 'unavailable'
+  const permission = await locationPermission()
+  if (permission === 'granted' || permission === 'denied') return permission
+  return wasAllowed() ? 'granted' : 'unknown'
+}
+
+// Where to turn location back on, for the "denied" message.
+export function locationSettingsHint(userAgent: string, isTouchMac = false): string {
+  if (/iPhone|iPad|iPod/.test(userAgent) || isTouchMac) {
+    return 'Turn it on in Settings › Apps › Safari › Location.'
+  }
+  return "Allow it in your browser's site settings."
+}
+
 // Test-only: forget the cached position.
 export function _resetLocationCache() {
   memory = null
   inFlight.clear()
   try { globalThis.sessionStorage?.removeItem(STORAGE_KEY) } catch { /* ignore */ }
+  try { globalThis.localStorage?.removeItem(ALLOWED_KEY) } catch { /* ignore */ }
 }

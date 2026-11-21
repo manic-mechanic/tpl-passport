@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
-  cachedPosition, freshPosition, getPosition, locationPermission,
+  cachedPosition, freshPosition, getPosition, locationAccess, locationPermission, locationSettingsHint,
   NEARBY_MAX_AGE_MS, _resetLocationCache,
 } from '../app/lib/geolocation'
 
@@ -28,6 +28,7 @@ let geo: ReturnType<typeof fakeGeo>
 
 beforeEach(() => {
   vi.stubGlobal('sessionStorage', fakeStorage())
+  vi.stubGlobal('localStorage', fakeStorage())
   geo = fakeGeo({ lat: 43.65, lng: -79.38 })
   vi.stubGlobal('navigator', { geolocation: geo })
   _resetLocationCache()
@@ -125,5 +126,53 @@ describe('locationPermission', () => {
     expect(await locationPermission()).toBe('unknown')
     vi.stubGlobal('navigator', { permissions: { query: async () => { throw new TypeError('x') } } })
     expect(await locationPermission()).toBe('unknown')
+  })
+})
+
+describe('locationAccess', () => {
+  const prompt = { query: async () => ({ state: 'prompt' }) }
+
+  it('is unknown before this device has shared a location', async () => {
+    vi.stubGlobal('navigator', { geolocation: geo, permissions: prompt })
+    expect(await locationAccess()).toBe('unknown')
+  })
+
+  it('counts a device that shared its location before as granted, even when Safari says prompt', async () => {
+    vi.stubGlobal('navigator', { geolocation: geo, permissions: prompt })
+    await freshPosition()
+    expect(await locationAccess()).toBe('granted')
+  })
+
+  it('forgets that after a denial', async () => {
+    vi.stubGlobal('navigator', { geolocation: geo, permissions: prompt })
+    await freshPosition()
+    const denying = fakeGeo({ code: 1 })
+    vi.stubGlobal('navigator', { geolocation: denying, permissions: prompt })
+    await expect(freshPosition()).rejects.toMatchObject({ code: 1 })
+    expect(await locationAccess()).toBe('unknown')
+  })
+
+  it('passes through granted and denied from the Permissions API', async () => {
+    vi.stubGlobal('navigator', { geolocation: geo, permissions: { query: async () => ({ state: 'denied' }) } })
+    expect(await locationAccess()).toBe('denied')
+    vi.stubGlobal('navigator', { geolocation: geo, permissions: { query: async () => ({ state: 'granted' }) } })
+    expect(await locationAccess()).toBe('granted')
+  })
+
+  it('is unavailable without geolocation', async () => {
+    vi.stubGlobal('navigator', {})
+    expect(await locationAccess()).toBe('unavailable')
+  })
+})
+
+describe('locationSettingsHint', () => {
+  it('points iPhone and iPad users at Safari settings', () => {
+    expect(locationSettingsHint('Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)')).toContain('Safari')
+    expect(locationSettingsHint('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', true)).toContain('Safari')
+  })
+
+  it('points everyone else at site settings', () => {
+    expect(locationSettingsHint('Mozilla/5.0 (Linux; Android 15)')).toContain('site settings')
+    expect(locationSettingsHint('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')).toContain('site settings')
   })
 })

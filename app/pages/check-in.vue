@@ -1,20 +1,9 @@
 <template>
-  <main class="page-content">
+  <main class="page-content" :class="{ 'page-centered': !selectedBranch }">
     <PageBanner title="Check in" />
 
-    <p class="branch-status" aria-live="polite">
-      <template v-if="scanned">Scanned at your branch</template>
-      <template v-else-if="prefilled">Checking in at</template>
-      <template v-else-if="detecting">Finding your branch…</template>
-      <template v-else-if="showPicker && locateFailed">Couldn't get your location. Select your branch</template>
-      <template v-else-if="showPicker">Select the branch you're visiting</template>
-      <template v-else-if="!selectedBranch">Where are you checking in?</template>
-      <template v-else-if="autoDetected">Nearest branch</template>
-      <template v-else>Checking in at</template>
-    </p>
-
     <!-- QR scan button — gated behind FEATURES.qrCheckIn (awaiting QR deployment at branches) -->
-    <div v-if="FEATURES.qrCheckIn && !prefilled && !scanned && !selectedBranch" class="qr-primary-area">
+    <div v-if="FEATURES.qrCheckIn && !selectedBranch" class="qr-primary-area">
       <button class="qr-btn-primary" @click="openScanner">
         <IconQR />
         Scan QR code
@@ -22,41 +11,27 @@
       <p class="or-divider">or</p>
     </div>
 
-    <div v-if="selectedBranch && !showPicker" class="stamp-area">
-      <div :class="{ 'stamp-preview-unvisited': !passport.hasVisited(selectedBranch.BranchCode) }">
-        <StampShape :branch-code="selectedBranch.BranchCode" :ward-no="selectedBranch.WardNo" :size="100" />
+    <!-- A branch: the nearest one, a QR scan, or ?branch= from a branch page -->
+    <template v-if="selectedBranch">
+      <div class="stamp-area">
+        <button class="stamp-btn" :aria-label="`About ${selectedBranch.BranchName}`" @click="branchSheetOpen = true">
+          <div :class="{ 'stamp-preview-unvisited': !passport.hasVisited(selectedBranch.BranchCode) }">
+            <StampShape :branch-code="selectedBranch.BranchCode" :ward-no="selectedBranch.WardNo" :size="100" />
+          </div>
+        </button>
+        <p class="stamp-name">{{ selectedBranch.BranchName }}</p>
+        <p v-if="nearestDistance" class="stamp-distance">{{ nearestDistance }} away</p>
+        <button v-if="devPicker" class="change-branch-btn" @click="selectedCode = ''">
+          Change branch
+        </button>
       </div>
-      <p class="stamp-name">{{ selectedBranch.BranchName }}</p>
-      <button v-if="scanned" class="change-branch-btn" @click="scanned = false; selectedCode = ''">
-        Change branch
-      </button>
-      <button v-else-if="!prefilled" class="change-branch-btn" @click="showPicker = true">
-        Change branch
-      </button>
-    </div>
 
-    <!-- No branch yet: an empty stamp that finds the nearest one on tap -->
-    <div v-else-if="showLocatePrompt" class="stamp-area">
-      <button class="locate-stamp-btn" :disabled="detecting" aria-label="Find my nearest branch" @click="detectNearest">
-        <LocateStamp :busy="detecting" />
-      </button>
-      <p class="stamp-name">{{ detecting ? 'Looking for the nearest branch…' : 'Find your nearest branch' }}</p>
-    </div>
+      <div v-if="alreadyVisitedToday" class="visited-notice">
+        <IconVisited />
+        You've already checked in here today
+      </div>
 
-    <!-- Branch picker — shown when the user chooses a branch by hand -->
-    <CheckInBranchPicker
-      v-if="showPicker && !prefilled && !scanned"
-      @select="selectedCode = $event; autoDetected = false"
-      @locate="detectNearest"
-    />
-
-    <div v-if="selectedBranch && !showPicker && alreadyVisitedToday" class="visited-notice">
-      <IconVisited />
-      You've already checked in here today
-    </div>
-
-    <template v-if="selectedBranch && !showPicker && !alreadyVisitedToday">
-      <div class="field-group">
+      <div v-else class="field-group">
         <div class="field-label-row">
           <label class="field-label" for="note-input">
             Note <span class="optional">optional</span>
@@ -67,48 +42,57 @@
                   placeholder="What did you do? What did you read?" rows="3" maxlength="500"
         />
       </div>
+
+      <div class="cta-area">
+        <button class="checkin-btn" :disabled="alreadyVisitedToday || isCheckingLocation" @click="doCheckIn">
+          <span v-if="isCheckingLocation" class="btn-spinner" />
+          {{ isCheckingLocation ? 'Checking location…' : 'Check in' }}
+        </button>
+
+        <p v-if="locationStatus === 'too-far'" class="location-error">
+          You're {{ locationDistFormatted }} away. Check in from within 100 m of the branch.
+        </p>
+        <p v-else-if="locationStatus === 'timeout'" class="location-error">
+          Location check timed out. Check your signal and try again.
+        </p>
+        <p v-else-if="locationStatus === 'denied'" class="location-error">
+          Check-in needs your location. {{ settingsHint }}
+        </p>
+      </div>
     </template>
 
-    <div class="cta-area">
-      <template v-if="showLocatePrompt">
-        <button class="checkin-btn" :disabled="detecting" @click="detectNearest">
-          <span v-if="detecting" class="btn-spinner" />
-          {{ detecting ? 'Finding your branch…' : 'Use my location' }}
-        </button>
-        <button class="change-branch-btn" :disabled="detecting" @click="showPicker = true">
-          Choose a branch instead
-        </button>
-      </template>
-
-      <button v-if="selectedBranch && !showPicker" class="checkin-btn" :disabled="alreadyVisitedToday || isCheckingLocation"
-              @click="doCheckIn"
-      >
-        <span v-if="isCheckingLocation" class="btn-spinner" />
-        {{ isCheckingLocation ? 'Checking location…' : 'Check in' }}
-      </button>
-
-      <p v-if="locationStatus === 'too-far'" class="location-error">
-        You're {{ locationDistFormatted }} away. Check in from within 100 m of the branch.
-        <NuxtLink :to="`/branch/${selectedBranch?.BranchCode}`" class="error-link">View branch page</NuxtLink>
+    <!-- Location blocked: say how to turn it back on -->
+    <div v-else-if="access === 'denied' || access === 'unavailable'" class="locate-area">
+      <p class="locate-message">
+        <template v-if="access === 'unavailable'">Check-in needs your location, and this device can't share it.</template>
+        <template v-else>Check-in needs your location. {{ settingsHint }}</template>
       </p>
-      <p v-else-if="locationStatus === 'timeout'" class="location-error">
-        Location check timed out. Check your signal and try again.
-      </p>
-      <p v-else-if="locationStatus === 'denied'" class="location-error">
-        Location access was denied. Allow it in your device or browser settings and try again.
-      </p>
-
-      <p v-if="scanError" class="scan-error">{{ scanError }}</p>
-
-      <!-- STASHED: QR dev tip — restore when FEATURES.qrCheckIn = true -->
-      <!-- <p v-if="FEATURES.qrCheckIn" class="qr-tip">
-          Need a QR code to scan? Open
-          <a href="https://tpl-passport.vercel.app/qr-print" target="_blank" rel="noopener" class="qr-tip-link">tpl&#8209;passport.vercel.app/qr&#8209;print</a>
-          on another device.
-        </p> -->
-      <!-- END STASHED: QR dev tip -->
     </div>
+
+    <!-- No location yet: an empty stamp to fill in -->
+    <div v-else class="locate-area">
+      <button class="stamp-btn" tabindex="-1" aria-hidden="true" :disabled="detecting" @click="detectNearest">
+        <LocateStamp :busy="detecting" />
+      </button>
+      <p v-if="locateFailed" class="locate-message">Couldn't get your location.</p>
+      <button class="checkin-btn locate-btn" :disabled="detecting" @click="detectNearest">
+        <span v-if="detecting" class="btn-spinner" />
+        {{ detecting ? 'Finding nearest branch…' : locateFailed ? 'Try again' : 'Find nearest branch' }}
+      </button>
+    </div>
+
+    <!-- Dev builds with the location check off can pick any branch -->
+    <CheckInBranchPicker v-if="devPicker && !selectedBranch" class="dev-picker"
+                         @select="selectedCode = $event" @locate="detectNearest"
+    />
+
+    <p v-if="scanError" class="scan-error">{{ scanError }}</p>
   </main>
+
+  <!-- ── Branch card ───── -->
+  <BaseSheet v-model:open="branchSheetOpen" :height="branchSheetHeight">
+    <BranchDetail v-if="selectedBranch" :branch="selectedBranch" source="checkin" />
+  </BaseSheet>
 
   <!-- ── Check-in success sheet ───── -->
   <CheckInSuccessSheet v-model:result="result" />
@@ -125,16 +109,20 @@
 <script setup lang="ts">
 import type { CheckInResult } from '~/components/CheckInSuccessSheet.vue'
 import { usePassportStore } from '~/stores/passport'
-import { sortedBranches, haversineKm } from '~/composables/useRegion'
+import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { shouldSkipLocationCheck } from '~/lib/locationCheck'
 import { FEATURES } from '~/composables/useFeatureFlags'
 import IconVisited from '~/components/icons/IconVisited.vue'
 import IconQR from '~/components/icons/IconQR.vue'
-import { cachedPosition, freshPosition, getPosition, locationPermission } from '~/lib/geolocation'
+import {
+  cachedPosition, freshPosition, getPosition, locationAccess, locationSettingsHint,
+  type LocationAccess,
+} from '~/lib/geolocation'
 
-// The geofence check accepts a cached position only when it is this recent
-// and already inside the fence. A cached "too far" always gets a fresh fix,
-// so a stale position never blocks someone who has just arrived.
+// Checking in needs a location within FENCE_KM of the branch. The fence check
+// accepts a cached position only when it is this recent and already inside
+// the fence; a cached "too far" always gets a fresh fix, so a stale position
+// never blocks someone who has just arrived.
 const FENCE_MAX_AGE_MS = 2 * 60 * 1000
 const FENCE_KM = 0.1
 
@@ -145,47 +133,28 @@ const passport = usePassportStore()
 const selectedCode = ref(typeof route.query.branch === 'string' ? route.query.branch : '')
 const prefilled = !!route.query.branch  // static — query string doesn't change after load
 const scanned = ref(false)
-const autoDetected = ref(false)
 const detecting = ref(false)
-const showPicker = ref(false)
 const locateFailed = ref(false)
+const access = ref<LocationAccess>('unknown')
+const nearestKm = ref<number | null>(null)
+const branchSheetOpen = ref(false)
+const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
-async function detectNearest() {
-  detecting.value = true
-  locateFailed.value = false
-  showPicker.value = false
-  try {
-    const pos = await getPosition({ timeout: 5000 })
-    const nearest = sortedBranches
-      .map(b => ({ ...b, distKm: haversineKm(pos.latitude, pos.longitude, b.Lat, b.Long) }))
-      .sort((a, b) => a.distKm - b.distKm)[0]
-    selectedCode.value = nearest!.BranchCode  // sortedBranches is never empty
-    autoDetected.value = true
-  } catch {
-    // Don't guess a branch and call it "nearest": leave the picker up.
-    locateFailed.value = true
-    showPicker.value = true
-  } finally {
-    detecting.value = false
-  }
-}
+const settingsHint = import.meta.client
+  ? locationSettingsHint(navigator.userAgent, /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+  : ''
 
-// On load, find the nearest branch only when it won't bring up the location
-// prompt: a recent position is cached, or access is already granted. Otherwise
-// the branch picker shows, and "Use my location" asks on tap.
-onMounted(async () => {
-  if (prefilled) return
-  const canLocate = !!cachedPosition() || await locationPermission() === 'granted'
-  // The picker is usable while the permission check runs; keep a branch the
-  // user picked or scanned in the meantime.
-  if (canLocate && !selectedCode.value && !scanned.value) void detectNearest()
+// Dev builds with the location check switched off: no location needed, so
+// offer the branch list instead.
+const skipLocationCheck = computed(() => {
+  const { public: { isDev, bypassGeofence } } = useRuntimeConfig()
+  return shouldSkipLocationCheck({
+    isDev: !!isDev,
+    bypassGeofence: !!bypassGeofence,
+    profileBypass: !!passport.profile.bypassLocationFence,
+  })
 })
-
-// Before a branch is known (and the user hasn't opened the picker), show the
-// empty stamp with "Use my location" instead of the branch list.
-const showLocatePrompt = computed(() =>
-  !selectedBranch.value && !showPicker.value && !prefilled && !scanned.value
-)
+const devPicker = computed(() => skipLocationCheck.value && !prefilled && !scanned.value)
 
 const selectedBranch = computed(() =>
   selectedCode.value
@@ -193,12 +162,51 @@ const selectedBranch = computed(() =>
     : null
 )
 
+const nearestDistance = computed(() =>
+  nearestKm.value !== null && !prefilled && !scanned.value ? formatDist(nearestKm.value) : ''
+)
+
+async function detectNearest() {
+  if (detecting.value) return
+  detecting.value = true
+  locateFailed.value = false
+  try {
+    const pos = await getPosition({ timeout: 10000 })
+    const nearest = sortedBranches
+      .map(b => ({ code: b.BranchCode, km: haversineKm(pos.latitude, pos.longitude, b.Lat, b.Long) }))
+      .sort((a, b) => a.km - b.km)[0]!  // sortedBranches is never empty
+    // Keep a branch picked or scanned while we were waiting.
+    if (!selectedCode.value) {
+      selectedCode.value = nearest.code
+      nearestKm.value = nearest.km
+    }
+    access.value = 'granted'
+  } catch (err) {
+    if ((err as GeolocationPositionError | undefined)?.code === 1) access.value = 'denied'
+    else locateFailed.value = true
+  } finally {
+    detecting.value = false
+  }
+  $posthog?.capture('checkin_locate', {
+    outcome: selectedCode.value ? 'found' : access.value === 'denied' ? 'denied' : 'failed',
+  })
+}
+
+// On load, find the nearest branch straight away when that won't surprise
+// anyone with a prompt: access is granted, or this device has shared its
+// location before. Otherwise the empty stamp waits for a tap.
+onMounted(async () => {
+  access.value = await locationAccess()
+  if (prefilled || selectedCode.value || scanned.value) return
+  if (cachedPosition() || access.value === 'granted') void detectNearest()
+})
+
 const alreadyVisitedToday = computed(() =>
   selectedBranch.value ? passport.hasVisitedToday(selectedBranch.value.BranchCode) : false
 )
 
-
 const noteText = ref('')
+const checkInAttempted = ref(false)
 const checkInCompleted = ref(false)
 
 const result = ref<CheckInResult | null>(null)
@@ -208,36 +216,28 @@ const locationDistKm = ref<number | null>(null)
 
 const isCheckingLocation = computed(() => locationStatus.value === 'checking')
 
-const locationDistFormatted = computed(() => {
-  if (locationDistKm.value === null) return ''
-  return locationDistKm.value >= 1
-    ? `${locationDistKm.value.toFixed(1)} km`
-    : `${Math.round(locationDistKm.value * 1000)} m`
-})
+const locationDistFormatted = computed(() =>
+  locationDistKm.value === null ? '' : formatDist(locationDistKm.value)
+)
 
 watch(selectedCode, () => {
   locationStatus.value = 'idle'
   locationDistKm.value = null
-  showPicker.value = false
 })
 
 async function doCheckIn() {
   if (!selectedBranch.value || alreadyVisitedToday.value) return
+  checkInAttempted.value = true
 
   $posthog?.capture('checkin_started', {
     branch_code: selectedBranch.value.BranchCode,
     branch_name: selectedBranch.value.BranchName,
     district: selectedBranch.value.District ?? '',
     source: scanned.value ? 'qr_scan' : prefilled ? 'branch_page' : 'nav_button',
+    location_access: access.value,
   })
 
-  const { public: { isDev, bypassGeofence } } = useRuntimeConfig()
-  const skipLocationCheck = shouldSkipLocationCheck({
-    isDev: !!isDev,
-    bypassGeofence: !!bypassGeofence,
-    profileBypass: !!passport.profile.bypassLocationFence,
-  })
-  if (!skipLocationCheck) {
+  if (!skipLocationCheck.value) {
     locationStatus.value = 'checking'
     try {
       const { Lat, Long } = selectedBranch.value
@@ -301,25 +301,73 @@ function onQrScanned(branch: string) {
   }
 }
 
+// Only a real attempt that didn't finish counts as abandoned, with what
+// stopped it, so leaving the page after browsing isn't counted.
 onUnmounted(() => {
-  if (!checkInCompleted.value && selectedBranch.value) {
+  if (checkInAttempted.value && !checkInCompleted.value && selectedBranch.value) {
     $posthog?.capture('checkin_abandoned', {
       branch_code: selectedBranch.value.BranchCode,
       step: 'form',
+      reason: locationStatus.value === 'idle' ? 'unknown' : locationStatus.value,
+      location_access: access.value,
     })
   }
 })
 </script>
 
 <style scoped>
-/* Status line between the banner and the stamp (or branch picker) */
-.branch-status {
-  margin: 4px 0 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+/* No branch yet: centre the prompt in the space under the banner */
+.page-centered {
+  display: flex;
+  flex-direction: column;
+}
+
+.locate-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px 0;
+}
+
+.locate-message {
+  max-width: 300px;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text-mid);
   text-align: center;
+}
+
+.locate-btn {
+  max-width: 320px;
+}
+
+.dev-picker {
+  margin-top: 24px;
+}
+
+/* The stamp: opens the branch card, or (empty) finds the nearest branch */
+.stamp-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s;
+
+  &:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.stamp-distance {
+  font-size: 0.8125rem;
   color: var(--color-text-muted);
 }
 
@@ -444,23 +492,6 @@ onUnmounted(() => {
   font-optical-sizing: auto;
 }
 
-.locate-stamp-btn {
-  padding: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.1s;
-
-  &:not(:disabled):active {
-    transform: scale(0.96);
-  }
-
-  &:disabled {
-    cursor: default;
-  }
-}
-
 .change-branch-btn {
   margin-top: 4px;
   font-size: 0.875rem;
@@ -550,14 +581,6 @@ onUnmounted(() => {
   text-align: center;
   padding: 0 8px;
   line-height: 1.5;
-}
-
-.error-link {
-  display: block;
-  margin-top: 8px;
-  color: var(--tpl-blue);
-  font-weight: 600;
-  text-decoration: none;
 }
 
 .scan-error {
