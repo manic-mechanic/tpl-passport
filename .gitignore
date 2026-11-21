@@ -4,7 +4,9 @@
 .nuxt
 .nitro
 .cache
-.claude
+# Claude Code: keep local settings out, share project skills
+.claude/*
+!.claude/skills/
 dist
 
 # Node dependencies
