@@ -35,9 +35,7 @@
 
     <!-- Near Me -->
     <section v-show="activeTab === 'near-me'" class="explore-section">
-      <ExploreBranches :layout="route.query.layout === 'inline' ? 'inline' : 'stacked'"
-                       :prompt="route.query.prompt === 'row' ? 'row' : 'chip'" @select="openBranchSheet"
-      />
+      <ExploreBranches @select="openBranchSheet" />
     </section>
 
     <!-- Working Toward -->

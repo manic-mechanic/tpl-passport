@@ -1,46 +1,40 @@
 <template>
   <div class="explore-branches">
-    <div class="controls" :class="`controls-${layout}`">
-      <div class="search-wrap">
-        <IconSearch />
-        <input v-model="query" type="search" placeholder="Search branches" aria-label="Search branches"
-               class="search-input"
-        />
-      </div>
-
-      <div class="chips" role="group" aria-label="Filter branches">
-        <button v-if="showNearChip" class="chip" :class="{ 'chip-on': nearMe }" :aria-pressed="nearMe"
-                :disabled="locating" @click="toggleNearMe"
+    <div class="search-bar">
+      <IconSearch class="search-icon" />
+      <input v-model="query" type="search" placeholder="Search branches" aria-label="Search branches"
+             class="search-input"
+      />
+      <button v-if="showNearButton" class="bar-btn" :class="{ 'bar-btn-on': nearMe }" :aria-pressed="nearMe"
+              aria-label="Sort by distance" :disabled="locating" @click="toggleNearMe"
+      >
+        <span v-if="locating" class="bar-spinner" />
+        <svg v-else viewBox="0 0 24 24" :fill="nearMe ? 'currentColor' : 'none'" stroke="currentColor"
+             stroke-width="2" stroke-linejoin="round" aria-hidden="true"
         >
-          <span v-if="locating" class="chip-spinner" />
-          <svg v-else-if="!located" class="chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" aria-hidden="true"
+          <path d="M20 4 4 11.2l6.8 2 2 6.8L20 4z" />
+        </svg>
+      </button>
+      <div v-if="hasCheckIns" ref="filterWrap" class="filter-wrap">
+        <button class="bar-btn" :class="{ 'bar-btn-on': visitFilter !== 'all' }" aria-label="Filter by visits"
+                :aria-expanded="filterOpen" aria-haspopup="menu" @click="filterOpen = !filterOpen"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+               aria-hidden="true"
           >
-            <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+            <path d="M4 6h16M7 12h10M10 18h4" />
           </svg>
-          Near me
         </button>
-        <template v-if="hasCheckIns">
-          <button class="chip" :class="{ 'chip-on': showVisited }" :aria-pressed="showVisited"
-                  @click="showVisited = !showVisited"
+        <div v-if="filterOpen" class="filter-menu" role="menu">
+          <button v-for="opt in FILTERS" :key="opt.id" class="filter-option" role="menuitemradio"
+                  :aria-checked="visitFilter === opt.id" @click="visitFilter = opt.id; filterOpen = false"
           >
-            Visited
+            {{ opt.label }}
+            <IconCheckMark v-if="visitFilter === opt.id" class="filter-check" />
           </button>
-          <button class="chip" :class="{ 'chip-on': showUnvisited }" :aria-pressed="showUnvisited"
-                  @click="showUnvisited = !showUnvisited"
-          >
-            Not visited
-          </button>
-        </template>
+        </div>
       </div>
     </div>
-
-    <button v-if="prompt === 'row' && showNearChip && !located && !nearMe" class="near-row" :disabled="locating"
-            @click="toggleNearMe"
-    >
-      Sort by distance from you
-      <IconChevron class="near-row-chevron" />
-    </button>
 
     <ul class="branch-list">
       <li v-for="item in visible" :key="item.branch.BranchCode">
@@ -62,32 +56,41 @@ import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { cachedPosition, getPosition, locationAccess, type Coords, type LocationAccess } from '~/lib/geolocation'
 import IconSearch from '~/components/icons/IconSearch.vue'
-import IconChevron from '~/components/icons/IconChevron.vue'
+import IconCheckMark from '~/components/icons/IconCheckMark.vue'
 
-// Mockup switches, removed once a layout is chosen.
-withDefaults(defineProps<{ layout?: 'inline' | 'stacked', prompt?: 'chip' | 'row' }>(), {
-  layout: 'stacked',
-  prompt: 'chip',
-})
 defineEmits<{ select: [branch: Branch] }>()
 
 const PAGE = 5
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
+type VisitFilter = 'all' | 'visited' | 'unvisited'
+const FILTERS: { id: VisitFilter, label: string }[] = [
+  { id: 'all', label: 'All branches' },
+  { id: 'visited', label: 'Visited' },
+  { id: 'unvisited', label: 'Not visited' },
+]
+
 const query = ref('')
-const showVisited = ref(false)
-const showUnvisited = ref(false)
+const visitFilter = ref<VisitFilter>('all')
+const filterOpen = ref(false)
+const filterWrap = ref<HTMLElement | null>(null)
 const nearMe = ref(false)
 const limit = ref(PAGE)
 
 const access = ref<LocationAccess>('unknown')
 const position = ref<Coords | null>(null)
 const locating = ref(false)
-const located = computed(() => position.value !== null)
 
 const hasCheckIns = computed(() => passport.checkIns.length > 0)
-const showNearChip = computed(() => access.value !== 'denied' && access.value !== 'unavailable')
+const showNearButton = computed(() => access.value !== 'denied' && access.value !== 'unavailable')
+
+// Close the filter menu on a tap anywhere else.
+function onDocPointer(e: PointerEvent) {
+  if (filterOpen.value && !filterWrap.value?.contains(e.target as Node)) filterOpen.value = false
+}
+onMounted(() => document.addEventListener('pointerdown', onDocPointer))
+onUnmounted(() => document.removeEventListener('pointerdown', onDocPointer))
 
 onMounted(async () => {
   access.value = await locationAccess()
@@ -116,8 +119,8 @@ async function toggleNearMe() {
   limit.value = PAGE
 }
 
-watch([nearMe, showVisited, showUnvisited], ([near, visited, unvisited]) => {
-  $posthog?.capture('explore_filter_changed', { near_me: near, visited, not_visited: unvisited })
+watch([nearMe, visitFilter], ([near, filter]) => {
+  $posthog?.capture('explore_filter_changed', { near_me: near, filter })
 })
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -128,9 +131,8 @@ watch(query, (val) => {
 
 const filtered = computed(() => {
   const q = query.value.toLowerCase().trim()
-  // Both visit chips on is the same as both off: every branch.
-  const onlyVisited = showVisited.value && !showUnvisited.value
-  const onlyUnvisited = showUnvisited.value && !showVisited.value
+  const onlyVisited = visitFilter.value === 'visited'
+  const onlyUnvisited = visitFilter.value === 'unvisited'
   return sortedBranches.filter((b) => {
     if (q && !(b.BranchName.toLowerCase().includes(q) || b.NBHDName?.toLowerCase().includes(q)
       || b.Address?.toLowerCase().includes(q))) return false
@@ -163,109 +165,71 @@ const moreCount = computed(() =>
 </script>
 
 <style scoped>
-.controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.controls-stacked {
-  flex-direction: column;
-}
-
-.controls-inline {
-  align-items: center;
-
-  & .search-wrap {
-    flex: 1;
-    min-width: 0;
-  }
-
-  & .chips {
-    margin: 0;
-    padding: 0;
-  }
-}
-
-.search-wrap {
+.search-bar {
   position: relative;
-}
-
-.search-wrap svg {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--color-text-muted);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  padding: 10px 12px 10px 36px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-right: 4px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  font-size: 1rem;
-  font-family: var(--font-body);
   background: var(--color-surface);
-  color: var(--color-text);
-  outline: none;
   transition: border-color 0.15s;
 
-  &:focus {
+  &:focus-within {
     border-color: var(--tpl-blue);
   }
 }
 
-.chips {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 6px;
-  margin: 0 -18px;
-  padding: 2px 18px;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+.search-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-left: 12px;
+  color: var(--color-text-muted);
 }
 
-.chip {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-pill);
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  font-size: 0.875rem;
-  font-weight: 600;
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px;
+  border: none;
+  background: none;
+  font-size: 1rem;
   font-family: var(--font-body);
+  color: var(--color-text);
+  outline: none;
+}
+
+.bar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
   color: var(--color-text-muted);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  transition: background-color 0.15s, color 0.15s;
 
-  &.chip-on {
-    background: var(--tpl-navy);
-    border-color: var(--tpl-navy);
-    color: #fff;
+  & svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &.bar-btn-on {
+    color: var(--tpl-blue);
+    background: color-mix(in srgb, var(--tpl-blue) 10%, transparent);
   }
 }
 
-.chip-icon {
+.bar-spinner {
   width: 14px;
   height: 14px;
-  color: var(--tpl-blue);
-}
-
-.chip-spinner {
-  width: 12px;
-  height: 12px;
   border: 2px solid var(--color-border);
   border-top-color: var(--tpl-blue);
   border-radius: 50%;
@@ -278,27 +242,47 @@ const moreCount = computed(() =>
   }
 }
 
-.near-row {
+.filter-wrap {
+  position: relative;
+}
+
+.filter-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: -4px;
+  z-index: 10;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+}
+
+.filter-option {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin-bottom: 12px;
-  padding: 12px 14px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
   background: none;
-  border: 1px dashed color-mix(in srgb, var(--tpl-blue) 40%, transparent);
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
   font-family: var(--font-body);
-  color: var(--tpl-blue);
+  color: var(--color-text);
+  text-align: left;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    background: var(--color-paper);
+  }
 }
 
-.near-row-chevron {
+.filter-check {
   width: 16px;
   height: 16px;
+  color: var(--tpl-blue);
 }
 
 .branch-list {
