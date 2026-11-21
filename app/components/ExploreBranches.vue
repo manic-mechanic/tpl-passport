@@ -180,11 +180,16 @@ const moreCount = computed(() =>
 
 <style scoped>
 .search-bar {
+  /* The buttons sit 4px in from the top, right and bottom edges, with
+     corners 4px tighter than the bar's, so the curves stay parallel. */
+  --bar-inset: 4px;
+
   position: relative;
   display: flex;
   align-items: center;
+  height: 44px;
   margin-bottom: 16px;
-  padding-right: 4px;
+  padding-right: var(--bar-inset);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
@@ -205,8 +210,9 @@ const moreCount = computed(() =>
 
 .search-input {
   flex: 1;
+  align-self: stretch;
   min-width: 0;
-  padding: 10px 8px;
+  padding: 0 8px;
   border: none;
   background: none;
   font-size: 1rem;
@@ -219,11 +225,11 @@ const moreCount = computed(() =>
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: calc(var(--radius) - var(--bar-inset));
   background: none;
   color: var(--color-text-muted);
   cursor: pointer;
