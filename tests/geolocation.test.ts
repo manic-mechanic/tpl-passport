@@ -50,6 +50,12 @@ describe('geolocation cache', () => {
     expect(geo.getCurrentPosition).toHaveBeenCalledTimes(1)
   })
 
+  it('does not share a request between different timeouts', async () => {
+    await Promise.all([freshPosition({ timeout: 5000 }), freshPosition({ timeout: 20000 })])
+    expect(geo.getCurrentPosition).toHaveBeenCalledTimes(2)
+    expect(geo.getCurrentPosition.mock.calls.map(c => c[2])).toEqual([{ timeout: 5000 }, { timeout: 20000 }])
+  })
+
   it('asks again once the cached position is too old', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     await getPosition()

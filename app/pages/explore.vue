@@ -41,12 +41,12 @@
       </div>
 
       <div v-else-if="geoStatus === 'idle'" class="geo-ask">
-        <p class="geo-ask-text">See the branches closest to you.</p>
+        <p class="geo-ask-text">{{ geoTimedOut ? "Couldn't get your location in time." : 'See the branches closest to you.' }}</p>
         <button class="geo-ask-btn" @click="locate">
           <svg class="geo-ask-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
           </svg>
-          Use my location
+          {{ geoTimedOut ? 'Try again' : 'Use my location' }}
         </button>
       </div>
 
@@ -115,6 +115,7 @@ const userLng = ref<number | null>(null)
 // idle: waiting for a tap on "Use my location", so opening Explore doesn't
 // bring up the location prompt by itself.
 const geoStatus = ref<'idle' | 'loading' | 'ready' | 'denied'>('loading')
+const geoTimedOut = ref(false)
 const geoDeniedMessage = computed(() =>
   navigator?.geolocation
     ? 'Allow location access to see branches near you.'
@@ -123,13 +124,21 @@ const geoDeniedMessage = computed(() =>
 
 async function locate() {
   geoStatus.value = 'loading'
+  geoTimedOut.value = false
   try {
-    const pos = await getPosition()
+    const pos = await getPosition({ timeout: 20000 })
     userLat.value = pos.latitude
     userLng.value = pos.longitude
     geoStatus.value = 'ready'
-  } catch {
-    geoStatus.value = 'denied'
+  } catch (err) {
+    // A slow GPS fix isn't a refusal: offer a retry instead of the
+    // "allow location access" message.
+    if ((err as GeolocationPositionError | undefined)?.code === 3) {
+      geoTimedOut.value = true
+      geoStatus.value = 'idle'
+    } else {
+      geoStatus.value = 'denied'
+    }
   }
 }
 

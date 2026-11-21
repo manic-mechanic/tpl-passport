@@ -7,6 +7,7 @@
       <template v-else-if="prefilled">Checking in at</template>
       <template v-else-if="detecting">Detecting your location…</template>
       <template v-else-if="autoDetected && selectedBranch && !showPicker">Nearest branch</template>
+      <template v-else-if="locateFailed">Couldn't get your location. Select your branch</template>
       <template v-else-if="!selectedBranch || showPicker">Select the branch you're visiting</template>
       <template v-else>Checking in at</template>
     </p>
@@ -122,17 +123,18 @@ const { $posthog } = useNuxtApp()
 const route = useRoute()
 const passport = usePassportStore()
 
-const FALLBACK_BRANCH = 'TRL'
-
 const selectedCode = ref(typeof route.query.branch === 'string' ? route.query.branch : '')
 const prefilled = !!route.query.branch  // static — query string doesn't change after load
 const scanned = ref(false)
 const autoDetected = ref(false)
 const detecting = ref(false)
 const showPicker = ref(false)
+const locateFailed = ref(false)
 
 async function detectNearest() {
   detecting.value = true
+  locateFailed.value = false
+  const wasPicking = showPicker.value
   showPicker.value = false
   try {
     const pos = await getPosition({ timeout: 5000 })
@@ -140,11 +142,13 @@ async function detectNearest() {
       .map(b => ({ ...b, distKm: haversineKm(pos.latitude, pos.longitude, b.Lat, b.Long) }))
       .sort((a, b) => a.distKm - b.distKm)[0]
     selectedCode.value = nearest!.BranchCode  // sortedBranches is never empty
+    autoDetected.value = true
   } catch {
-    selectedCode.value = FALLBACK_BRANCH
+    // Don't guess a branch and call it "nearest": leave the picker up.
+    locateFailed.value = true
+    showPicker.value = wasPicking
   } finally {
     detecting.value = false
-    autoDetected.value = true
   }
 }
 
@@ -153,7 +157,10 @@ async function detectNearest() {
 // the branch picker shows, and "Use my location" asks on tap.
 onMounted(async () => {
   if (prefilled) return
-  if (cachedPosition() || await locationPermission() === 'granted') void detectNearest()
+  const canLocate = !!cachedPosition() || await locationPermission() === 'granted'
+  // The picker is usable while the permission check runs; keep a branch the
+  // user picked or scanned in the meantime.
+  if (canLocate && !selectedCode.value && !scanned.value) void detectNearest()
 })
 
 const selectedBranch = computed(() =>

@@ -5,7 +5,7 @@
 // back. To keep prompts down:
 //   - a recent position is reused for NEARBY_MAX_AGE_MS, across pages and
 //     reloads within the session, instead of asking again;
-//   - two calls made at the same time share one request;
+//   - calls made at the same time with the same timeout share one request;
 //   - pages call locationPermission() first and only ask on page load when
 //     access is already granted; otherwise they wait for a tap.
 
@@ -26,7 +26,8 @@ interface Cached extends Coords {
 }
 
 let memory: Cached | null = null
-let inFlight: Promise<Coords> | null = null
+// Keyed by timeout, so a caller never waits longer than it asked to.
+const inFlight = new Map<number, Promise<Coords>>()
 
 function readStored(): Cached | null {
   try {
@@ -62,10 +63,12 @@ export function cachedPosition(maxAgeMs = NEARBY_MAX_AGE_MS, now = Date.now()): 
 // Rejects with the browser's GeolocationPositionError (code 1 denied,
 // 3 timeout), or with an Error when geolocation is not available.
 export function freshPosition(opts: { timeout?: number } = {}): Promise<Coords> {
-  if (inFlight) return inFlight
+  const timeout = opts.timeout ?? 10000
+  const pending = inFlight.get(timeout)
+  if (pending) return pending
   const geo = globalThis.navigator?.geolocation
   if (!geo) return Promise.reject(new Error('Geolocation not available'))
-  inFlight = new Promise<Coords>((resolve, reject) => {
+  const request = new Promise<Coords>((resolve, reject) => {
     geo.getCurrentPosition(
       (pos) => {
         const c = { latitude: pos.coords.latitude, longitude: pos.coords.longitude }
@@ -73,10 +76,11 @@ export function freshPosition(opts: { timeout?: number } = {}): Promise<Coords> 
         resolve(c)
       },
       reject,
-      { timeout: opts.timeout ?? 10000 },
+      { timeout },
     )
-  }).finally(() => { inFlight = null })
-  return inFlight
+  }).finally(() => { inFlight.delete(timeout) })
+  inFlight.set(timeout, request)
+  return request
 }
 
 // A cached position when one is recent enough, else a fresh one.
@@ -101,6 +105,6 @@ export async function locationPermission(): Promise<LocationPermission> {
 // Test-only: forget the cached position.
 export function _resetLocationCache() {
   memory = null
-  inFlight = null
+  inFlight.clear()
   try { globalThis.sessionStorage?.removeItem(STORAGE_KEY) } catch { /* ignore */ }
 }
