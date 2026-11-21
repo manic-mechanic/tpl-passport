@@ -35,24 +35,9 @@
 
     <!-- Near Me -->
     <section v-show="activeTab === 'near-me'" class="explore-section">
-      <div v-if="geoStatus === 'loading'" class="geo-state">
-        <span class="geo-spinner" />
-        <span>Finding branches near you…</span>
-      </div>
-
-      <div v-else-if="geoStatus === 'ready'" class="near-me-list">
-        <BranchCard v-for="item in nearMeBranches" :key="item.branch.BranchCode" :branch="item.branch"
-                    :distance="item.distanceLabel" as-button @select="openBranchSheet"
-        />
-      </div>
-
-      <!-- No location: every branch, A–Z. Explore never prompts for location
-           on its own; that waits for the Explore redesign. -->
-      <div v-else class="near-me-list">
-        <BranchCard v-for="branch in sortedBranches" :key="branch.BranchCode" :branch="branch"
-                    as-button @select="openBranchSheet"
-        />
-      </div>
+      <ExploreBranches :layout="route.query.layout === 'inline' ? 'inline' : 'stacked'"
+                       :prompt="route.query.prompt === 'row' ? 'row' : 'chip'" @select="openBranchSheet"
+      />
     </section>
 
     <!-- Working Toward -->
