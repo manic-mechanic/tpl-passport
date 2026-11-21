@@ -5,36 +5,47 @@
       <input v-model="query" type="search" placeholder="Search branches" aria-label="Search branches"
              class="search-input"
       />
-      <button v-if="showNearButton" class="bar-btn" :class="{ 'bar-btn-on': nearMe }" :aria-pressed="nearMe"
-              aria-label="Sort by distance" :disabled="locating" @click="toggleNearMe"
-      >
-        <span v-if="locating" class="bar-spinner" />
-        <svg v-else viewBox="0 0 24 24" :fill="nearMe ? 'currentColor' : 'none'" stroke="currentColor"
-             stroke-width="2" stroke-linejoin="round" aria-hidden="true"
+      <div class="bar-actions">
+        <button v-if="showNearButton" class="bar-btn" :class="{ 'bar-btn-on': nearMe }" :aria-pressed="nearMe"
+                aria-label="Sort by distance" :disabled="locating" @click="toggleNearMe"
         >
-          <path d="M20 4 4 11.2l6.8 2 2 6.8L20 4z" />
-        </svg>
-      </button>
-      <div v-if="hasCheckIns" ref="filterWrap" class="filter-wrap">
-        <button class="bar-btn" :class="{ 'bar-btn-on': visitFilter !== 'all' }" aria-label="Filter by visits"
-                :aria-expanded="filterOpen" aria-haspopup="menu" @click="filterOpen = !filterOpen"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-               aria-hidden="true"
+          <span v-if="locating" class="bar-spinner" />
+          <svg v-else viewBox="0 0 24 24" :fill="nearMe ? 'currentColor' : 'none'" stroke="currentColor"
+               stroke-width="2" stroke-linejoin="round" aria-hidden="true"
           >
-            <path d="M4 6h16M7 12h10M10 18h4" />
+            <path d="M20 4 4 11.2l6.8 2 2 6.8L20 4z" />
           </svg>
         </button>
-        <div v-if="filterOpen" class="filter-menu" role="menu">
-          <button v-for="opt in FILTERS" :key="opt.id" class="filter-option" role="menuitemradio"
-                  :aria-checked="visitFilter === opt.id" @click="visitFilter = opt.id; filterOpen = false"
+        <div v-if="hasCheckIns" ref="filterWrap" class="filter-wrap">
+          <button class="bar-btn" :class="{ 'bar-btn-on': visitFilter !== 'all' }" aria-label="Filter by visits"
+                  :aria-expanded="filterOpen" aria-haspopup="menu" @click="filterOpen = !filterOpen"
           >
-            {{ opt.label }}
-            <IconCheckMark v-if="visitFilter === opt.id" class="filter-check" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                 aria-hidden="true"
+            >
+              <path d="M4 6h16M7 12h10M10 18h4" />
+            </svg>
           </button>
+          <div v-if="filterOpen" class="filter-menu" role="menu">
+            <button v-for="opt in FILTERS" :key="opt.id" class="filter-option" role="menuitemradio"
+                    :aria-checked="visitFilter === opt.id" @click="visitFilter = opt.id; filterOpen = false"
+            >
+              {{ opt.label }}
+              <IconCheckMark v-if="visitFilter === opt.id" class="filter-check" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
+
+    <button v-if="showLocatePrompt" class="locate-link" :disabled="locating" @click="toggleNearMe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"
+           aria-hidden="true"
+      >
+        <path d="M20 4 4 11.2l6.8 2 2 6.8L20 4z" />
+      </svg>
+      {{ locating ? 'Finding your location…' : 'Sort by distance from you' }}
+    </button>
 
     <ul class="branch-list">
       <li v-for="item in visible" :key="item.branch.BranchCode">
@@ -84,6 +95,9 @@ const locating = ref(false)
 
 const hasCheckIns = computed(() => passport.checkIns.length > 0)
 const showNearButton = computed(() => access.value !== 'denied' && access.value !== 'unavailable')
+// Until this device has shared its location, a quiet line under search
+// offers it. Gone once we have a position.
+const showLocatePrompt = computed(() => access.value === 'unknown' && !position.value && !nearMe.value)
 
 // Close the filter menu on a tap anywhere else.
 function onDocPointer(e: PointerEvent) {
@@ -208,7 +222,7 @@ const moreCount = computed(() =>
   width: 36px;
   height: 36px;
   padding: 0;
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: none;
   color: var(--color-text-muted);
@@ -223,7 +237,39 @@ const moreCount = computed(() =>
 
   &.bar-btn-on {
     color: var(--tpl-blue);
-    background: color-mix(in srgb, var(--tpl-blue) 10%, transparent);
+    background: color-mix(in srgb, var(--tpl-blue) 8%, transparent);
+    border-color: color-mix(in srgb, var(--tpl-blue) 22%, transparent);
+  }
+}
+
+.bar-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.locate-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: -6px 0 14px;
+  padding: 4px 2px;
+  background: none;
+  border: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--tpl-blue);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  & svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:disabled {
+    color: var(--color-text-muted);
+    cursor: default;
   }
 }
 
