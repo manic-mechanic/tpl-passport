@@ -40,6 +40,16 @@
         <span>Finding branches near you…</span>
       </div>
 
+      <div v-else-if="geoStatus === 'idle'" class="geo-ask">
+        <p class="geo-ask-text">See the branches closest to you.</p>
+        <button class="geo-ask-btn" @click="locate">
+          <svg class="geo-ask-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+          Use my location
+        </button>
+      </div>
+
       <p v-else-if="geoStatus === 'denied'" class="geo-denied">{{ geoDeniedMessage }}</p>
 
       <div v-else-if="geoStatus === 'ready'" class="near-me-list">
@@ -81,6 +91,7 @@ import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import IconSearch from '~/components/icons/IconSearch.vue'
+import { cachedPosition, getPosition, locationPermission } from '~/lib/geolocation'
 
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
@@ -101,26 +112,39 @@ watch(activeTab, (tab) => {
 // ── Near Me ──────────────────────────────────────────────────────────
 const userLat = ref<number | null>(null)
 const userLng = ref<number | null>(null)
-const geoStatus = ref<'loading' | 'ready' | 'denied'>('loading')
+// idle: waiting for a tap on "Use my location", so opening Explore doesn't
+// bring up the location prompt by itself.
+const geoStatus = ref<'idle' | 'loading' | 'ready' | 'denied'>('loading')
 const geoDeniedMessage = computed(() =>
   navigator?.geolocation
     ? 'Allow location access to see branches near you.'
     : 'Geolocation not available on this device.'
 )
 
-onMounted(() => {
+async function locate() {
+  geoStatus.value = 'loading'
+  try {
+    const pos = await getPosition()
+    userLat.value = pos.latitude
+    userLng.value = pos.longitude
+    geoStatus.value = 'ready'
+  } catch {
+    geoStatus.value = 'denied'
+  }
+}
+
+// Load Near Me straight away only when it won't prompt: a recent position is
+// cached, or access is already granted.
+onMounted(async () => {
   if (!navigator?.geolocation) {
     geoStatus.value = 'denied'
     return
   }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      userLat.value = pos.coords.latitude
-      userLng.value = pos.coords.longitude
-      geoStatus.value = 'ready'
-    },
-    () => { geoStatus.value = 'denied' }
-  )
+  if (cachedPosition()) return void locate()
+  const permission = await locationPermission()
+  if (permission === 'granted') void locate()
+  else if (permission === 'denied') geoStatus.value = 'denied'
+  else geoStatus.value = 'idle'
 })
 
 const nearMeBranches = computed(() => {
@@ -254,6 +278,40 @@ function openBranchSheet(branch: Branch) {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   padding: 14px 0;
+}
+
+.geo-ask {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.geo-ask-text {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.geo-ask-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--tpl-blue);
+  cursor: pointer;
+  padding: 2px 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.geo-ask-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .geo-denied {

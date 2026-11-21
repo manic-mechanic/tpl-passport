@@ -110,12 +110,13 @@ import { shouldSkipLocationCheck } from '~/lib/locationCheck'
 import { FEATURES } from '~/composables/useFeatureFlags'
 import IconVisited from '~/components/icons/IconVisited.vue'
 import IconQR from '~/components/icons/IconQR.vue'
+import { cachedPosition, freshPosition, getPosition, locationPermission } from '~/lib/geolocation'
 
-function getPosition() {
-  return new Promise<GeolocationPosition>((resolve, reject) =>
-    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
-  )
-}
+// The geofence check accepts a cached position only when it is this recent
+// and already inside the fence. A cached "too far" always gets a fresh fix,
+// so a stale position never blocks someone who has just arrived.
+const FENCE_MAX_AGE_MS = 2 * 60 * 1000
+const FENCE_KM = 0.1
 
 const { $posthog } = useNuxtApp()
 const route = useRoute()
@@ -134,9 +135,9 @@ async function detectNearest() {
   detecting.value = true
   showPicker.value = false
   try {
-    const pos = await getPosition()
+    const pos = await getPosition({ timeout: 5000 })
     const nearest = sortedBranches
-      .map(b => ({ ...b, distKm: haversineKm(pos.coords.latitude, pos.coords.longitude, b.Lat, b.Long) }))
+      .map(b => ({ ...b, distKm: haversineKm(pos.latitude, pos.longitude, b.Lat, b.Long) }))
       .sort((a, b) => a.distKm - b.distKm)[0]
     selectedCode.value = nearest!.BranchCode  // sortedBranches is never empty
   } catch {
@@ -147,8 +148,12 @@ async function detectNearest() {
   }
 }
 
-onMounted(() => {
-  if (!prefilled) void detectNearest()
+// On load, find the nearest branch only when it won't bring up the location
+// prompt: a recent position is cached, or access is already granted. Otherwise
+// the branch picker shows, and "Use my location" asks on tap.
+onMounted(async () => {
+  if (prefilled) return
+  if (cachedPosition() || await locationPermission() === 'granted') void detectNearest()
 })
 
 const selectedBranch = computed(() =>
@@ -204,12 +209,14 @@ async function doCheckIn() {
   if (!skipLocationCheck) {
     locationStatus.value = 'checking'
     try {
-      const pos = await getPosition()
-      const km = haversineKm(
-        pos.coords.latitude, pos.coords.longitude,
-        selectedBranch.value.Lat, selectedBranch.value.Long
-      )
-      if (km > 0.1) {
+      const { Lat, Long } = selectedBranch.value
+      const recent = cachedPosition(FENCE_MAX_AGE_MS)
+      let km = recent ? haversineKm(recent.latitude, recent.longitude, Lat, Long) : Infinity
+      if (km > FENCE_KM) {
+        const pos = await freshPosition({ timeout: 5000 })
+        km = haversineKm(pos.latitude, pos.longitude, Lat, Long)
+      }
+      if (km > FENCE_KM) {
         locationStatus.value = 'too-far'
         locationDistKm.value = km
         return
