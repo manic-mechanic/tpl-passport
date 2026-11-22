@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { physicalBranches, sortedBranches, DISTRICT_ORDER, getDistrictColor, haversineKm, branchesByAlphaPage } from '../app/composables/useRegion'
+import { physicalBranches, sortedBranches, DISTRICT_ORDER, getDistrictColor, haversineKm, branchesByAlphaPage, formatDist } from '../app/composables/useRegion'
 
 describe('physicalBranches', () => {
   it('contains exactly 100 branches', () => {
@@ -77,5 +77,14 @@ describe('branchesByAlphaPage', () => {
   it('places branches based on BranchCode initials', () => {
     const clPage = branchesByAlphaPage.find(page => page.branches.some(b => b.BranchCode === 'CL'))
     expect(clPage?.label).toBe('A – C')
+  })
+})
+
+describe('formatDist', () => {
+  it('switches to km once the rounded distance reaches 1000 m', () => {
+    expect(formatDist(0.35)).toBe('350 m')
+    expect(formatDist(0.9994)).toBe('999 m')
+    expect(formatDist(0.9996)).toBe('1.0 km')
+    expect(formatDist(1.24)).toBe('1.2 km')
   })
 })

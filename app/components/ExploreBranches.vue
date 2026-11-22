@@ -47,6 +47,8 @@
       {{ locating ? 'Finding your location…' : 'Sort by distance from you' }}
     </button>
 
+    <p v-if="locateFailed" class="locate-failed" role="status">Couldn't get your location. Try again.</p>
+
     <ul class="branch-list">
       <li v-for="item in visible" :key="item.branch.BranchCode">
         <BranchCard :branch="item.branch" :distance="item.distance" as-button @select="$emit('select', $event)" />
@@ -92,6 +94,9 @@ const limit = ref(PAGE)
 const access = ref<LocationAccess>('unknown')
 const position = ref<Coords | null>(null)
 const locating = ref(false)
+const locateFailed = ref(false)
+// Set while the list turns on Near Me by itself, so analytics only count taps.
+let autoNearMe = false
 
 const hasCheckIns = computed(() => passport.checkIns.length > 0)
 const showNearButton = computed(() => access.value !== 'denied' && access.value !== 'unavailable')
@@ -106,10 +111,25 @@ function onDocPointer(e: PointerEvent) {
 onMounted(() => document.addEventListener('pointerdown', onDocPointer))
 onUnmounted(() => document.removeEventListener('pointerdown', onDocPointer))
 
+// Open sorted by distance when we already have a position, or can get one
+// without a prompt (access granted). Never prompts on load.
 onMounted(async () => {
   access.value = await locationAccess()
   const cached = cachedPosition()
-  if (cached) position.value = cached
+  if (cached) {
+    position.value = cached
+  } else if (access.value === 'granted') {
+    try {
+      position.value = await getPosition({ timeout: 20000 })
+    } catch {
+      return  // stay A–Z; the locate button still works
+    }
+  }
+  // Don't override a choice the user made while we waited.
+  if (position.value && !nearMe.value && !locating.value) {
+    autoNearMe = true
+    nearMe.value = true
+  }
 })
 
 async function toggleNearMe() {
@@ -117,6 +137,7 @@ async function toggleNearMe() {
     nearMe.value = false
     return
   }
+  locateFailed.value = false
   if (!position.value) {
     locating.value = true
     try {
@@ -124,6 +145,7 @@ async function toggleNearMe() {
       access.value = 'granted'
     } catch (err) {
       if ((err as GeolocationPositionError | undefined)?.code === 1) access.value = 'denied'
+      else locateFailed.value = true
       return
     } finally {
       locating.value = false
@@ -134,6 +156,10 @@ async function toggleNearMe() {
 }
 
 watch([nearMe, visitFilter], ([near, filter]) => {
+  if (autoNearMe) {
+    autoNearMe = false
+    return
+  }
   $posthog?.capture('explore_filter_changed', { near_me: near, filter })
 })
 
@@ -251,6 +277,12 @@ const moreCount = computed(() =>
 .bar-actions {
   display: flex;
   gap: 2px;
+}
+
+.locate-failed {
+  margin: -6px 0 14px;
+  font-size: 0.8125rem;
+  color: var(--color-error);
 }
 
 .locate-link {

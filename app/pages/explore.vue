@@ -67,13 +67,10 @@
 
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
-import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { cachedPosition, getPosition, locationAccess } from '~/lib/geolocation'
 import IconSearch from '~/components/icons/IconSearch.vue'
 
 const { $posthog } = useNuxtApp()
-const passport = usePassportStore()
 
 // ── Tab state ────────────────────────────────────────────────────────
 const route = useRoute()
@@ -88,46 +85,22 @@ watch(activeTab, (tab) => {
   $posthog?.capture('explore_tab_changed', { tab })
 })
 
-// ── Near Me ──────────────────────────────────────────────────────────
+// ── Location for Events ───────────────────────────────────────────────
+// Events sort by distance when we can get a position without a prompt: a
+// recent one is cached, or this device has allowed location (see
+// locationAccess). ExploreBranches handles Near Me itself.
 const userLat = ref<number | null>(null)
 const userLng = ref<number | null>(null)
-const geoStatus = ref<'loading' | 'ready' | 'none'>('none')
 
-// Near Me loads only when it won't bring up a prompt by itself: a recent
-// position is cached, or this device has allowed location (see
-// locationAccess). Otherwise the tab lists every branch.
 onMounted(async () => {
   if (!cachedPosition() && await locationAccess() !== 'granted') return
-  geoStatus.value = 'loading'
   try {
     const pos = await getPosition({ timeout: 20000 })
     userLat.value = pos.latitude
     userLng.value = pos.longitude
-    geoStatus.value = 'ready'
   } catch {
-    geoStatus.value = 'none'
+    // no position: events keep their default order
   }
-})
-
-const nearMeBranches = computed(() => {
-  const lat = userLat.value
-  const lng = userLng.value
-  if (geoStatus.value !== 'ready' || lat === null || lng === null) return []
-  const withDistance = physicalBranches
-    .map(b => ({
-      branch: b,
-      km: haversineKm(lat, lng, b.Lat, b.Long),
-      visited: passport.hasVisited(b.BranchCode),
-    }))
-    .sort((a, b) => a.km - b.km)
-
-  const nearest = withDistance[0]
-  if (!nearest) return []
-  const unvisited = withDistance
-    .filter(item => !item.visited && item.branch.BranchCode !== nearest.branch.BranchCode)
-    .slice(0, 4)
-
-  return [nearest, ...unvisited].map(item => ({ ...item, distanceLabel: formatDist(item.km) }))
 })
 
 // ── Sheets ────────────────────────────────────────────────────────────
@@ -231,39 +204,6 @@ function openBranchSheet(branch: Branch) {
   }
 }
 
-
-/* ── Near Me ─────────────────────────────────────────────────────── */
-.geo-state {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  padding: 14px 0;
-}
-
-.geo-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--tpl-blue);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.near-me-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 
 /* ── Browse CTA — fixed above nav ───────────────────────────────── */
 .browse-cta {

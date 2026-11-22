@@ -75,10 +75,9 @@ if (!tour) {
 
 const route = tourStops(tour, branchesByCode)
 const stops = route.flatMap(s => (s.branch ? [s.branch] : []))
-const visited = computed(() => stops.filter(b => passport.hasVisited(b.BranchCode)).length)
-
 onMounted(() => {
-  $posthog?.capture('tour_route_viewed', { route_id: tour.id, visited: visited.value })
+  const visited = stops.filter(b => passport.hasVisited(b.BranchCode)).length
+  $posthog?.capture('tour_route_viewed', { route_id: tour.id, visited })
 })
 
 const sheetOpen = ref(false)

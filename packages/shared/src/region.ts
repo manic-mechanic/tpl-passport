@@ -62,7 +62,9 @@ export function haversineKm(
 }
 
 export function formatDist(km: number): string {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+  // Round first, then pick the unit, so 0.9996 km reads "1.0 km", not "1000 m".
+  const meters = Math.round(km * 1000)
+  return meters < 1000 ? `${meters} m` : `${km.toFixed(1)} km`
 }
 
 export function filterBranches(query: string, branches: Branch[] = sortedBranches): Branch[] {

@@ -179,9 +179,11 @@ export function stopLabel(stop: string | undefined): string {
 // "Walk 350 m", "Walk 1.2 km": the walking in a leg with no rides.
 export function walkingLabel(leg: TourSegment[]): string {
   const meters = leg.reduce((sum, s) => sum + (s.mode === 'WALK' ? s.meters ?? 0 : 0), 0)
-  return meters >= 1000
+  // Round first, then pick the unit, so 996 m reads "1 km", not "1000 m".
+  const rounded = Math.max(10, Math.round(meters / 10) * 10)
+  return rounded >= 1000
     ? `Walk ${(Math.round(meters / 100) / 10).toString()} km`
-    : `Walk ${Math.max(10, Math.round(meters / 10) * 10)} m`
+    : `Walk ${rounded} m`
 }
 
 export interface TourStop<B> {
