@@ -167,7 +167,7 @@ describe('stop labels', () => {
   })
 
   it('labels a walking-only leg by distance', () => {
-    expect(walkingLabel([{ mode: 'WALK', minutes: 5, meters: 347 }])).toBe('Walking 350 m')
-    expect(walkingLabel([{ mode: 'WALK', minutes: 15, meters: 1234 }])).toBe('Walking 1.2 km')
+    expect(walkingLabel([{ mode: 'WALK', minutes: 5, meters: 347 }])).toBe('Walk 350 m')
+    expect(walkingLabel([{ mode: 'WALK', minutes: 15, meters: 1234 }])).toBe('Walk 1.2 km')
   })
 })

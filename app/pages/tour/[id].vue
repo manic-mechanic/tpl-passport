@@ -2,7 +2,7 @@
   <main class="page-content" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }">
     <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore?tab=routes&mode=transit" />
 
-    <ol class="stops">
+    <ol ref="stopsList" class="stops">
       <!-- Walk the route's own order so each leg stays between the two
            branches it describes, even if one were missing from the branch list -->
       <template v-for="(stop, i) in route" :key="stop.code">
@@ -15,23 +15,26 @@
             :aria-label="`From ${stop.branch.BranchName} to ${stop.next.BranchName}`"
         >
           <span class="leg-rail" aria-hidden="true" />
-          <div class="leg-body">
+          <div class="leg-body" :data-leg="i">
             <p v-for="(ride, r) in legRides(stop.leg)" :key="r" class="leg-ride">
               <TtcRouteBadge :mode="ride.mode" :line="ride.line ?? ''" :line-name="ride.lineName" />
               <span class="leg-stop">
                 {{ stopLabel(ride.fromStop) }}<template v-if="r === legRides(stop.leg).length - 1">
                   → {{ stopLabel(ride.toStop) }}</template>
               </span>
+              <TourDirectionsLink v-if="linkInRow(i, r, legRides(stop.leg).length)" class="leg-link-inline"
+                                  :href="transitDirectionsUrl(stop.branch, stop.next)" :route-id="tour.id" :leg="i + 1"
+              />
             </p>
             <p v-if="!legRides(stop.leg).length" class="leg-ride">
               <span class="leg-stop">{{ walkingLabel(stop.leg) }}</span>
+              <TourDirectionsLink v-if="linkInRow(i, 0, 1)" class="leg-link-inline"
+                                  :href="transitDirectionsUrl(stop.branch, stop.next)" :route-id="tour.id" :leg="i + 1"
+              />
             </p>
-            <a :href="transitDirectionsUrl(stop.branch, stop.next)" target="_blank" rel="noopener" class="leg-link"
-               aria-label="Directions (opens another site)"
-               @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
-            >
-              Directions<IconExternal class="external-icon" aria-hidden="true" />
-            </a>
+            <TourDirectionsLink v-if="(linkSpot[i] ?? 'own') === 'own'" class="leg-link-own"
+                                :href="transitDirectionsUrl(stop.branch, stop.next)" :route-id="tour.id" :leg="i + 1"
+            />
           </div>
         </li>
       </template>
@@ -45,7 +48,6 @@
 
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
-import IconExternal from '~/components/icons/IconExternal.vue'
 import { branchesByCode } from '~/composables/useRegion'
 import { usePassportStore } from '~/stores/passport'
 import {
@@ -81,6 +83,57 @@ onMounted(() => {
 const sheetOpen = ref(false)
 const activeBranch = ref<Branch | null>(null)
 const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
+
+// Where each leg's Directions link goes: at the end of the first ride's line
+// if it fits there, else at the end of the last ride's line, else on a line
+// of its own under the rides.
+type LinkSpot = 'first' | 'last' | 'own'
+const stopsList = ref<HTMLElement | null>(null)
+const linkSpot = ref<Record<number, LinkSpot>>({})
+
+function linkInRow(leg: number, row: number, rows: number): boolean {
+  const spot = linkSpot.value[leg]
+  return (spot === 'first' && row === 0) || (spot === 'last' && row === rows - 1)
+}
+
+let measureCtx: CanvasRenderingContext2D | null = null
+function textWidth(el: HTMLElement): number {
+  measureCtx ??= document.createElement('canvas').getContext('2d')
+  if (!measureCtx) return Infinity
+  const cs = getComputedStyle(el)
+  measureCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
+  return measureCtx.measureText((el.textContent ?? '').replace(/\s+/g, ' ').trim()).width
+}
+
+const ROW_GAP = 6 // between badge, stop and link, as .leg-ride's gap
+function placeLinks() {
+  const list = stopsList.value
+  const anyLink = list?.querySelector<HTMLElement>('.leg-link')
+  if (!list || !anyLink) return
+  const linkWidth = anyLink.getBoundingClientRect().width
+  const fits = (row: HTMLElement | undefined, width: number) => {
+    const stop = row?.querySelector<HTMLElement>('.leg-stop')
+    if (!row || !stop) return false
+    const badge = row.querySelector<HTMLElement>('.ttc-route')
+    const need = (badge ? badge.getBoundingClientRect().width + ROW_GAP : 0) + textWidth(stop) + ROW_GAP * 2 + linkWidth
+    return need <= width
+  }
+  const next: Record<number, LinkSpot> = {}
+  list.querySelectorAll<HTMLElement>('.leg-body').forEach((body) => {
+    const rows = [...body.querySelectorAll<HTMLElement>('.leg-ride')]
+    next[Number(body.dataset.leg)] = fits(rows[0], body.clientWidth)
+      ? 'first'
+      : fits(rows.at(-1), body.clientWidth) ? 'last' : 'own'
+  })
+  linkSpot.value = next
+}
+
+onMounted(() => {
+  void nextTick(placeLinks)
+  void document.fonts?.ready.then(placeLinks)
+  window.addEventListener('resize', placeLinks)
+})
+onUnmounted(() => window.removeEventListener('resize', placeLinks))
 
 function openSheet(branch: Branch) {
   activeBranch.value = branch
@@ -136,10 +189,11 @@ function openSheet(branch: Branch) {
   color: var(--color-text-mid);
 }
 
-.leg-link {
+.leg-link-inline {
+  margin-left: auto;
+}
+
+.leg-link-own {
   align-self: flex-start;
-  margin-top: 2px;
-  font-size: 0.75rem;
-  font-weight: 600;
 }
 </style>

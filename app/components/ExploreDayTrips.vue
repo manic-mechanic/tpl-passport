@@ -29,14 +29,14 @@
       <p class="route-name">{{ tripRoute.name }}</p>
       <p class="route-desc">{{ tripRoute.description }}</p>
       <div class="route-stamps">
-        <div v-for="b in tripRoute.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
+        <div v-for="b in tripRoute.branchObjects.slice(0, STAMPS_SHOWN)" :key="b.BranchCode" class="route-stamp-item">
           <div class="route-stamp-box" :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
             <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
           </div>
-          <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
+          <span class="route-stamp-label" :class="{ 'route-stamp-label-word': !/[ /]/.test(stampLabel(b)) }">{{ stampLabel(b) }}</span>
         </div>
-        <div v-if="tripRoute.branchObjects.length > 4" class="route-overflow">
-          +{{ tripRoute.branchObjects.length - 4 }}
+        <div v-if="tripRoute.branchObjects.length > STAMPS_SHOWN" class="route-overflow">
+          +{{ tripRoute.branchObjects.length - STAMPS_SHOWN }}
         </div>
       </div>
     </NuxtLink>
@@ -70,20 +70,18 @@
       <div class="route-meta-row tour-title-row">
         <span class="tour-num" role="img" :aria-label="`Tour ${tour.id}`">{{ tour.id }}</span>
         <p class="route-name">{{ tour.title }}</p>
-      </div>
-      <div class="route-meta-row tour-hours">
-        <span class="route-info">{{ formatHours(tour.travelMin) }}</span>
         <IconChevron class="route-chevron" />
       </div>
+      <p class="route-info tour-hours">{{ formatHours(tour.travelMin) }}</p>
       <div class="route-stamps">
-        <div v-for="b in tour.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
+        <div v-for="b in tour.branchObjects.slice(0, STAMPS_SHOWN)" :key="b.BranchCode" class="route-stamp-item">
           <div class="route-stamp-box" :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
             <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
           </div>
-          <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
+          <span class="route-stamp-label" :class="{ 'route-stamp-label-word': !/[ /]/.test(stampLabel(b)) }">{{ stampLabel(b) }}</span>
         </div>
-        <div v-if="tour.branchObjects.length > 4" class="route-overflow">
-          +{{ tour.branchObjects.length - 4 }}
+        <div v-if="tour.branchObjects.length > STAMPS_SHOWN" class="route-overflow">
+          +{{ tour.branchObjects.length - STAMPS_SHOWN }}
         </div>
       </div>
     </NuxtLink>
@@ -135,6 +133,21 @@ const routesWithProgress = computed(() =>
       return { ...r, branchObjects, visited, total: branchObjects.length, mapsUrl: buildMapsUrl(branchObjects) }
     })
 )
+
+// A route card previews its first three stamps; with "+n" for the rest,
+// that leaves each name column room for most two-word names.
+const STAMPS_SHOWN = 3
+
+// Branch names under the stamps on a route card: a few long names get their everyday short form, and a slash
+// may break ("Pape/Danforth").
+const STAMP_LABELS: Record<string, string> = {
+  CL: 'North York',
+  OV: 'Oakwood Village',
+  TRL: 'Reference Library',
+}
+function stampLabel(b: Branch): string {
+  return (STAMP_LABELS[b.BranchCode] ?? b.BranchName.replace(/ Branch$/, '')).replace(/\//g, '/\u200B')
+}
 
 const BIKE_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>'
 const CAR_ICON = '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>'
@@ -320,7 +333,9 @@ const tourWithProgress = computed(() =>
 }
 
 .route-stamp-item {
-  flex: 1;
+  /* Equal columns: a long name mustn't widen its own and squeeze the rest */
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -341,10 +356,18 @@ const tourWithProgress = computed(() =>
 }
 
 .route-stamp-label {
+  max-width: 100%;
   font-size: 0.625rem;
   color: var(--color-text-muted);
   text-align: center;
   line-height: 1.3;
+}
+
+/* A one-word name too long for its column is cut short (Ethennonnhawahstihnen’) */
+.route-stamp-label-word {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .route-overflow {
@@ -423,16 +446,27 @@ const tourWithProgress = computed(() =>
 /* The number circle sits on the title's first line; the time goes under it */
 .tour-title-row {
   align-items: flex-start;
-
-  gap: 6px;
+  gap: 4px;
 
   & .tour-num {
     margin-top: 1px;
+    margin-right: 2px;
+  }
+
+  /* the chevron sits partly in the card's padding, leaving the title room */
+  & .route-chevron {
+    margin-top: 3px;
+    margin-right: -6px;
   }
 }
 
 .tour-hours {
   margin: -4px 0 0 24px;
+}
+
+/* "+6": a stamp-sized tile, so the name columns get the rest */
+.route-stamps .route-overflow {
+  flex: 0 0 40px;
 }
 
 .tour-num {
