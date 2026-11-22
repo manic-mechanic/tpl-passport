@@ -16,7 +16,7 @@
     </template>
     <p v-else class="empty-state">
       We couldn't find that branch.<br>
-      <NuxtLink to="/branches">Browse all branches</NuxtLink>
+      <NuxtLink to="/explore/branches">Browse all branches</NuxtLink>
     </p>
   </main>
 </template>
@@ -45,7 +45,6 @@ function resolveNav(path: string) {
   if (path.startsWith('/history'))   return { to: path,        label: 'History'   }
   if (path.startsWith('/passport'))  return { to: path,        label: 'Passport'  }
   if (path.startsWith('/explore'))   return { to: path,        label: 'Explore'   }
-  if (path.startsWith('/branches'))  return { to: '/branches', label: 'Branches'  }
   if (path.startsWith('/check-in'))  return { to: '/check-in', label: 'Check in'  }
   if (path.startsWith('/day-trips')) return { to: path,        label: 'Day trips' }
   return { to: '/explore', label: 'Explore' }
