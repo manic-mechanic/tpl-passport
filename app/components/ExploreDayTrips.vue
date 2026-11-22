@@ -64,7 +64,7 @@
     </section>
 
     <NuxtLink v-for="tour in tourWithProgress" :key="tour.id" :to="`/tour/${tour.id}`"
-              class="route-card tour-card" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }"
+              class="route-card" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }"
               @click="$posthog?.capture('tour_route_tapped', { route_id: tour.id, route_name: tour.title, visited: tour.visited, total: tour.total })"
     >
       <div class="route-meta-row">
@@ -411,10 +411,6 @@ const tourWithProgress = computed(() =>
   align-self: flex-start;
   font-size: 0.8125rem;
   font-weight: 600;
-}
-
-.tour-card {
-  border-left: 4px solid var(--route-color);
 }
 
 .tour-chip {

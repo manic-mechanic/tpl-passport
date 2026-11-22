@@ -118,7 +118,6 @@ function openSheet(branch: Branch) {
   margin-bottom: 20px;
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
-  border-left: 4px solid var(--route-color);
   border-radius: var(--radius);
 }
 
