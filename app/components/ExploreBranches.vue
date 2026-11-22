@@ -67,7 +67,7 @@
 import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
-import { matchesBranchSearch } from '~/lib/branchSearch'
+import { branchSearchMatcher } from '~/lib/branchSearch'
 import { cachedPosition, getPosition, locationAccess, type Coords, type LocationAccess } from '~/lib/geolocation'
 import IconSearch from '~/components/icons/IconSearch.vue'
 import IconCheckMark from '~/components/icons/IconCheckMark.vue'
@@ -174,8 +174,9 @@ const filtered = computed(() => {
   const q = query.value.toLowerCase().trim()
   const onlyVisited = visitFilter.value === 'visited'
   const onlyUnvisited = visitFilter.value === 'unvisited'
+  const matches = branchSearchMatcher(q)
   return sortedBranches.filter((b) => {
-    if (q && !matchesBranchSearch(b, q)) return false
+    if (!matches(b)) return false
     const visited = passport.hasVisited(b.BranchCode)
     if (onlyVisited && !visited) return false
     if (onlyUnvisited && visited) return false

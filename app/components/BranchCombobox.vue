@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { branchSearchMatcher } from '~/lib/branchSearch'
 import { sortedBranches } from '~/composables/useRegion'
 
 defineOptions({ inheritAttrs: false })
@@ -66,7 +67,7 @@ const displayValue = computed(() => open.value ? query.value : selectedLabel.val
 
 const filtered = computed(() => {
   const q = query.value.toLowerCase()
-  return q ? sortedBranches.filter(b => b.BranchName.toLowerCase().includes(q)) : sortedBranches
+  return q ? sortedBranches.filter(branchSearchMatcher(q, { withAddress: false })) : sortedBranches
 })
 
 function onFocus() {
