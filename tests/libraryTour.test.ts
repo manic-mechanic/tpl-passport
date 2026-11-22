@@ -8,11 +8,13 @@ import {
   legRides,
   routeProgress,
   shortStopName,
+  stopLabel,
   tourRoutes,
   textOnColor,
   tourCompletedOn,
   tourStops,
   transitDirectionsUrl,
+  walkingLabel,
 } from '../app/lib/libraryTour'
 
 describe('Your Library Tour data', () => {
@@ -140,5 +142,32 @@ describe('tourStops', () => {
     expect(stops[3]!.branch).toBeUndefined()
     expect(stops[2]!.next).toBeUndefined() // no leg into the missing stop
     expect(stops[5]).toMatchObject({ code: route.branches[5], next: { code: route.branches[6] }, leg: route.legs[5] })
+  })
+})
+
+describe('stop labels', () => {
+  it('keeps the cross street for bus and streetcar stops', () => {
+    expect(stopLabel('Roncesvalles Ave at High Park Blvd')).toBe('High Park Blvd')
+    expect(stopLabel('Humberwood Blvd at Pinecone Dr North Side')).toBe('Pinecone Dr')
+  })
+
+  it('uses the landmark after a dash', () => {
+    expect(stopLabel('Bay St at Cumberland St - Bay Station')).toBe('Bay Station')
+    expect(stopLabel('Dundas St West at Bathurst St - Toronto Western Hospital')).toBe('Toronto Western Hospital')
+  })
+
+  it('drops the bus bay at a station', () => {
+    expect(stopLabel('Renforth Station at Bus Bay 6')).toBe('Renforth Station')
+  })
+
+  it('drops "Station" only where the name is not also a street or branch', () => {
+    expect(stopLabel('Humber College Station')).toBe('Humber College')
+    expect(stopLabel('Albion Station')).toBe('Albion Station')
+    expect(stopLabel('Union Station')).toBe('Union Station')
+  })
+
+  it('labels a walking-only leg by distance', () => {
+    expect(walkingLabel([{ mode: 'WALK', minutes: 5, meters: 347 }])).toBe('Walking 350 m')
+    expect(walkingLabel([{ mode: 'WALK', minutes: 15, meters: 1234 }])).toBe('Walking 1.2 km')
   })
 })

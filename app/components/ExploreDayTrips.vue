@@ -51,8 +51,8 @@
       </button>
       <template v-if="!tourCardCollapsed">
         <p class="tour-text">
-          Travel Toronto by TTC, one library to the next, on tours designed by UofT's School of Cities.
-          Visit every branch by {{ TOUR_END_SHORT }} to get your passport postmarked.
+          TTC routes between library branches, planned by the School of Cities at U of T.
+          Check in at every branch by {{ TOUR_END_SHORT }} for a postmark on your passport.
         </p>
         <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener" class="tour-learn"
            aria-label="Learn more at UofT School of Cities (opens another site)"
@@ -70,9 +70,11 @@
       <div class="route-meta-row tour-title-row">
         <span class="tour-num" role="img" :aria-label="`Tour ${tour.id}`">{{ tour.id }}</span>
         <p class="route-name">{{ tour.title }}</p>
+      </div>
+      <div class="route-meta-row tour-hours">
+        <span class="route-info">{{ formatHours(tour.travelMin) }}</span>
         <IconChevron class="route-chevron" />
       </div>
-      <p class="route-info tour-hours">{{ formatHours(tour.travelMin) }}</p>
       <div class="route-stamps">
         <div v-for="b in tour.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
           <div class="route-stamp-box" :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
@@ -422,17 +424,15 @@ const tourWithProgress = computed(() =>
 .tour-title-row {
   align-items: flex-start;
 
-  & .tour-num {
-    margin-top: -1px;
-  }
+  gap: 6px;
 
-  & .route-chevron {
-    margin-top: 3px;
+  & .tour-num {
+    margin-top: 1px;
   }
 }
 
 .tour-hours {
-  margin: -4px 0 0 30px;
+  margin: -4px 0 0 24px;
 }
 
 .tour-num {
@@ -440,12 +440,12 @@ const tourWithProgress = computed(() =>
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--route-color);
   color: var(--route-on);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }

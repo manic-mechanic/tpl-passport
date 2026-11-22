@@ -16,23 +16,22 @@
         >
           <span class="leg-rail" aria-hidden="true" />
           <div class="leg-body">
-            <template v-for="(row, r) in legRows(stop.leg)" :key="r">
-              <p class="leg-ride">
-                <TtcRouteBadge v-if="row" :mode="row.mode" :line="row.line ?? ''" :line-name="row.lineName" />
-                <span class="leg-dest">
-                  <span v-if="row" class="leg-stop">
-                    {{ shortStopName(row.fromStop) }}<template v-if="r === legRows(stop.leg).length - 1">
-                      → {{ shortStopName(row.toStop) }}</template>
-                  </span>
-                  <a v-if="r === legRows(stop.leg).length - 1" :href="transitDirectionsUrl(stop.branch, stop.next)"
-                     target="_blank" rel="noopener" class="leg-link" aria-label="Directions (opens another site)"
-                     @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
-                  >
-                    Directions<IconExternal class="external-icon" aria-hidden="true" />
-                  </a>
-                </span>
-              </p>
-            </template>
+            <p v-for="(ride, r) in legRides(stop.leg)" :key="r" class="leg-ride">
+              <TtcRouteBadge :mode="ride.mode" :line="ride.line ?? ''" :line-name="ride.lineName" />
+              <span class="leg-stop">
+                {{ stopLabel(ride.fromStop) }}<template v-if="r === legRides(stop.leg).length - 1">
+                  → {{ stopLabel(ride.toStop) }}</template>
+              </span>
+            </p>
+            <p v-if="!legRides(stop.leg).length" class="leg-ride">
+              <span class="leg-stop">{{ walkingLabel(stop.leg) }}</span>
+            </p>
+            <a :href="transitDirectionsUrl(stop.branch, stop.next)" target="_blank" rel="noopener" class="leg-link"
+               aria-label="Directions (opens another site)"
+               @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
+            >
+              Directions<IconExternal class="external-icon" aria-hidden="true" />
+            </a>
           </div>
         </li>
       </template>
@@ -52,11 +51,11 @@ import { usePassportStore } from '~/stores/passport'
 import {
   getTourRoute,
   legRides,
-  shortStopName,
+  stopLabel,
   textOnColor,
   tourStops,
   transitDirectionsUrl,
-  type TourSegment,
+  walkingLabel,
 } from '~/lib/libraryTour'
 
 // One Your Library Tour route: its ten branches in order, with the TTC
@@ -73,12 +72,6 @@ if (!tour) {
 
 const route = tourStops(tour, branchesByCode)
 const stops = route.flatMap(s => (s.branch ? [s.branch] : []))
-// One row per ride, or a single walking row (null) when the leg has no rides.
-function legRows(leg: TourSegment[]): (TourSegment | null)[] {
-  const rides = legRides(leg)
-  return rides.length ? rides : [null]
-}
-
 const visited = computed(() => stops.filter(b => passport.hasVisited(b.BranchCode)).length)
 
 onMounted(() => {
@@ -139,23 +132,13 @@ function openSheet(branch: Branch) {
   line-height: 18px;
 }
 
-/* Directions stays at the right end of the last ride; a long stop name
-   wraps beside it instead of pushing it onto its own line. */
-.leg-dest {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: start;
-  column-gap: 10px;
-}
-
 .leg-stop {
   color: var(--color-text-mid);
 }
 
 .leg-link {
-  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
   font-size: 0.75rem;
   font-weight: 600;
 }

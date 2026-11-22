@@ -152,6 +152,38 @@ export function shortStopName(stop: string | undefined): string {
   return stop.replace(/\s+(North|South|East|West) Side\b/, '').trim()
 }
 
+// TTC stations whose name works without "Station": nothing else in the city
+// (a street, a branch) goes by the same name. Albion, Kipling, Wynford and
+// the rest keep "Station" so they aren't mistaken for a road or a branch.
+const BARE_STATIONS = new Set([
+  'Bessarion', 'Emery', 'Humber College', 'Norfinch Oakdale', 'North York Centre',
+  'Rowntree Mills', 'Sheppard-Yonge', 'Tobermory',
+])
+
+// A short name for a stop, for the ride list:
+//   "Roncesvalles Ave at High Park Blvd"          -> "High Park Blvd"
+//   "Bay St at Cumberland St - Bay Station"       -> "Bay Station"
+//   "Renforth Station at Bus Bay 6"               -> "Renforth Station"
+//   "Humber College Station"                      -> "Humber College"
+export function stopLabel(stop: string | undefined): string {
+  let name = shortStopName(stop)
+  if (!name) return ''
+  const dash = name.lastIndexOf(' - ')
+  if (dash !== -1) name = name.slice(dash + 3)
+  else if (/ Station at /.test(name)) name = name.replace(/ at .*$/, '')
+  else if (name.includes(' at ')) name = name.slice(name.indexOf(' at ') + 4)
+  const bare = name.replace(/ Station$/, '')
+  return BARE_STATIONS.has(bare) ? bare : name
+}
+
+// "Walking 350 m", "Walking 1.2 km": the walking in a leg with no rides.
+export function walkingLabel(leg: TourSegment[]): string {
+  const meters = leg.reduce((sum, s) => sum + (s.mode === 'WALK' ? s.meters ?? 0 : 0), 0)
+  return meters >= 1000
+    ? `Walking ${(Math.round(meters / 100) / 10).toString()} km`
+    : `Walking ${Math.max(10, Math.round(meters / 10) * 10)} m`
+}
+
 export interface TourStop<B> {
   code: string
   branch: B | undefined
