@@ -58,6 +58,12 @@
         <p v-else-if="locationStatus === 'denied'" class="location-error">
           Check-in needs your location. {{ settingsHint }}
         </p>
+        <p v-else-if="locationStatus === 'failed'" class="location-error">
+          Couldn't get your location. Try again.
+        </p>
+        <p v-else-if="switchedFrom" class="location-note">
+          You're nearer {{ selectedBranch.BranchName }} than {{ switchedFrom }}. Check in here instead.
+        </p>
       </div>
     </template>
 
@@ -130,13 +136,21 @@ const { $posthog } = useNuxtApp()
 const route = useRoute()
 const passport = usePassportStore()
 
-const selectedCode = ref(typeof route.query.branch === 'string' ? route.query.branch : '')
-const prefilled = !!route.query.branch  // static — query string doesn't change after load
+// ?branch= from a branch page. An unknown code (a stale link, a renamed
+// branch) is ignored, so the page falls back to finding the nearest branch.
+const queryCode = typeof route.query.branch === 'string' ? route.query.branch : ''
+const prefilled = sortedBranches.some(b => b.BranchCode === queryCode)  // static — query string doesn't change after load
+const selectedCode = ref(prefilled ? queryCode : '')
 const scanned = ref(false)
 const detecting = ref(false)
 const locateFailed = ref(false)
 const access = ref<LocationAccess>('unknown')
-const nearestKm = ref<number | null>(null)
+// Distance to the nearest branch, and which branch it was measured to, so
+// it never shows under a different branch.
+const nearest = ref<{ code: string, km: number } | null>(null)
+// Name of the branch the check-in moved away from, when a fresh fix showed
+// another branch is nearer.
+const switchedFrom = ref('')
 const branchSheetOpen = ref(false)
 const branchSheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
 
@@ -163,33 +177,39 @@ const selectedBranch = computed(() =>
 )
 
 const nearestDistance = computed(() =>
-  nearestKm.value !== null && !prefilled && !scanned.value ? formatDist(nearestKm.value) : ''
+  nearest.value && nearest.value.code === selectedCode.value ? formatDist(nearest.value.km) : ''
 )
+
+function nearestTo(lat: number, lng: number) {
+  return sortedBranches
+    .map(b => ({ code: b.BranchCode, km: haversineKm(lat, lng, b.Lat, b.Long) }))
+    .sort((a, b) => a.km - b.km)[0]!  // sortedBranches is never empty
+}
 
 async function detectNearest() {
   if (detecting.value) return
   detecting.value = true
   locateFailed.value = false
+  let outcome: 'found' | 'denied' | 'failed' = 'failed'
   try {
     const pos = await getPosition({ timeout: 10000 })
-    const nearest = sortedBranches
-      .map(b => ({ code: b.BranchCode, km: haversineKm(pos.latitude, pos.longitude, b.Lat, b.Long) }))
-      .sort((a, b) => a.km - b.km)[0]!  // sortedBranches is never empty
+    const found = nearestTo(pos.latitude, pos.longitude)
     // Keep a branch picked or scanned while we were waiting.
-    if (!selectedCode.value) {
-      selectedCode.value = nearest.code
-      nearestKm.value = nearest.km
-    }
+    if (!selectedCode.value) selectedCode.value = found.code
+    nearest.value = found
     access.value = 'granted'
+    outcome = 'found'
   } catch (err) {
-    if ((err as GeolocationPositionError | undefined)?.code === 1) access.value = 'denied'
-    else locateFailed.value = true
+    if ((err as GeolocationPositionError | undefined)?.code === 1) {
+      access.value = 'denied'
+      outcome = 'denied'
+    } else {
+      locateFailed.value = true
+    }
   } finally {
     detecting.value = false
   }
-  $posthog?.capture('checkin_locate', {
-    outcome: selectedCode.value ? 'found' : access.value === 'denied' ? 'denied' : 'failed',
-  })
+  $posthog?.capture('checkin_locate', { outcome })
 }
 
 // On load, find the nearest branch straight away when that won't surprise
@@ -211,7 +231,7 @@ const checkInCompleted = ref(false)
 
 const result = ref<CheckInResult | null>(null)
 
-const locationStatus = ref<'idle' | 'checking' | 'too-far' | 'timeout' | 'denied'>('idle')
+const locationStatus = ref<'idle' | 'checking' | 'too-far' | 'timeout' | 'denied' | 'failed'>('idle')
 const locationDistKm = ref<number | null>(null)
 
 const isCheckingLocation = computed(() => locationStatus.value === 'checking')
@@ -223,6 +243,7 @@ const locationDistFormatted = computed(() =>
 watch(selectedCode, () => {
   locationStatus.value = 'idle'
   locationDistKm.value = null
+  switchedFrom.value = ''
 })
 
 async function doCheckIn() {
@@ -240,12 +261,24 @@ async function doCheckIn() {
   if (!skipLocationCheck.value) {
     locationStatus.value = 'checking'
     try {
-      const { Lat, Long } = selectedBranch.value
+      const { Lat, Long, BranchCode, BranchName } = selectedBranch.value
       const recent = cachedPosition(FENCE_MAX_AGE_MS)
       let km = recent ? haversineKm(recent.latitude, recent.longitude, Lat, Long) : Infinity
       if (km > FENCE_KM) {
         const pos = await freshPosition({ timeout: 5000 })
         km = haversineKm(pos.latitude, pos.longitude, Lat, Long)
+        // The branch was picked from an older position, a poor fix or a
+        // wrong scan. If the fresh fix is inside another branch's fence,
+        // switch to that branch so the user can check in where they are.
+        const found = nearestTo(pos.latitude, pos.longitude)
+        if (km > FENCE_KM && found.code !== BranchCode && found.km <= FENCE_KM) {
+          selectedCode.value = found.code
+          nearest.value = found
+          await nextTick()  // let the selection watcher reset the status first
+          switchedFrom.value = BranchName
+          locationStatus.value = 'idle'
+          return
+        }
       }
       if (km > FENCE_KM) {
         locationStatus.value = 'too-far'
@@ -253,12 +286,19 @@ async function doCheckIn() {
         return
       }
     } catch (err) {
-      locationStatus.value = (err as GeolocationPositionError | undefined)?.code === 3 ? 'timeout' : 'denied'
+      const code = (err as GeolocationPositionError | undefined)?.code
+      if (code === 1) {
+        locationStatus.value = 'denied'
+        access.value = 'denied'
+      } else {
+        locationStatus.value = code === 3 ? 'timeout' : 'failed'
+      }
       return
     }
   }
 
   locationStatus.value = 'idle'
+  switchedFrom.value = ''
   // Read the selection again after the location check, as the code always has.
   const branch = selectedBranch.value
   if (!branch) return
@@ -578,6 +618,14 @@ onUnmounted(() => {
 .location-error {
   font-size: 0.875rem;
   color: var(--color-error);
+  text-align: center;
+  padding: 0 8px;
+  line-height: 1.5;
+}
+
+.location-note {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
   text-align: center;
   padding: 0 8px;
   line-height: 1.5;
