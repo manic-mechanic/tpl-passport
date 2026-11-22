@@ -30,7 +30,7 @@
       <p class="route-desc">{{ tripRoute.description }}</p>
       <div class="route-stamps">
         <div v-for="b in tripRoute.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
-          <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
+          <div class="route-stamp-box" :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
             <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
           </div>
           <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
@@ -75,7 +75,7 @@
       <p class="route-name">{{ tour.title }}</p>
       <div class="route-stamps">
         <div v-for="b in tour.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
-          <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
+          <div class="route-stamp-box" :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
             <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
           </div>
           <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
@@ -322,6 +322,14 @@ const tourWithProgress = computed(() =>
   flex-direction: column;
   align-items: center;
   gap: 4px;
+}
+
+/* Stamps come in different shapes; a fixed-height box keeps every
+   branch name under them on the same line. */
+.route-stamp-box {
+  display: flex;
+  align-items: center;
+  height: 40px;
 }
 
 .route-stamp-ghost {
