@@ -100,9 +100,6 @@
     <BranchDetail v-if="selectedBranch" :branch="selectedBranch" source="checkin" />
   </BaseSheet>
 
-  <!-- ── Check-in success sheet ───── -->
-  <CheckInSuccessSheet v-model:result="result" />
-
   <!-- ── QR Scanner overlay ────────── -->
   <QrScannerOverlay
     v-if="FEATURES.qrCheckIn"
@@ -113,10 +110,10 @@
 </template>
 
 <script setup lang="ts">
-import type { CheckInResult } from '~/components/CheckInSuccessSheet.vue'
 import { usePassportStore } from '~/stores/passport'
 import { sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { shouldSkipLocationCheck } from '~/lib/locationCheck'
+import { visitPath } from '~/lib/visitPhoto'
 import { FEATURES } from '~/composables/useFeatureFlags'
 import IconVisited from '~/components/icons/IconVisited.vue'
 import IconQR from '~/components/icons/IconQR.vue'
@@ -229,8 +226,6 @@ const noteText = ref('')
 const checkInAttempted = ref(false)
 const checkInCompleted = ref(false)
 
-const result = ref<CheckInResult | null>(null)
-
 const locationStatus = ref<'idle' | 'checking' | 'too-far' | 'timeout' | 'denied' | 'failed'>('idle')
 const locationDistKm = ref<number | null>(null)
 
@@ -314,13 +309,9 @@ async function doCheckIn() {
       total_visits: passport.checkIns.length,
     })
     checkInCompleted.value = true
-    result.value = {
-      timestamp,
-      branchCode: branch.BranchCode,
-      branchName: branch.BranchName,
-      region: branch.District ?? '',
-      wardNo: branch.WardNo,
-    }
+    // The visit's own page is the confirmation. checkedIn (kept in history
+    // state, so it survives a reload) shows the "Stamp collected!" extras.
+    await navigateTo({ path: visitPath(timestamp), state: { checkedIn: true } })
   }
 }
 
@@ -507,7 +498,6 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
-/* Photo — used in success sheet */
 .stamp-area {
   display: flex;
   flex-direction: column;
