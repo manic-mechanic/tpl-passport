@@ -2,23 +2,17 @@
   <main class="page-content" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }">
     <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore?tab=routes&mode=transit">
       <template #sub>
-        {{ formatMinutes(tour.travelMin) }} · {{ tour.rides }} rides · {{ tour.walkKm }} km walking
+        {{ formatMinutes(tour.travelMin) }} · {{ tour.walkKm }} km walking
       </template>
     </PageBanner>
 
-    <section class="tour-progress-card">
-      <div class="tour-progress-head">
-        <span class="tour-chip">Route {{ tour.id }}</span>
-        <span class="tour-progress-label">
-          <template v-if="visited === stops.length">All {{ stops.length }} visited</template>
-          <template v-else>{{ visited }} of {{ stops.length }} visited</template>
-        </span>
-      </div>
-      <div class="tour-progress-bar" role="progressbar" :aria-valuenow="visited" aria-valuemin="0" :aria-valuemax="stops.length">
-        <span :style="{ width: `${Math.round(visited / stops.length * 100)}%` }" />
-      </div>
-      <p class="tour-hint">Times are by TTC from one branch to the next.</p>
-    </section>
+    <div class="tour-progress-head">
+      <span class="tour-chip">Route {{ tour.id }}</span>
+      <span class="tour-progress-label">
+        <template v-if="visited === stops.length">All {{ stops.length }} visited</template>
+        <template v-else>{{ visited }} of {{ stops.length }} visited</template>
+      </span>
+    </div>
 
     <ol class="stops">
       <!-- Walk the route's own order so each leg stays between the two
@@ -110,22 +104,12 @@ function openSheet(branch: Branch) {
   padding-bottom: calc(var(--nav-height) + 24px);
 }
 
-.tour-progress-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  margin-bottom: 20px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius);
-}
-
 .tour-progress-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-bottom: 20px;
 }
 
 .tour-chip {
@@ -143,25 +127,6 @@ function openSheet(branch: Branch) {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-text);
-}
-
-.tour-progress-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-border-soft);
-  overflow: hidden;
-
-  & span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--route-color);
-  }
-}
-
-.tour-hint {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
 }
 
 .stops {

@@ -7,15 +7,6 @@
       <IconMode class="mode-icon" v-html="mode.icon" />
       {{ mode.label }}
     </button>
-    <div class="mode-tab mode-tab--soon" role="tab" aria-selected="false" aria-disabled="true"
-         aria-label="Bike and car routes coming soon"
-    >
-      <span class="mode-icons" aria-hidden="true">
-        <IconMode class="mode-icon" v-html="BIKE_ICON" />
-        <IconMode class="mode-icon" v-html="CAR_ICON" />
-      </span>
-      Coming soon
-    </div>
   </nav>
 
   <!-- Walking routes -->
@@ -36,7 +27,7 @@
           <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
         </div>
         <div v-if="tripRoute.branchObjects.length > 4" class="route-overflow">
-          +{{ tripRoute.branchObjects.length - 4 }}<br>More
+          +{{ tripRoute.branchObjects.length - 4 }}
         </div>
       </div>
     </NuxtLink>
@@ -69,7 +60,7 @@
     >
       <div class="route-meta-row">
         <span class="tour-chip">Route {{ tour.id }}</span>
-        <span class="route-info">{{ formatMinutes(tour.travelMin) }} · {{ tour.rides }} rides</span>
+        <span class="route-info">{{ formatMinutes(tour.travelMin) }}</span>
         <IconChevron class="route-chevron" />
       </div>
       <p class="route-name">{{ tour.title }}</p>
@@ -85,7 +76,7 @@
           <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
         </div>
         <div v-if="tour.branchObjects.length > 4" class="route-overflow">
-          +{{ tour.branchObjects.length - 4 }}<br>More
+          +{{ tour.branchObjects.length - 4 }}
         </div>
       </div>
     </NuxtLink>
@@ -138,8 +129,6 @@ const routesWithProgress = computed(() =>
     })
 )
 
-const BIKE_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>'
-const CAR_ICON = '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>'
 
 // ── Your Library Tour (transit) ──────────────────────────────────────
 // The card shows while the tour is on; the routes stay after it ends.
@@ -218,16 +207,6 @@ const tourWithProgress = computed(() =>
   }
 }
 
-
-.mode-tab--soon {
-  cursor: default;
-  opacity: 0.5;
-}
-
-.mode-icons {
-  display: flex;
-  gap: 4px;
-}
 
 .mode-icon {
   width: 20px;
