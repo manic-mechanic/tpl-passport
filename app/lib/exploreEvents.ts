@@ -5,6 +5,7 @@ import { BRANCH_TIME_ZONE, haversineKm, localDayKey } from '@tpl-passport/shared
 // One record from /api/all-events (the CKAN TPL events feed).
 export interface RawEvent {
   _id: string | number
+  EventID?: string
   Title?: string
   StartDateLocal: string
   StartTime?: string
@@ -23,6 +24,7 @@ export interface ExploreEvent {
   audiences: string
   locationName: string
   branch: Branch | null
+  url: string | null
 }
 
 // Branch names as the feed writes them: no " Branch" suffix (but Long Branch
@@ -72,6 +74,7 @@ export function toExploreEvents(raw: RawEvent[], branches: Map<string, Branch>):
       audiences: r.Audiences ?? '',
       locationName,
       branch: branches.get(branchKey(locationName)) ?? null,
+      url: eventUrl(r.EventID),
     })
   }
   return out
@@ -108,30 +111,78 @@ export function distanceKm(event: ExploreEvent, lat: number | null, lng: number 
   return haversineKm(lat, lng, event.branch.Lat, event.branch.Long)
 }
 
-// By day, then start time. With a position, events within the same day go
-// nearest first in 2 km bands (so a nearby 4pm event beats one across town
-// at 2pm), by start time within a band. Online events go last.
-export function sortEvents(events: ExploreEvent[], lat: number | null, lng: number | null): ExploreEvent[] {
-  const hasPos = lat != null && lng != null
-  const band = (e: ExploreEvent) => {
-    if (!hasPos) return 0
-    const km = distanceKm(e, lat, lng)
-    return km == null ? Number.POSITIVE_INFINITY : Math.floor(km / 2)
-  }
+export type EventSort = 'time' | 'nearest'
+
+// By day, then start time; or, with 'nearest' and a position, nearest branch
+// first (online events last), by start time for the same branch.
+export function sortEvents(events: ExploreEvent[], lat: number | null, lng: number | null, sort: EventSort = 'time'): ExploreEvent[] {
+  const byDistance = sort === 'nearest' && lat != null && lng != null
   return events
-    .map(e => ({ e, band: band(e) }))
+    .map(e => ({ e, km: byDistance ? (distanceKm(e, lat, lng) ?? Number.POSITIVE_INFINITY) : 0 }))
     .sort((a, b) => {
       if (a.e.date !== b.e.date) return a.e.date < b.e.date ? -1 : 1
-      if (a.band !== b.band) return a.band - b.band
+      if (a.km !== b.km) return a.km - b.km
       if (a.e.start !== b.e.start) return a.e.start < b.e.start ? -1 : 1
       return a.e.title.localeCompare(b.e.title)
     })
     .map(x => x.e)
 }
 
-export function formatKm(km: number): string {
-  return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`
+// ── Filters ───────────────────────────────────────────────────────────
+// Ages, by the feed's audience names.
+export const AGE_GROUPS = [
+  { id: 'little', label: 'Ages 0–5', audiences: ['Preschool Children (0-5)'] },
+  { id: 'kids', label: 'Kids 6–12', audiences: ['School Age Children (6-12)'] },
+  { id: 'teens', label: 'Teens', audiences: ['Teens (13-17)'] },
+  { id: 'adults', label: 'Adults', audiences: ['Adults (18+)', 'Younger Adults (18-24)'] },
+  { id: 'seniors', label: 'Seniors', audiences: ['Older Adults'] },
+] as const
+export type AgeGroupId = typeof AGE_GROUPS[number]['id']
+
+function audienceList(audiences: string): string[] {
+  return audiences.split(',').map(a => a.trim()).filter(Boolean)
 }
+
+export function matchesAge(event: ExploreEvent, age: AgeGroupId | null): boolean {
+  if (!age) return true
+  const wanted: readonly string[] = AGE_GROUPS.find(g => g.id === age)?.audiences ?? []
+  return audienceList(event.audiences).some(a => wanted.includes(a))
+}
+
+// Who an event is for, broadly: tints the row's border.
+export type AgeTone = 'kids' | 'teens' | 'adults' | 'family' | 'none'
+export function ageTone(audiences: string): AgeTone {
+  const list = audienceList(audiences)
+  const kids = list.some(a => a.includes('Children'))
+  const teens = list.some(a => a.startsWith('Teens'))
+  const adults = list.some(a => a.includes('Adults'))
+  if (adults && (kids || teens)) return 'family'
+  if (adults) return 'adults'
+  if (teens && !kids) return 'teens'
+  if (kids || teens) return 'kids'
+  return 'none'
+}
+
+export const TIMES_OF_DAY = [
+  { id: 'morning', label: 'Morning', hint: 'before noon' },
+  { id: 'afternoon', label: 'Afternoon', hint: 'noon to 5pm' },
+  { id: 'evening', label: 'Evening', hint: 'from 5pm' },
+] as const
+export type TimeOfDay = typeof TIMES_OF_DAY[number]['id']
+
+export function timeOfDay(start: string): TimeOfDay | null {
+  const hour = Number(start.slice(11, 13))
+  if (!start || Number.isNaN(hour)) return null
+  if (hour < 12) return 'morning'
+  if (hour < 17) return 'afternoon'
+  return 'evening'
+}
+
+// The bibliocommons page for an event (the feed's EventID).
+export function eventUrl(eventId: string | undefined): string | null {
+  return eventId ? `https://tpl.bibliocommons.com/events/${encodeURIComponent(eventId)}` : null
+}
+
 
 // Calendar arithmetic on a YYYY-MM-DD key (no time zone involved).
 export function addDays(dayKey: string, days: number): string {
