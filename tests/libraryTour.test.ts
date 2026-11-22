@@ -1,19 +1,20 @@
 import { describe, it, expect } from 'vitest'
 import { physicalBranches } from '../app/composables/useRegion'
 import {
-  formatMinutes,
+  formatHours,
   getTourRoute,
   isTourOn,
   isTourReferral,
-  legMinutes,
   legRides,
   routeProgress,
   shortStopName,
+  stopLabel,
   tourRoutes,
   textOnColor,
   tourCompletedOn,
   tourStops,
   transitDirectionsUrl,
+  walkingLabel,
 } from '../app/lib/libraryTour'
 
 describe('Your Library Tour data', () => {
@@ -39,19 +40,21 @@ describe('Your Library Tour data', () => {
 })
 
 describe('tour helpers', () => {
-  it('formats minutes as hours and minutes', () => {
-    expect(formatMinutes(45)).toBe('45 min')
-    expect(formatMinutes(120)).toBe('2 h')
-    expect(formatMinutes(184)).toBe('3 h 4 min')
+  it('rounds route length to the nearest half hour', () => {
+    expect(formatHours(10)).toBe('~0.5 hours')
+    expect(formatHours(60)).toBe('~1 hour')
+    expect(formatHours(132)).toBe('~2 hours')
+    expect(formatHours(135)).toBe('~2.5 hours')
+    expect(formatHours(184)).toBe('~3 hours')
+    expect(formatHours(205)).toBe('~3.5 hours')
   })
 
-  it('totals a leg and lists only its rides', () => {
+  it('lists only the rides in a leg', () => {
     const leg = [
       { mode: 'WALK' as const, minutes: 2, meters: 150 },
       { mode: 'BUS' as const, minutes: 8, lineName: '45 Kipling' },
       { mode: 'WALK' as const, minutes: 1, meters: 80 },
     ]
-    expect(legMinutes(leg)).toBe(11)
     expect(legRides(leg).map(s => s.lineName)).toEqual(['45 Kipling'])
   })
 
@@ -139,5 +142,34 @@ describe('tourStops', () => {
     expect(stops[3]!.branch).toBeUndefined()
     expect(stops[2]!.next).toBeUndefined() // no leg into the missing stop
     expect(stops[5]).toMatchObject({ code: route.branches[5], next: { code: route.branches[6] }, leg: route.legs[5] })
+  })
+})
+
+describe('stop labels', () => {
+  it('keeps the cross street for bus and streetcar stops', () => {
+    expect(stopLabel('Roncesvalles Ave at High Park Blvd')).toBe('High Park Blvd')
+    expect(stopLabel('Humberwood Blvd at Pinecone Dr North Side')).toBe('Pinecone Dr')
+  })
+
+  it('uses the landmark after a dash', () => {
+    expect(stopLabel('Bay St at Cumberland St - Bay Station')).toBe('Bay Station')
+    expect(stopLabel('Dundas St West at Bathurst St - Toronto Western Hospital')).toBe('Toronto Western Hospital')
+  })
+
+  it('drops the bus bay at a station', () => {
+    expect(stopLabel('Renforth Station at Bus Bay 6')).toBe('Renforth Station')
+  })
+
+  it('drops "Station" only where the name is not also a street or branch', () => {
+    expect(stopLabel('Humber College Station')).toBe('Humber College')
+    expect(stopLabel('Albion Station')).toBe('Albion Station')
+    expect(stopLabel('Union Station')).toBe('Union Station')
+  })
+
+  it('labels a walking-only leg by distance', () => {
+    expect(walkingLabel([{ mode: 'WALK', minutes: 5, meters: 347 }])).toBe('Walk 350 m')
+    expect(walkingLabel([{ mode: 'WALK', minutes: 15, meters: 1234 }])).toBe('Walk 1.2 km')
+    expect(walkingLabel([{ mode: 'WALK', minutes: 12, meters: 996 }])).toBe('Walk 1 km')
+    expect(walkingLabel([{ mode: 'WALK', minutes: 12, meters: 994 }])).toBe('Walk 990 m')
   })
 })

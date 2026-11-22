@@ -100,6 +100,8 @@ const emit = defineEmits<{ back: [] }>()
   line-height: 1.15;
   color: rgba(255, 255, 255, 0.92);
   overflow-wrap: anywhere;
+  /* Even out two-line titles, so one word isn't left on a line by itself */
+  text-wrap: balance;
 }
 
 .page-banner--sub .page-banner__title {

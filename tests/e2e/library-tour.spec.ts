@@ -22,7 +22,8 @@ test('a tour route lists its ten branches with directions between them', async (
   await page.getByRole('link', { name: /Humberwood to Mimico Centennial/ }).click()
   await expect(page).toHaveURL(/\/tour\/1$/)
   await expect(page.getByRole('heading', { name: 'Humberwood to Mimico Centennial' })).toBeVisible()
-  await expect(page.getByText('0 of 10 visited')).toBeVisible()
+  // Each leg ends with where you get off: Humberwood to Albion ends at Albion Station
+  await expect(page.getByText('Humber College → Albion Station')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Directions' })).toHaveCount(9)
 })
 

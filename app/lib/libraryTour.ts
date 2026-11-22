@@ -42,24 +42,20 @@ export const LIBRARY_TOUR = tourData as {
 
 export const tourRoutes: TourRoute[] = LIBRARY_TOUR.routes
 
-// The tour's last day as shown in copy, e.g. "October 31, 2027".
-export const TOUR_END_LABEL = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`)
-  .toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
+// The tour's last day as shown in copy, e.g. "October 31, 2027", or without
+// the year ("October 31") where the year goes without saying.
+const TOUR_END = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`)
+export const TOUR_END_LABEL = TOUR_END.toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
+export const TOUR_END_SHORT = TOUR_END.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' })
 
 export function getTourRoute(id: string | number): TourRoute | undefined {
   return tourRoutes.find(r => String(r.id) === String(id))
 }
 
-// "45 min", "2 h", "3 h 4 min"
-export function formatMinutes(total: number): string {
-  const h = Math.floor(total / 60)
-  const m = Math.round(total % 60)
-  if (!h) return `${m} min`
-  return m ? `${h} h ${m} min` : `${h} h`
-}
-
-export function legMinutes(leg: TourSegment[]): number {
-  return leg.reduce((sum, s) => sum + s.minutes, 0)
+// A rough route length, to the nearest half hour: "~1 hour", "~2.5 hours".
+export function formatHours(minutes: number): string {
+  const hours = Math.max(0.5, Math.round(minutes / 30) / 2)
+  return `~${hours} ${hours === 1 ? 'hour' : 'hours'}`
 }
 
 // The rides in a leg, e.g. ["45 Kipling", "Line 2"]. Walks are left out.
@@ -154,6 +150,40 @@ export function tourCompletedOn(checkIns: Pick<CheckIn, 'branchCode' | 'timestam
 export function shortStopName(stop: string | undefined): string {
   if (!stop) return ''
   return stop.replace(/\s+(North|South|East|West) Side\b/, '').trim()
+}
+
+// TTC stations whose name works without "Station": nothing else in the city
+// (a street, a branch) goes by the same name. Albion, Kipling, Wynford and
+// the rest keep "Station" so they aren't mistaken for a road or a branch.
+const BARE_STATIONS = new Set([
+  'Bessarion', 'Emery', 'Humber College', 'Norfinch Oakdale', 'North York Centre',
+  'Rowntree Mills', 'Sheppard-Yonge', 'Tobermory',
+])
+
+// A short name for a stop, for the ride list:
+//   "Roncesvalles Ave at High Park Blvd"          -> "High Park Blvd"
+//   "Bay St at Cumberland St - Bay Station"       -> "Bay Station"
+//   "Renforth Station at Bus Bay 6"               -> "Renforth Station"
+//   "Humber College Station"                      -> "Humber College"
+export function stopLabel(stop: string | undefined): string {
+  let name = shortStopName(stop)
+  if (!name) return ''
+  const dash = name.lastIndexOf(' - ')
+  if (dash !== -1) name = name.slice(dash + 3)
+  else if (/ Station at /.test(name)) name = name.replace(/ at .*$/, '')
+  else if (name.includes(' at ')) name = name.slice(name.indexOf(' at ') + 4)
+  const bare = name.replace(/ Station$/, '')
+  return BARE_STATIONS.has(bare) ? bare : name
+}
+
+// "Walk 350 m", "Walk 1.2 km": the walking in a leg with no rides.
+export function walkingLabel(leg: TourSegment[]): string {
+  const meters = leg.reduce((sum, s) => sum + (s.mode === 'WALK' ? s.meters ?? 0 : 0), 0)
+  // Round first, then pick the unit, so 996 m reads "1 km", not "1000 m".
+  const rounded = Math.max(10, Math.round(meters / 10) * 10)
+  return rounded >= 1000
+    ? `Walk ${(Math.round(meters / 100) / 10).toString()} km`
+    : `Walk ${rounded} m`
 }
 
 export interface TourStop<B> {

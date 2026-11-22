@@ -29,14 +29,14 @@
       <p class="route-name">{{ tripRoute.name }}</p>
       <p class="route-desc">{{ tripRoute.description }}</p>
       <div class="route-stamps">
-        <div v-for="b in tripRoute.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
-          <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
+        <div v-for="b in tripRoute.branchObjects.slice(0, STAMPS_SHOWN)" :key="b.BranchCode" class="route-stamp-item">
+          <div class="route-stamp-box" :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
             <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
           </div>
-          <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
+          <span class="route-stamp-label" :class="{ 'route-stamp-label-word': !/[ /]/.test(stampLabel(b)) }">{{ stampLabel(b) }}</span>
         </div>
-        <div v-if="tripRoute.branchObjects.length > 4" class="route-overflow">
-          +{{ tripRoute.branchObjects.length - 4 }}<br>More
+        <div v-if="tripRoute.branchObjects.length > STAMPS_SHOWN" class="route-overflow">
+          +{{ tripRoute.branchObjects.length - STAMPS_SHOWN }}
         </div>
       </div>
     </NuxtLink>
@@ -51,8 +51,8 @@
       </button>
       <template v-if="!tourCardCollapsed">
         <p class="tour-text">
-          Take the TTC along routes designed by UofT's School of Cities.
-          Visit every location by {{ TOUR_END_LABEL }} to earn a special stamp.
+          TTC routes between library branches, planned by the School of Cities at U of T.
+          Check in at every branch by {{ TOUR_END_SHORT }} for a postmark on your passport.
         </p>
         <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener" class="tour-learn"
            aria-label="Learn more at UofT School of Cities (opens another site)"
@@ -64,28 +64,24 @@
     </section>
 
     <NuxtLink v-for="tour in tourWithProgress" :key="tour.id" :to="`/tour/${tour.id}`"
-              class="route-card tour-card" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }"
+              class="route-card" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }"
               @click="$posthog?.capture('tour_route_tapped', { route_id: tour.id, route_name: tour.title, visited: tour.visited, total: tour.total })"
     >
-      <div class="route-meta-row">
-        <span class="tour-chip">Route {{ tour.id }}</span>
-        <span class="route-info">{{ formatMinutes(tour.travelMin) }} · {{ tour.rides }} rides</span>
+      <div class="route-meta-row tour-title-row">
+        <span class="tour-num" role="img" :aria-label="`Tour ${tour.id}`">{{ tour.id }}</span>
+        <p class="route-name">{{ tour.title }}</p>
         <IconChevron class="route-chevron" />
       </div>
-      <p class="route-name">{{ tour.title }}</p>
-      <p class="tour-visited">
-        <template v-if="tour.visited === tour.total">All {{ tour.total }} visited</template>
-        <template v-else>{{ tour.visited }} of {{ tour.total }} visited</template>
-      </p>
+      <p class="route-info tour-hours">{{ formatHours(tour.travelMin) }}</p>
       <div class="route-stamps">
-        <div v-for="b in tour.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
-          <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
+        <div v-for="b in tour.branchObjects.slice(0, STAMPS_SHOWN)" :key="b.BranchCode" class="route-stamp-item">
+          <div class="route-stamp-box" :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
             <StampShape :branch-code="b.BranchCode" :ward-no="b.WardNo" :size="40" />
           </div>
-          <span class="route-stamp-label">{{ b.BranchName.replace(/ Branch$/, '') }}</span>
+          <span class="route-stamp-label" :class="{ 'route-stamp-label-word': !/[ /]/.test(stampLabel(b)) }">{{ stampLabel(b) }}</span>
         </div>
-        <div v-if="tour.branchObjects.length > 4" class="route-overflow">
-          +{{ tour.branchObjects.length - 4 }}<br>More
+        <div v-if="tour.branchObjects.length > STAMPS_SHOWN" class="route-overflow">
+          +{{ tour.branchObjects.length - STAMPS_SHOWN }}
         </div>
       </div>
     </NuxtLink>
@@ -97,7 +93,7 @@ import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
-import { LIBRARY_TOUR, TOUR_END_LABEL, formatMinutes, isTourOn, routeProgress, textOnColor, tourRoutes } from '~/lib/libraryTour'
+import { LIBRARY_TOUR, TOUR_END_SHORT, formatHours, isTourOn, routeProgress, textOnColor, tourRoutes } from '~/lib/libraryTour'
 import IconExternal from '~/components/icons/IconExternal.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -137,6 +133,21 @@ const routesWithProgress = computed(() =>
       return { ...r, branchObjects, visited, total: branchObjects.length, mapsUrl: buildMapsUrl(branchObjects) }
     })
 )
+
+// A route card previews its first three stamps; with "+n" for the rest,
+// that leaves each name column room for most two-word names.
+const STAMPS_SHOWN = 3
+
+// Branch names under the stamps on a route card: a few long names get their everyday short form, and a slash
+// may break ("Pape/Danforth").
+const STAMP_LABELS: Record<string, string> = {
+  CL: 'North York',
+  OV: 'Oakwood Village',
+  TRL: 'Reference Library',
+}
+function stampLabel(b: Branch): string {
+  return (STAMP_LABELS[b.BranchCode] ?? b.BranchName.replace(/ Branch$/, '')).replace(/\//g, '/\u200B')
+}
 
 const BIKE_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>'
 const CAR_ICON = '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>'
@@ -301,6 +312,7 @@ const tourWithProgress = computed(() =>
   color: var(--color-text);
   line-height: 1.25;
   margin: 0;
+  text-wrap: balance;
 }
 
 .route-desc {
@@ -321,11 +333,21 @@ const tourWithProgress = computed(() =>
 }
 
 .route-stamp-item {
-  flex: 1;
+  /* Equal columns: a long name mustn't widen its own and squeeze the rest */
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
+}
+
+/* Stamps come in different shapes; a fixed-height box keeps every
+   branch name under them on the same line. */
+.route-stamp-box {
+  display: flex;
+  align-items: center;
+  height: 40px;
 }
 
 .route-stamp-ghost {
@@ -334,10 +356,18 @@ const tourWithProgress = computed(() =>
 }
 
 .route-stamp-label {
+  max-width: 100%;
   font-size: 0.625rem;
   color: var(--color-text-muted);
   text-align: center;
   line-height: 1.3;
+}
+
+/* A one-word name too long for its column is cut short (Ethennonnhawahstihnen’) */
+.route-stamp-label-word {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .route-overflow {
@@ -413,26 +443,48 @@ const tourWithProgress = computed(() =>
   font-weight: 600;
 }
 
-.tour-card {
-  border-left: 4px solid var(--route-color);
+/* The number circle sits on the title's first line; the time goes under it */
+.tour-title-row {
+  align-items: flex-start;
+  gap: 4px;
+
+  & .tour-num {
+    margin-top: 1px;
+    margin-right: 2px;
+  }
+
+  /* the chevron sits partly in the card's padding, leaving the title room */
+  & .route-chevron {
+    margin-top: 3px;
+    margin-right: -6px;
+  }
 }
 
-.tour-chip {
+.tour-hours {
+  margin: -7px 0 0 24px;
+}
+
+/* "+n": a stamp-sized square, level with the stamps */
+.route-stamps .route-overflow {
+  flex: 0 0 40px;
+  align-self: flex-start;
+  height: 40px;
+  min-height: 0;
+}
+
+.tour-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--route-color);
+  color: var(--route-on);
   font-size: 0.6875rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--route-on);
-  background: var(--route-color);
-  border-radius: 999px;
-  padding: 2px 8px;
-  flex-shrink: 0;
-}
-
-.tour-visited {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 </style>

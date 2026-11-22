@@ -121,6 +121,9 @@ const metaLine = computed(() => {
 }
 
 .card-stamp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
   flex-shrink: 0;

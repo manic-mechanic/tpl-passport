@@ -1,53 +1,41 @@
 <template>
   <main class="page-content" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }">
-    <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore?tab=routes&mode=transit">
-      <template #sub>
-        {{ formatMinutes(tour.travelMin) }} · {{ tour.rides }} rides · {{ tour.walkKm }} km walking
-      </template>
-    </PageBanner>
+    <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore?tab=routes&mode=transit" />
 
-    <section class="tour-progress-card">
-      <div class="tour-progress-head">
-        <span class="tour-chip">Route {{ tour.id }}</span>
-        <span class="tour-progress-label">
-          <template v-if="visited === stops.length">All {{ stops.length }} visited</template>
-          <template v-else>{{ visited }} of {{ stops.length }} visited</template>
-        </span>
-      </div>
-      <div class="tour-progress-bar" role="progressbar" :aria-valuenow="visited" aria-valuemin="0" :aria-valuemax="stops.length">
-        <span :style="{ width: `${Math.round(visited / stops.length * 100)}%` }" />
-      </div>
-      <p class="tour-hint">Times are by TTC from one branch to the next.</p>
-    </section>
-
-    <ol class="stops">
+    <ol ref="stopsList" class="stops">
       <!-- Walk the route's own order so each leg stays between the two
            branches it describes, even if one were missing from the branch list -->
       <template v-for="(stop, i) in route" :key="stop.code">
         <li v-if="stop.branch" class="stop">
           <BranchCard :branch="stop.branch" :index="i + 1" as-button @select="openSheet" />
         </li>
-        <li v-if="stop.branch && stop.next && stop.leg" class="leg"
+        <!-- Each ride and where to board it; the last ride also says where the
+             leg ends -->
+        <li v-if="stop.branch && stop.next && stop.leg" class="leg" :class="{ 'leg-walk': !legRides(stop.leg).length }"
             :aria-label="`From ${stop.branch.BranchName} to ${stop.next.BranchName}`"
         >
           <span class="leg-rail" aria-hidden="true" />
-          <div class="leg-body">
-            <div class="leg-head">
-              <span class="leg-time">
-                {{ formatMinutes(legMinutes(stop.leg)) }}<template v-if="!legRides(stop.leg).length"> walk</template>
-              </span>
-              <a :href="transitDirectionsUrl(stop.branch, stop.next)" target="_blank" rel="noopener" class="leg-link"
-                 aria-label="Directions (opens another site)"
-                 @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
-              >
-                Directions<IconExternal class="external-icon" aria-hidden="true" />
-              </a>
-            </div>
-            <!-- One line per ride: vehicle, route number, and where to board -->
-            <p v-for="(ride, r) in legRides(stop.leg)" :key="r" class="leg-ride">
+          <div class="leg-body" :data-leg="i">
+            <p v-for="(ride, r) in legRides(stop.leg)" :key="r" class="leg-ride leg-step">
               <TtcRouteBadge :mode="ride.mode" :line="ride.line ?? ''" :line-name="ride.lineName" />
-              <span class="leg-stop">{{ shortStopName(ride.fromStop) }}</span>
+              <span class="leg-stop">
+                {{ stopLabel(ride.fromStop) }}<template v-if="r === legRides(stop.leg).length - 1">
+                  → {{ stopLabel(ride.toStop) }}</template>
+              </span>
+              <TourDirectionsLink v-if="linkInRow(i, r, legRides(stop.leg).length)" class="leg-link-inline"
+                                  :href="transitDirectionsUrl(stop.branch, stop.next)" :route-id="tour.id" :leg="i + 1"
+              />
             </p>
+            <p v-if="!legRides(stop.leg).length" class="leg-ride">
+              <span class="ttc-route leg-walk-icon" role="img" aria-label="Walk"><TtcModeIcon mode="WALK" /></span>
+              <span class="leg-stop">{{ walkingLabel(stop.leg) }}</span>
+              <TourDirectionsLink v-if="linkInRow(i, 0, 1)" class="leg-link-inline"
+                                  :href="transitDirectionsUrl(stop.branch, stop.next)" :route-id="tour.id" :leg="i + 1"
+              />
+            </p>
+            <TourDirectionsLink v-if="(linkSpot[i] ?? 'own') === 'own'" class="leg-link-own"
+                                :href="transitDirectionsUrl(stop.branch, stop.next)" :route-id="tour.id" :leg="i + 1"
+            />
           </div>
         </li>
       </template>
@@ -61,18 +49,16 @@
 
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
-import IconExternal from '~/components/icons/IconExternal.vue'
 import { branchesByCode } from '~/composables/useRegion'
 import { usePassportStore } from '~/stores/passport'
 import {
-  formatMinutes,
   getTourRoute,
-  legMinutes,
   legRides,
-  shortStopName,
+  stopLabel,
   textOnColor,
   tourStops,
   transitDirectionsUrl,
+  walkingLabel,
 } from '~/lib/libraryTour'
 
 // One Your Library Tour route: its ten branches in order, with the TTC
@@ -89,15 +75,66 @@ if (!tour) {
 
 const route = tourStops(tour, branchesByCode)
 const stops = route.flatMap(s => (s.branch ? [s.branch] : []))
-const visited = computed(() => stops.filter(b => passport.hasVisited(b.BranchCode)).length)
-
 onMounted(() => {
-  $posthog?.capture('tour_route_viewed', { route_id: tour.id, visited: visited.value })
+  const visited = stops.filter(b => passport.hasVisited(b.BranchCode)).length
+  $posthog?.capture('tour_route_viewed', { route_id: tour.id, visited })
 })
 
 const sheetOpen = ref(false)
 const activeBranch = ref<Branch | null>(null)
 const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
+
+// Where each leg's Directions link goes: at the end of the first ride's line
+// if it fits there, else at the end of the last ride's line, else on a line
+// of its own under the rides.
+type LinkSpot = 'first' | 'last' | 'own'
+const stopsList = ref<HTMLElement | null>(null)
+const linkSpot = ref<Record<number, LinkSpot>>({})
+
+function linkInRow(leg: number, row: number, rows: number): boolean {
+  const spot = linkSpot.value[leg]
+  return (spot === 'first' && row === 0) || (spot === 'last' && row === rows - 1)
+}
+
+let measureCtx: CanvasRenderingContext2D | null = null
+function textWidth(el: HTMLElement): number {
+  measureCtx ??= document.createElement('canvas').getContext('2d')
+  if (!measureCtx) return Infinity
+  const cs = getComputedStyle(el)
+  measureCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
+  return measureCtx.measureText((el.textContent ?? '').replace(/\s+/g, ' ').trim()).width
+}
+
+const ROW_GAP = 6 // between badge, stop and link, as .leg-ride's gap
+const LINK_INSET = 6 // .leg-link's right margin
+function placeLinks() {
+  const list = stopsList.value
+  const anyLink = list?.querySelector<HTMLElement>('.leg-link')
+  if (!list || !anyLink) return
+  const linkWidth = anyLink.getBoundingClientRect().width
+  const fits = (row: HTMLElement | undefined, width: number) => {
+    const stop = row?.querySelector<HTMLElement>('.leg-stop')
+    if (!row || !stop) return false
+    const badge = row.querySelector<HTMLElement>('.ttc-route')
+    const need = (badge ? badge.getBoundingClientRect().width + ROW_GAP : 0) + textWidth(stop) + ROW_GAP * 2 + linkWidth + LINK_INSET
+    return need <= width
+  }
+  const next: Record<number, LinkSpot> = {}
+  list.querySelectorAll<HTMLElement>('.leg-body').forEach((body) => {
+    const rows = [...body.querySelectorAll<HTMLElement>('.leg-ride')]
+    next[Number(body.dataset.leg)] = fits(rows[0], body.clientWidth)
+      ? 'first'
+      : fits(rows.at(-1), body.clientWidth) ? 'last' : 'own'
+  })
+  linkSpot.value = next
+}
+
+onMounted(() => {
+  void nextTick(placeLinks)
+  void document.fonts?.ready.then(placeLinks)
+  window.addEventListener('resize', placeLinks)
+})
+onUnmounted(() => window.removeEventListener('resize', placeLinks))
 
 function openSheet(branch: Branch) {
   activeBranch.value = branch
@@ -110,80 +147,59 @@ function openSheet(branch: Branch) {
   padding-bottom: calc(var(--nav-height) + 24px);
 }
 
-.tour-progress-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  margin-bottom: 20px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-left: 4px solid var(--route-color);
-  border-radius: var(--radius);
-}
-
-.tour-progress-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.tour-chip {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--route-on);
-  background: var(--route-color);
-  border-radius: 999px;
-  padding: 2px 8px;
-}
-
-.tour-progress-label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.tour-progress-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-border-soft);
-  overflow: hidden;
-
-  & span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--route-color);
-  }
-}
-
-.tour-hint {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
 .stops {
   list-style: none;
   padding: 0;
   margin: 0 0 24px;
 }
 
+/* The tour's line runs down the left; every ride on it gets an empty circle,
+   centred on the line. A leg that's only walking is a dashed line. */
 .leg {
+  --rail: 2px;
+  --rail-gap: 14px;
+  --dot: 10px;
+
   display: flex;
   align-items: stretch;
-  gap: 12px;
-  padding: 0 0 0 22px;
+  gap: var(--rail-gap);
+  padding: 0 0 0 23px;
 }
 
 .leg-rail {
   flex-shrink: 0;
-  width: 4px;
-  border-radius: 2px;
-  background: var(--route-color);
+  width: var(--rail);
   margin: 2px 0;
+  background: var(--route-color);
+}
+
+.leg-walk .leg-rail {
+  background: repeating-linear-gradient(to bottom, var(--route-color) 0 4px, transparent 4px 8px);
+}
+
+.leg-walk-icon {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  color: var(--color-text);
+}
+
+.leg-step {
+  position: relative;
+}
+
+.leg-step::before {
+  content: '';
+  position: absolute;
+  /* centred on the route badge, which sits 1px above the text's centre */
+  top: calc((16px - var(--dot)) / 2);
+  left: calc(-1 * (var(--rail-gap) + var(--rail) / 2 + var(--dot) / 2));
+  box-sizing: border-box;
+  width: var(--dot);
+  height: var(--dot);
+  border: 2px solid var(--route-color);
+  border-radius: 50%;
+  background: var(--color-bg);
 }
 
 .leg-body {
@@ -191,42 +207,33 @@ function openSheet(branch: Branch) {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   padding: 10px 0;
-}
-
-.leg-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.leg-time {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-text);
 }
 
 .leg-ride {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   min-width: 0;
   font-size: 0.75rem;
+  line-height: 18px;
 }
 
 .leg-stop {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text-muted);
+  color: var(--color-text-mid);
 }
 
-.leg-link {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
+.leg-link-inline {
+  margin-left: auto;
+}
+
+/* Directions keeps a little room from the right edge */
+.leg-body :deep(.leg-link) {
+  margin-right: 6px;
+}
+
+.leg-link-own {
+  align-self: flex-start;
 }
 </style>

@@ -48,9 +48,13 @@ def newest(paths):
 
 def find_unslop():
     for pattern in SEARCH:
-        paths = glob.glob(os.path.expanduser(pattern), recursive=True)
+        # Skip dangling symlinks (a stale plugin cache): getmtime would raise.
+        paths = [p for p in glob.glob(os.path.expanduser(pattern), recursive=True) if os.path.isfile(p)]
         if paths:
-            return newest(paths)
+            try:
+                return newest(paths)
+            except OSError:
+                continue  # removed between the check and getmtime
     return None
 
 
