@@ -176,12 +176,13 @@ export function stopLabel(stop: string | undefined): string {
   return BARE_STATIONS.has(bare) ? bare : name
 }
 
-// "Walk 350 m", "Walk 1.2 km": the walking in a leg with no rides.
+// "350 m", "1.2 km": the walking in a leg with no rides (shown after a
+// walking icon).
 export function walkingLabel(leg: TourSegment[]): string {
   const meters = leg.reduce((sum, s) => sum + (s.mode === 'WALK' ? s.meters ?? 0 : 0), 0)
   return meters >= 1000
-    ? `Walk ${(Math.round(meters / 100) / 10).toString()} km`
-    : `Walk ${Math.max(10, Math.round(meters / 10) * 10)} m`
+    ? `${(Math.round(meters / 100) / 10).toString()} km`
+    : `${Math.max(10, Math.round(meters / 10) * 10)} m`
 }
 
 export interface TourStop<B> {

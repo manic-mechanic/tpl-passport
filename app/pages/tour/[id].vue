@@ -11,12 +11,12 @@
         </li>
         <!-- Each ride and where to board it; the last ride also says where the
              leg ends -->
-        <li v-if="stop.branch && stop.next && stop.leg" class="leg"
+        <li v-if="stop.branch && stop.next && stop.leg" class="leg" :class="{ 'leg-walk': !legRides(stop.leg).length }"
             :aria-label="`From ${stop.branch.BranchName} to ${stop.next.BranchName}`"
         >
           <span class="leg-rail" aria-hidden="true" />
           <div class="leg-body" :data-leg="i">
-            <p v-for="(ride, r) in legRides(stop.leg)" :key="r" class="leg-ride">
+            <p v-for="(ride, r) in legRides(stop.leg)" :key="r" class="leg-ride leg-step">
               <TtcRouteBadge :mode="ride.mode" :line="ride.line ?? ''" :line-name="ride.lineName" />
               <span class="leg-stop">
                 {{ stopLabel(ride.fromStop) }}<template v-if="r === legRides(stop.leg).length - 1">
@@ -27,6 +27,7 @@
               />
             </p>
             <p v-if="!legRides(stop.leg).length" class="leg-ride">
+              <span class="ttc-route leg-walk-icon" role="img" aria-label="Walk"><TtcModeIcon mode="WALK" /></span>
               <span class="leg-stop">{{ walkingLabel(stop.leg) }}</span>
               <TourDirectionsLink v-if="linkInRow(i, 0, 1)" class="leg-link-inline"
                                   :href="transitDirectionsUrl(stop.branch, stop.next)" :route-id="tour.id" :leg="i + 1"
@@ -106,6 +107,7 @@ function textWidth(el: HTMLElement): number {
 }
 
 const ROW_GAP = 6 // between badge, stop and link, as .leg-ride's gap
+const LINK_INSET = 2 // .leg-link's right margin
 function placeLinks() {
   const list = stopsList.value
   const anyLink = list?.querySelector<HTMLElement>('.leg-link')
@@ -115,7 +117,7 @@ function placeLinks() {
     const stop = row?.querySelector<HTMLElement>('.leg-stop')
     if (!row || !stop) return false
     const badge = row.querySelector<HTMLElement>('.ttc-route')
-    const need = (badge ? badge.getBoundingClientRect().width + ROW_GAP : 0) + textWidth(stop) + ROW_GAP * 2 + linkWidth
+    const need = (badge ? badge.getBoundingClientRect().width + ROW_GAP : 0) + textWidth(stop) + ROW_GAP * 2 + linkWidth + LINK_INSET
     return need <= width
   }
   const next: Record<number, LinkSpot> = {}
@@ -152,19 +154,52 @@ function openSheet(branch: Branch) {
   margin: 0 0 24px;
 }
 
+/* The tour's line runs down the left; every ride on it gets an empty circle,
+   centred on the line. A leg that's only walking is a dashed line. */
 .leg {
+  --rail: 2px;
+  --rail-gap: 14px;
+  --dot: 10px;
+
   display: flex;
   align-items: stretch;
-  gap: 12px;
-  padding: 0 0 0 22px;
+  gap: var(--rail-gap);
+  padding: 0 0 0 23px;
 }
 
 .leg-rail {
   flex-shrink: 0;
-  width: 4px;
-  border-radius: 2px;
-  background: var(--route-color);
+  width: var(--rail);
   margin: 2px 0;
+  background: var(--route-color);
+}
+
+.leg-walk .leg-rail {
+  background: repeating-linear-gradient(to bottom, var(--route-color) 0 4px, transparent 4px 8px);
+}
+
+.leg-walk-icon {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  color: var(--color-text);
+}
+
+.leg-step {
+  position: relative;
+}
+
+.leg-step::before {
+  content: '';
+  position: absolute;
+  top: calc((18px - var(--dot)) / 2);
+  left: calc(-1 * (var(--rail-gap) + var(--rail) / 2 + var(--dot) / 2));
+  box-sizing: border-box;
+  width: var(--dot);
+  height: var(--dot);
+  border: 2px solid var(--route-color);
+  border-radius: 50%;
+  background: var(--color-bg);
 }
 
 .leg-body {
@@ -191,6 +226,11 @@ function openSheet(branch: Branch) {
 
 .leg-link-inline {
   margin-left: auto;
+}
+
+/* Directions keeps a little room from the right edge */
+.leg-body :deep(.leg-link) {
+  margin-right: 2px;
 }
 
 .leg-link-own {

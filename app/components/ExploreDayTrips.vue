@@ -461,12 +461,13 @@ const tourWithProgress = computed(() =>
 }
 
 .tour-hours {
-  margin: -4px 0 0 24px;
+  margin: -7px 0 0 24px;
 }
 
-/* "+6": a stamp-sized tile, so the name columns get the rest */
+/* "+n": the same width as each stamp's column */
 .route-stamps .route-overflow {
-  flex: 0 0 40px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .tour-num {
