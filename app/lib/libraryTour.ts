@@ -42,9 +42,11 @@ export const LIBRARY_TOUR = tourData as {
 
 export const tourRoutes: TourRoute[] = LIBRARY_TOUR.routes
 
-// The tour's last day as shown in copy, e.g. "October 31, 2027".
-export const TOUR_END_LABEL = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`)
-  .toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
+// The tour's last day as shown in copy, e.g. "October 31, 2027", or without
+// the year ("October 31") where the year goes without saying.
+const TOUR_END = new Date(`${LIBRARY_TOUR.endsOn}T12:00:00`)
+export const TOUR_END_LABEL = TOUR_END.toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })
+export const TOUR_END_SHORT = TOUR_END.toLocaleDateString('en-CA', { month: 'long', day: 'numeric' })
 
 export function getTourRoute(id: string | number): TourRoute | undefined {
   return tourRoutes.find(r => String(r.id) === String(id))

@@ -51,8 +51,8 @@
       </button>
       <template v-if="!tourCardCollapsed">
         <p class="tour-text">
-          Take the TTC along routes designed by UofT's School of Cities.
-          Visit every location by {{ TOUR_END_LABEL }} to earn a special stamp.
+          Travel Toronto by TTC, one library to the next, on tours designed by UofT's School of Cities.
+          Visit every branch by {{ TOUR_END_SHORT }} to get your passport postmarked.
         </p>
         <a :href="LIBRARY_TOUR.url" target="_blank" rel="noopener" class="tour-learn"
            aria-label="Learn more at UofT School of Cities (opens another site)"
@@ -68,7 +68,7 @@
               @click="$posthog?.capture('tour_route_tapped', { route_id: tour.id, route_name: tour.title, visited: tour.visited, total: tour.total })"
     >
       <div class="route-meta-row">
-        <span class="tour-chip">Route {{ tour.id }}</span>
+        <span class="tour-num" role="img" :aria-label="`Tour ${tour.id}`">{{ tour.id }}</span>
         <span class="route-info">{{ formatHours(tour.travelMin) }}</span>
         <IconChevron class="route-chevron" />
       </div>
@@ -93,7 +93,7 @@ import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
-import { LIBRARY_TOUR, TOUR_END_LABEL, formatHours, isTourOn, routeProgress, textOnColor, tourRoutes } from '~/lib/libraryTour'
+import { LIBRARY_TOUR, TOUR_END_SHORT, formatHours, isTourOn, routeProgress, textOnColor, tourRoutes } from '~/lib/libraryTour'
 import IconExternal from '~/components/icons/IconExternal.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -417,16 +417,19 @@ const tourWithProgress = computed(() =>
   font-weight: 600;
 }
 
-.tour-chip {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--route-on);
-  background: var(--route-color);
-  border-radius: 999px;
-  padding: 2px 8px;
+.tour-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--route-color);
+  color: var(--route-on);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 </style>
