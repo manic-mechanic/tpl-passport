@@ -107,9 +107,8 @@ provide(exploreContextKey, { openBranch: openBranchSheet, userLat, userLng })
 }
 
 .tab-pill {
-  flex: 1 1 auto;
+  flex: 1;
   text-align: center;
-  white-space: nowrap;
   padding: 10px 8px;
   border: none;
   border-bottom: 2.5px solid transparent;
