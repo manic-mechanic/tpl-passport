@@ -464,10 +464,12 @@ const tourWithProgress = computed(() =>
   margin: -7px 0 0 24px;
 }
 
-/* "+n": the same width as each stamp's column */
+/* "+n": a stamp-sized square, level with the stamps */
 .route-stamps .route-overflow {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 40px;
+  align-self: flex-start;
+  height: 40px;
+  min-height: 0;
 }
 
 .tour-num {

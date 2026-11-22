@@ -107,7 +107,7 @@ function textWidth(el: HTMLElement): number {
 }
 
 const ROW_GAP = 6 // between badge, stop and link, as .leg-ride's gap
-const LINK_INSET = 2 // .leg-link's right margin
+const LINK_INSET = 6 // .leg-link's right margin
 function placeLinks() {
   const list = stopsList.value
   const anyLink = list?.querySelector<HTMLElement>('.leg-link')
@@ -192,7 +192,8 @@ function openSheet(branch: Branch) {
 .leg-step::before {
   content: '';
   position: absolute;
-  top: calc((18px - var(--dot)) / 2);
+  /* centred on the route badge, which sits 1px above the text's centre */
+  top: calc((16px - var(--dot)) / 2);
   left: calc(-1 * (var(--rail-gap) + var(--rail) / 2 + var(--dot) / 2));
   box-sizing: border-box;
   width: var(--dot);
@@ -230,7 +231,7 @@ function openSheet(branch: Branch) {
 
 /* Directions keeps a little room from the right edge */
 .leg-body :deep(.leg-link) {
-  margin-right: 2px;
+  margin-right: 6px;
 }
 
 .leg-link-own {
