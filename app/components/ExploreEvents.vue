@@ -1,61 +1,84 @@
 <template>
-  <div v-if="eventsLoading && sortedEvents.length === 0" class="geo-state">
-    <span class="geo-spinner" />
-    <span>Loading events…</span>
-  </div>
-  <p v-else-if="eventsError" class="geo-denied">Could not load events.</p>
-  <div v-else class="events-list">
+  <div class="events-list">
     <div class="events-controls">
-      <button class="events-filter-btn" :class="{ active: !isManualDaySelection }" @click="resetToToday">
-        Today
+      <button class="events-filter-btn" :class="{ active: !pickedDay }" @click="resetToToday">
+        Upcoming
       </button>
       <input
-        v-model="selectedEventsDate"
+        :value="pickedDay ?? ''"
         class="events-date-input"
+        :class="{ active: !!pickedDay }"
         type="date"
-        :min="availableEventDays[0] ?? selectedEventsDate"
-        :max="availableEventDays[availableEventDays.length - 1] ?? selectedEventsDate"
-        @change="onEventsDateChange"
+        aria-label="Pick a day"
+        :min="days[0]"
+        :max="days[days.length - 1]"
+        @change="onPickDay(($event.target as HTMLInputElement).value)"
       >
     </div>
-    <p v-if="eventsInView.length === 0" class="geo-denied">No events for the selected day.</p>
-    <div
-      v-for="event in eventsInView"
-      :key="event.id"
-      class="event-row"
-      :class="{ 'event-row-clickable': event.branch }"
-      :role="event.branch ? 'button' : undefined"
-      :tabindex="event.branch ? 0 : undefined"
-      @click="event.branch && $emit('open-branch', event.branch)"
-      @keydown.enter="event.branch && $emit('open-branch', event.branch)"
-    >
-      <div class="event-date">
-        <span class="event-month">{{ formatEventDateParts(event.date).month }}</span>
-        <span class="event-day">{{ formatEventDateParts(event.date).day }}</span>
-        <span class="event-weekday">{{ formatEventDateParts(event.date).weekday }}</span>
-      </div>
-      <div class="event-info">
-        <p class="event-title">{{ event.title }}</p>
-        <p class="event-meta">{{ [event.locationName, formatEventTime(event.time), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}</p>
-      </div>
-      <IconChevron v-if="event.branch" class="event-chevron" />
-    </div>
-    <button v-if="canLoadMoreDays" class="events-load-more" @click="loadMoreDays">
-      Load more days
+
+    <p v-if="pickedDay && !days.includes(pickedDay)" class="events-note">
+      Events are listed for the next {{ MAX_DAYS }} days only.
+    </p>
+    <template v-else>
+      <template v-for="day in shownDays" :key="day">
+        <p v-if="day === today && !pickedDay && todayFinished" class="events-note">
+          Nothing else on today. Here's what's next.
+        </p>
+        <div
+          v-for="event in eventsOn(day)"
+          :key="event.id"
+          class="event-row"
+          :class="{ 'event-row-clickable': event.branch }"
+          :role="event.branch ? 'button' : undefined"
+          :tabindex="event.branch ? 0 : undefined"
+          @click="event.branch && $emit('open-branch', event.branch)"
+          @keydown.enter="event.branch && $emit('open-branch', event.branch)"
+        >
+          <div class="event-date">
+            <span class="event-month">{{ dateParts(event.date).month }}</span>
+            <span class="event-day">{{ dateParts(event.date).day }}</span>
+            <span class="event-weekday">{{ dateParts(event.date).weekday }}</span>
+          </div>
+          <div class="event-info">
+            <p class="event-title">{{ event.title }}</p>
+            <p class="event-meta">{{ metaLine(event) }}</p>
+          </div>
+          <IconChevron v-if="event.branch" class="event-chevron" />
+        </div>
+        <div v-if="dayState(day) === 'loading'" class="geo-state">
+          <span class="geo-spinner" />
+          <span>Loading {{ dayLabel(day) }}…</span>
+        </div>
+        <p v-else-if="dayState(day) === 'error'" class="events-note">
+          Couldn't load events for {{ dayLabel(day) }}.
+          <button class="events-retry" @click="loadDay(day)">Try again</button>
+        </p>
+        <p v-else-if="pickedDay && eventsOn(day).length === 0" class="events-note">
+          {{ day === today ? 'Nothing else on today.' : `No events on ${dayLabel(day)}.` }}
+        </p>
+      </template>
+    </template>
+
+    <button v-if="canLoadMore" class="events-load-more" @click="dayCount += 1">
+      Load {{ dayLabel(days[shownDays.length]!) }}
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
-import { physicalBranches, haversineKm } from '~/composables/useRegion'
+import { physicalBranches } from '~/composables/useRegion'
 import { formatAudiences, formatEventTime } from '~/composables/useEvents'
-import { localDayKey } from '@tpl-passport/shared'
 import { reportError } from '~/lib/reportError'
+import {
+  addDays, branchLookup, distanceKm, formatKm, isOver, sortEvents, toExploreEvents,
+  torontoNow, torontoToday, type ExploreEvent, type RawEvent,
+} from '~/lib/exploreEvents'
 import IconChevron from '~/components/icons/IconChevron.vue'
 
-// What's On tab: upcoming events across all branches, loaded a day at a time.
-// When the user's location is known, events on the same day are sorted by distance.
+// What's On tab: upcoming events across all branches, loaded a day at a time
+// (by Toronto date, like /api/all-events). Today's finished events are left
+// out. With the user's location, each day's events go nearest first.
 const props = withDefaults(defineProps<{
   userLat?: number | null
   userLng?: number | null
@@ -65,37 +88,105 @@ const props = withDefaults(defineProps<{
 })
 defineEmits<{ 'open-branch': [branch: Branch] }>()
 
-// One record from /api/all-events. Field names vary between feed versions.
-interface RawEvent {
-  _id: string | number
-  LocationName?: string
-  Location?: string
-  EventName?: string
-  'Event Name'?: string
-  Title?: string
-  StartDateLocal: string
-  StartTime?: string
-  Audiences?: string
-  AgeGroup?: string
-  'Age Group'?: string
+const MAX_DAYS = 7
+const branches = branchLookup(physicalBranches)
+
+// ── Clock ─────────────────────────────────────────────────────────────
+// The tab is kept alive, so "now" ticks and the list resets at midnight.
+const now = ref(torontoNow())
+const today = computed(() => now.value.slice(0, 10))
+const days = computed(() => Array.from({ length: MAX_DAYS }, (_, i) => addDays(today.value, i)))
+
+function tick() {
+  now.value = torontoNow()
+}
+let timer: ReturnType<typeof setInterval> | undefined
+function startClock() {
+  tick()
+  clearInterval(timer)
+  timer = setInterval(tick, 60_000)
+}
+function stopClock() {
+  clearInterval(timer)
+  timer = undefined
 }
 
-interface ExploreEvent {
-  id: string | number
-  title: string
-  date: string
-  time: string
-  audiences: string
-  locationName: string
-  branch: Branch | null
+// ── Loading, a day at a time ──────────────────────────────────────────
+const eventsByDay = ref<Record<string, ExploreEvent[]>>({})
+const stateByDay = ref<Record<string, 'loading' | 'error' | 'done'>>({})
+
+function dayState(day: string) {
+  return stateByDay.value[day]
 }
 
-// ── Events (What's On) ───────────────────────────────────────────────
-const branchByShortName = new Map(
-  physicalBranches.map(b => [b.BranchName.replace(/ Branch$/i, '').toLowerCase(), b])
+async function loadDay(day: string) {
+  const offset = days.value.indexOf(day)
+  if (offset < 0 || stateByDay.value[day] === 'loading') return
+  stateByDay.value[day] = 'loading'
+  try {
+    const records: unknown = await $fetch('/api/all-events', { query: { offset, days: 1 } })
+    const raw = (Array.isArray(records) ? records : []) as RawEvent[]
+    // The server's "today" is Toronto's too; keep only the day asked for.
+    eventsByDay.value[day] = toExploreEvents(raw.filter(r => r.StartDateLocal === day), branches)
+    stateByDay.value[day] = 'done'
+  } catch (error) {
+    stateByDay.value[day] = 'error'
+    reportError(error, { area: 'events', operation: 'all_events_window_fetch', offset, days: 1 })
+  }
+}
+
+function ensureLoaded(day: string) {
+  if (!stateByDay.value[day]) loadDay(day)
+}
+
+// ── What's shown ──────────────────────────────────────────────────────
+const pickedDay = ref<string | null>(null)
+const dayCount = ref(1)
+
+function eventsOn(day: string): ExploreEvent[] {
+  const list = (eventsByDay.value[day] ?? []).filter(e => day !== today.value || !isOver(e, now.value))
+  return sortEvents(list, props.userLat, props.userLng)
+}
+
+// Once today's events are all over, tomorrow's come along with it.
+const todayFinished = computed(() =>
+  stateByDay.value[today.value] === 'done' && eventsOn(today.value).length === 0
 )
 
-function formatEventDateParts(dateStr: string) {
+const shownDays = computed(() => {
+  if (pickedDay.value) return days.value.includes(pickedDay.value) ? [pickedDay.value] : []
+  const count = Math.min(MAX_DAYS, dayCount.value + (todayFinished.value ? 1 : 0))
+  return days.value.slice(0, count)
+})
+
+const canLoadMore = computed(() =>
+  !pickedDay.value && shownDays.value.length < MAX_DAYS
+  && shownDays.value.every(d => stateByDay.value[d] === 'done')
+)
+
+watch(shownDays, list => list.forEach(ensureLoaded), { immediate: true })
+
+// A new day: drop what was loaded for the old relative days.
+watch(today, () => {
+  eventsByDay.value = {}
+  stateByDay.value = {}
+  dayCount.value = 1
+  if (pickedDay.value && !days.value.includes(pickedDay.value)) pickedDay.value = null
+  shownDays.value.forEach(ensureLoaded)
+})
+
+function resetToToday() {
+  pickedDay.value = null
+  dayCount.value = 1
+}
+
+function onPickDay(value: string) {
+  if (!value) resetToToday()
+  else pickedDay.value = value
+}
+
+// ── Formatting ────────────────────────────────────────────────────────
+function dateParts(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00')
   return {
     day: d.getDate(),
@@ -104,131 +195,26 @@ function formatEventDateParts(dateStr: string) {
   }
 }
 
-const eventsData = ref<ExploreEvent[]>([])
-const eventsLoading = ref(false)
-const eventsError = ref<unknown>(null)
-const loadedEventOffsets = ref<number[]>([])
-const MAX_EVENT_DAYS = 7
-
-function eventFromRaw(raw: RawEvent): ExploreEvent {
-    const locationName = raw.LocationName ?? raw.Location ?? ''
-    return {
-      id: raw._id,
-      title: raw.EventName ?? raw['Event Name'] ?? raw.Title ?? 'Event',
-      date: raw.StartDateLocal,
-      time: raw.StartTime ?? '',
-      audiences: raw.Audiences ?? raw.AgeGroup ?? raw['Age Group'] ?? '',
-      locationName,
-      branch: branchByShortName.get(locationName.toLowerCase()) ?? null,
-    }
+function dayLabel(day: string) {
+  if (day === today.value) return 'today'
+  if (day === addDays(today.value, 1)) return 'tomorrow'
+  return new Date(day + 'T00:00:00').toLocaleDateString('en-CA', { weekday: 'long', month: 'short', day: 'numeric' })
 }
 
-async function fetchEventsWindow(offset: number, days: number) {
-  eventsLoading.value = true
-  eventsError.value = null
-  try {
-    const records: unknown = await $fetch('/api/all-events', { query: { offset, days } })
-    const mapped = (Array.isArray(records) ? records as RawEvent[] : []).map(eventFromRaw)
-    const next = new Map(eventsData.value.map(event => [event.id, event]))
-    for (const event of mapped) next.set(event.id, event)
-    eventsData.value = [...next.values()]
-    loadedEventOffsets.value = [...new Set([
-      ...loadedEventOffsets.value,
-      ...Array.from({ length: days }, (_, i) => offset + i).filter(i => i >= 0 && i < MAX_EVENT_DAYS),
-    ])]
-  } catch (error) {
-    eventsError.value = error
-    reportError(error, {
-      area: 'events',
-      operation: 'all_events_window_fetch',
-      offset,
-      days,
-    })
-  } finally {
-    eventsLoading.value = false
-  }
+function metaLine(event: ExploreEvent) {
+  const km = distanceKm(event, props.userLat, props.userLng)
+  return [
+    event.locationName,
+    formatEventTime(event.start),
+    formatAudiences(event.audiences),
+    km == null ? '' : formatKm(km),
+  ].filter(Boolean).join(' · ')
 }
 
-const sortedEvents = computed(() => {
-  const evs = eventsData.value
-  const { userLat, userLng } = props
-  if (!userLat || !userLng) return evs
-  return [...evs].sort((a, b) => {
-    if (a.date !== b.date) return a.date < b.date ? -1 : 1
-    const aDist = a.branch ? haversineKm(userLat, userLng, a.branch.Lat, a.branch.Long) : 999
-    const bDist = b.branch ? haversineKm(userLat, userLng, b.branch.Lat, b.branch.Long) : 999
-    if (Math.abs(aDist - bDist) > 2) return aDist - bDist
-    return (a.time ?? '') < (b.time ?? '') ? -1 : 1
-  })
-})
-
-const selectedEventsDate = ref(localDayKey(new Date()) ?? '')
-const isManualDaySelection = ref(false)
-const visibleEventDayCount = ref(1)
-const todayDay = computed(() => localDayKey(new Date()) ?? '')
-
-function dayAtOffset(offset: number) {
-  const day = new Date()
-  day.setDate(day.getDate() + offset)
-  return localDayKey(day)
-}
-
-function offsetForDay(dayKey: string) {
-  if (!dayKey || !todayDay.value) return null
-  const base = new Date(`${todayDay.value}T00:00:00`)
-  const target = new Date(`${dayKey}T00:00:00`)
-  return Math.round((target.getTime() - base.getTime()) / (24 * 60 * 60 * 1000))
-}
-
-const availableEventDays = computed(() =>
-  Array.from({ length: MAX_EVENT_DAYS }, (_, i) => dayAtOffset(i)).filter((d): d is string => !!d)
-)
-
-const visibleEventDays = computed(() =>
-  availableEventDays.value.slice(0, visibleEventDayCount.value)
-)
-
-const eventsInView = computed(() => {
-  if (isManualDaySelection.value && selectedEventsDate.value) {
-    return sortedEvents.value.filter(event => event.date === selectedEventsDate.value)
-  }
-  return sortedEvents.value.filter(event => visibleEventDays.value.includes(event.date))
-})
-
-const canLoadMoreDays = computed(() =>
-  !isManualDaySelection.value && visibleEventDayCount.value < MAX_EVENT_DAYS
-)
-
-async function ensureOffsetLoaded(offset: number) {
-  if (offset < 0 || offset >= MAX_EVENT_DAYS) return
-  if (loadedEventOffsets.value.includes(offset)) return
-  await fetchEventsWindow(offset, 1)
-}
-
-async function resetToToday() {
-  selectedEventsDate.value = todayDay.value
-  isManualDaySelection.value = false
-  visibleEventDayCount.value = 1
-  await ensureOffsetLoaded(0)
-}
-
-async function loadMoreDays() {
-  const nextOffset = visibleEventDayCount.value
-  visibleEventDayCount.value += 1
-  await ensureOffsetLoaded(nextOffset)
-}
-
-async function onEventsDateChange() {
-  isManualDaySelection.value = true
-  const offset = offsetForDay(selectedEventsDate.value)
-  if (offset === null) return
-  await ensureOffsetLoaded(offset)
-}
-
-onMounted(() => {
-  ensureOffsetLoaded(0)
-})
-
+onMounted(startClock)
+onActivated(startClock)
+onDeactivated(stopClock)
+onBeforeUnmount(stopClock)
 </script>
 
 <style scoped>
@@ -239,12 +225,6 @@ onMounted(() => {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   padding: 14px 0;
-}
-
-.geo-denied {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  padding: 8px 0;
 }
 
 .geo-spinner {
@@ -306,6 +286,30 @@ onMounted(() => {
   font-family: var(--font-body);
   color: var(--color-text);
   background: var(--color-surface);
+
+  &.active {
+    border-color: var(--tpl-navy);
+    box-shadow: inset 0 0 0 1px var(--tpl-navy);
+  }
+}
+
+.events-note {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+  margin: 0;
+}
+
+.events-retry {
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-brand-text);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .event-row {
