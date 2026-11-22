@@ -14,7 +14,7 @@
       <button type="button" class="welcome-primary" @click="close('dismissed')">
         Start exploring
       </button>
-      <NuxtLink to="/explore?tab=routes" class="welcome-secondary" @click="close('routes')">
+      <NuxtLink to="/explore/trips/transit" class="welcome-secondary" @click="close('routes')">
         See the routes
       </NuxtLink>
     </div>

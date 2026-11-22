@@ -9,7 +9,7 @@ test('visitors from the event see the welcome sheet once, and the ref is dropped
   await expect(page).not.toHaveURL(/ref=/)
 
   await page.getByRole('link', { name: 'See the routes' }).click()
-  await expect(page).toHaveURL(/\/explore\?tab=routes/)
+  await expect(page).toHaveURL(/\/explore\/trips\/transit$/)
   await expect(page.getByRole('link', { name: /Learn more at UofT School of Cities/ })).toBeVisible()
 
   await page.goto('/?ref=yourlibrarytour')
@@ -18,7 +18,7 @@ test('visitors from the event see the welcome sheet once, and the ref is dropped
 })
 
 test('a tour route lists its ten branches with directions between them', async ({ page }) => {
-  await page.goto('/explore?tab=routes&mode=transit')
+  await page.goto('/explore/trips/transit')
   await page.getByRole('link', { name: /Humberwood to Mimico Centennial/ }).click()
   await expect(page).toHaveURL(/\/tour\/1$/)
   await expect(page.getByRole('heading', { name: 'Humberwood to Mimico Centennial' })).toBeVisible()
@@ -33,7 +33,8 @@ test('an unknown tour route shows the 404 screen', async ({ page }) => {
 })
 
 test('Day Trips opens on the tour routes, with walking routes one tap away', async ({ page }) => {
-  await page.goto('/explore?tab=routes')
+  await page.goto('/explore/trips')
+  await expect(page).toHaveURL(/\/explore\/trips\/transit$/)
   await expect(page.getByRole('link', { name: /Humberwood to Mimico Centennial/ })).toBeVisible()
   await expect(page.getByLabel('Bike and car routes coming soon')).toBeVisible()
 
@@ -44,6 +45,7 @@ test('Day Trips opens on the tour routes, with walking routes one tap away', asy
   await expect(page.getByRole('link', { name: /Learn more at UofT School of Cities/ })).toBeHidden()
 
   await page.getByRole('tab', { name: 'Walking' }).click()
+  await expect(page).toHaveURL(/\/explore\/trips\/walking$/)
   await expect(page.getByRole('link', { name: /Junction & High Park Loop/ })).toBeVisible()
 })
 

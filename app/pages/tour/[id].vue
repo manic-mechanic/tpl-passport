@@ -1,6 +1,6 @@
 <template>
   <main class="page-content" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }">
-    <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore?tab=routes&mode=transit" />
+    <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore/trips/transit" />
 
     <ol ref="stopsList" class="stops">
       <!-- Walk the route's own order so each leg stays between the two

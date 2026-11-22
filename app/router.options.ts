@@ -2,6 +2,7 @@ import type { RouterConfig } from 'nuxt/schema'
 import type { RouteLocationNormalized } from 'vue-router'
 import { START_LOCATION } from 'vue-router'
 import { isChangingPage } from '#app/components/utils'
+import { exploreRedirect, exploreRedirectRoutes } from '~/lib/exploreRoutes'
 import { consumePopNavigation, currentHistoryEntry, getAppScroller, markShownEntry, savedTopFor } from '~/lib/appScroller'
 
 // Nuxt's default scroll behaviour (nuxt/dist/pages/runtime/router.options),
@@ -64,6 +65,13 @@ function apply(result: ScrollResult): ScrollResult {
 }
 
 export default <RouterConfig>{
+  // /explore has no page of its own: it opens a tab, and old ?tab= links
+  // open the tab they named. See ~/lib/exploreRoutes.
+  routes(pageRoutes) {
+    const routes = pageRoutes.map(r => r.path === '/explore' ? { ...r, redirect: exploreRedirect } : r)
+    return [...routes, ...exploreRedirectRoutes]
+  },
+
   scrollBehavior(to, from, savedPosition) {
     const nuxtApp = useNuxtApp()
     const router = useRouter()
@@ -95,6 +103,10 @@ export default <RouterConfig>{
       if (to.hash) return finish({ el: to.hash, top: hashMarginTop(to.hash), behavior: hashBehavior })
       return finish(false)
     }
+
+    // Switching Explore tabs keeps the scroll position, as when the tabs
+    // were one page; back/forward restores the entry's own.
+    if (to.path.startsWith('/explore/') && from.path.startsWith('/explore/')) return finish(saved ?? false)
 
     const scrollToTop = typeof to.meta.scrollToTop === 'function' ? to.meta.scrollToTop(to, from) : to.meta.scrollToTop
     if (scrollToTop === false) return finish(false)

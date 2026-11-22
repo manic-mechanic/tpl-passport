@@ -1,6 +1,6 @@
 <template>
   <main class="page-content">
-    <PageBanner :title="trip.name" back-label="Day trips" back-to="/explore?tab=routes&mode=walk">
+    <PageBanner :title="trip.name" back-label="Day trips" back-to="/explore/trips/walking">
       <template #sub>{{ trip.area }} · {{ branchObjects.length }} stops · {{ trip.duration }}</template>
     </PageBanner>
 
@@ -23,7 +23,7 @@
     <section class="suggestions-section">
       <h2 class="stops-title">Local suggestions</h2>
       <p class="suggestions-empty">
-        Curated tips from locals and librarians — coming soon.
+        Tips from locals and librarians are coming soon.
       </p>
     </section>
   </main>

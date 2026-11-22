@@ -1,62 +1,20 @@
 <template>
-  <main class="page-content" :class="{ 'has-browse-cta': activeTab === 'near-me' }">
+  <main class="page-content">
     <!-- Sticky header + tabs -->
     <PageBanner title="Explore">
-      <template #action>
-        <NuxtLink to="/branches" class="search-btn" aria-label="Browse all branches">
-          <IconSearch />
-        </NuxtLink>
-      </template>
-
       <!-- Tab pills -->
       <nav class="tab-bar" role="tablist">
-        <button class="tab-pill" :class="{ active: activeTab === 'near-me' }" role="tab"
-                :aria-selected="activeTab === 'near-me'" @click="activeTab = 'near-me'"
+        <NuxtLink v-for="tab in EXPLORE_TABS" :key="tab.path" :to="tab.path" class="tab-pill"
+                  :class="{ active: activeTab === tab }" role="tab" :aria-selected="activeTab === tab"
         >
-          Near me
-        </button>
-        <button class="tab-pill" :class="{ active: activeTab === 'routes' }" role="tab"
-                :aria-selected="activeTab === 'routes'" @click="activeTab = 'routes'"
-        >
-          Day trips
-        </button>
-        <button class="tab-pill" :class="{ active: activeTab === 'events' }" role="tab"
-                :aria-selected="activeTab === 'events'" @click="activeTab = 'events'"
-        >
-          What's on
-        </button>
-        <button class="tab-pill" :class="{ active: activeTab === 'working-toward' }" role="tab"
-                :aria-selected="activeTab === 'working-toward'" @click="activeTab = 'working-toward'"
-        >
-          Extra Credit
-        </button>
+          {{ tab.label }}
+        </NuxtLink>
       </nav>
     </PageBanner>
 
-    <!-- Near Me -->
-    <section v-show="activeTab === 'near-me'" class="explore-section">
-      <ExploreBranches @select="openBranchSheet" />
+    <section class="explore-section">
+      <NuxtPage :keepalive="true" />
     </section>
-
-    <!-- Working Toward -->
-    <section v-show="activeTab === 'working-toward'" class="explore-section">
-      <ExploreBadgeSuggestions @open-branch="openBranchSheet" />
-    </section>
-
-    <!-- Day Trips -->
-    <section v-show="activeTab === 'routes'" class="explore-section">
-      <ExploreDayTrips />
-    </section>
-
-    <!-- What's On -->
-    <section v-show="activeTab === 'events'" class="explore-section">
-      <ExploreEvents :user-lat="userLat" :user-lng="userLng" @open-branch="openBranchSheet" />
-    </section>
-
-    <!-- Browse All CTA -->
-    <div v-if="activeTab === 'near-me'" class="browse-cta">
-      <NuxtLink to="/branches" class="browse-btn">Browse all branches</NuxtLink>
-    </div>
   </main>
 
   <!-- Branch detail sheet -->
@@ -68,21 +26,18 @@
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
 import { cachedPosition, getPosition, locationAccess } from '~/lib/geolocation'
-import IconSearch from '~/components/icons/IconSearch.vue'
+import { EXPLORE_TABS, exploreContextKey, exploreTabFor } from '~/lib/exploreRoutes'
 
 const { $posthog } = useNuxtApp()
 
 // ── Tab state ────────────────────────────────────────────────────────
+// Each tab is a route under /explore (see ~/lib/exploreRoutes). The
+// analytics names are the ones the tabs had before they were routes.
 const route = useRoute()
-const activeTab = ref<'routes' | 'events' | 'working-toward' | 'near-me'>(
-  route.query.tab === 'routes' ? 'routes'
-    : route.query.tab === 'events' ? 'events'
-      : route.query.tab === 'working-toward' ? 'working-toward'
-        : 'near-me'
-)
+const activeTab = computed(() => exploreTabFor(route.path))
 
-watch(activeTab, (tab) => {
-  $posthog?.capture('explore_tab_changed', { tab })
+watch(() => activeTab.value?.analytics, (tab) => {
+  if (tab) $posthog?.capture('explore_tab_changed', { tab })
 })
 
 // ── Location for Events ───────────────────────────────────────────────
@@ -112,6 +67,8 @@ function openBranchSheet(branch: Branch) {
   activeBranch.value = branch
   branchSheetOpen.value = true
 }
+
+provide(exploreContextKey, { openBranch: openBranchSheet, userLat, userLng })
 </script>
 
 <style scoped>
@@ -119,42 +76,11 @@ function openBranchSheet(branch: Branch) {
   padding-bottom: var(--nav-height);
 }
 
-/* Extra bottom padding only when browse button is visible (Near Me tab) */
-.page-content.has-browse-cta {
-  padding-bottom: calc(var(--nav-height) + 72px);
-}
-
 /* ── Sticky header block ─────────────────────────────────────────── */
 /* ── Page header ─────────────────────────────────────────────────── */
 .sub {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.55);
-}
-
-.search-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.search-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.search-btn:active {
-  background: var(--color-paper);
-  border-color: var(--tpl-blue);
 }
 
 /* ── Sections ────────────────────────────────────────────────────── */
@@ -194,6 +120,7 @@ function openBranchSheet(branch: Branch) {
   color: var(--color-text-muted);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
+  text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -203,45 +130,4 @@ function openBranchSheet(branch: Branch) {
     border-bottom-color: var(--color-brand-text);
   }
 }
-
-
-/* ── Browse CTA — fixed above nav ───────────────────────────────── */
-.browse-cta {
-  position: fixed;
-  bottom: var(--nav-height);
-  left: 0;
-  right: 0;
-  margin: 0 auto;
-  max-width: 480px;
-  padding: 16px 18px 12px;
-  background: linear-gradient(to bottom, transparent, var(--color-bg) 40%);
-  z-index: 5;
-  pointer-events: none;
-}
-
-.browse-btn {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  border-radius: var(--radius);
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: var(--font-body);
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  pointer-events: all;
-  -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.15s;
-  box-shadow: var(--shadow-sm);
-}
-
-.browse-btn:active {
-  border-color: var(--tpl-blue);
-  color: var(--tpl-blue);
-}
-
 </style>

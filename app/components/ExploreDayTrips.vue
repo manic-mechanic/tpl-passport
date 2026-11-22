@@ -1,12 +1,12 @@
 <template>
   <!-- Mode sub-tabs -->
   <nav class="mode-bar" role="tablist">
-    <button v-for="mode in MODES" :key="mode.id" class="mode-tab" :class="{ active: activeMode === mode.id }"
-            role="tab" :aria-selected="activeMode === mode.id" @click="activeMode = mode.id"
+    <NuxtLink v-for="m in MODES" :key="m.id" :to="`/explore/trips/${m.id}`" class="mode-tab"
+              :class="{ active: activeMode === m.id }" role="tab" :aria-selected="activeMode === m.id"
     >
-      <IconMode class="mode-icon" v-html="mode.icon" />
-      {{ mode.label }}
-    </button>
+      <IconMode class="mode-icon" v-html="m.icon" />
+      {{ m.label }}
+    </NuxtLink>
     <div class="mode-tab mode-tab--soon" role="tab" aria-selected="false" aria-disabled="true"
          aria-label="Bike and car routes coming soon"
     >
@@ -19,7 +19,7 @@
   </nav>
 
   <!-- Walking routes -->
-  <div v-if="activeMode === 'walk'" class="routes-list">
+  <div v-if="activeMode === 'walking'" class="routes-list">
     <NuxtLink v-for="tripRoute in routesWithProgress" :key="tripRoute.id" :to="'/day-trips/' + tripRoute.id" class="route-card" @click="$posthog?.capture('day_trip_tapped', { route_id: tripRoute.id, route_name: tripRoute.name, visited: tripRoute.visited, total: tripRoute.total })">
       <div class="route-meta-row">
         <span class="area-chip">{{ tripRoute.area }}</span>
@@ -97,28 +97,31 @@ import { LIBRARY_TOUR, TOUR_END_SHORT, formatHours, isTourOn, routeProgress, tex
 import IconExternal from '~/components/icons/IconExternal.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
+import type { TripMode } from '~/lib/exploreRoutes'
 
 // Day Trips tab: suggested multi-branch routes, filtered by transport mode.
 const { $posthog } = useNuxtApp()
 const passport = usePassportStore()
 
-type TransportMode = 'transit' | 'walk'
+// The mode comes from the route: /explore/trips/transit or /explore/trips/walking.
+const props = defineProps<{ mode?: TripMode }>()
 
-// Opens on the Your Library Tour transit routes; ?mode=walk opens on walking routes.
-const route = useRoute()
-const activeMode = ref<TransportMode>(route.query.mode === 'walk' ? 'walk' : 'transit')
-
-watch(activeMode, (mode) => {
-  $posthog?.capture('transport_mode_changed', { mode })
+// Kept while another Explore tab is showing, when the route has no mode.
+const activeMode = ref<TripMode>(props.mode ?? 'transit')
+watch(() => props.mode, (mode) => {
+  if (!mode || mode === activeMode.value) return
+  activeMode.value = mode
+  // Analytics keeps the name the walking mode had before it was a route.
+  $posthog?.capture('transport_mode_changed', { mode: mode === 'walking' ? 'walk' : mode })
 })
 
-const MODES: { id: TransportMode, label: string, icon: string }[] = [
+const MODES: { id: TripMode, label: string, icon: string }[] = [
   {
     id: 'transit', label: 'Transit',
     icon: '<rect x="6" y="3" width="12" height="15" rx="2"/><path d="M6 11h12"/><path d="M9 7h2M13 7h2"/><path d="M8 18l-1 3M16 18l1 3"/>',
   },
   {
-    id: 'walk', label: 'Walking',
+    id: 'walking', label: 'Walking',
     icon: '<circle cx="12" cy="4.5" r="1.5"/><path d="M10 8.5l-2 7h2.5l.5 4h2l.5-4H16l-2-7"/><path d="M10 8.5l2-1.5 2 1.5"/>',
   },
 ]
@@ -126,7 +129,7 @@ const MODES: { id: TransportMode, label: string, icon: string }[] = [
 // ── Suggested Routes ─────────────────────────────────────────────────
 const routesWithProgress = computed(() =>
   routesData
-    .filter(r => r.mode === activeMode.value)
+    .filter(r => r.mode === (activeMode.value === 'walking' ? 'walk' : 'transit'))
     .map(r => {
       const branchObjects = r.branches.map(code => branchesByCode[code]).filter((b): b is Branch => !!b)
       const visited = branchObjects.filter(b => passport.hasVisited(b.BranchCode)).length
@@ -218,6 +221,7 @@ const tourWithProgress = computed(() =>
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
   white-space: nowrap;
 }
 
@@ -367,6 +371,7 @@ const tourWithProgress = computed(() =>
 .route-stamp-label-word {
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
   white-space: nowrap;
 }
 
