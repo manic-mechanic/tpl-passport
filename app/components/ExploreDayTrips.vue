@@ -67,12 +67,12 @@
               class="route-card" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }"
               @click="$posthog?.capture('tour_route_tapped', { route_id: tour.id, route_name: tour.title, visited: tour.visited, total: tour.total })"
     >
-      <div class="route-meta-row">
+      <div class="route-meta-row tour-title-row">
         <span class="tour-num" role="img" :aria-label="`Tour ${tour.id}`">{{ tour.id }}</span>
-        <span class="route-info">{{ formatHours(tour.travelMin) }}</span>
+        <p class="route-name">{{ tour.title }}</p>
         <IconChevron class="route-chevron" />
       </div>
-      <p class="route-name">{{ tour.title }}</p>
+      <p class="route-info tour-hours">{{ formatHours(tour.travelMin) }}</p>
       <div class="route-stamps">
         <div v-for="b in tour.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
           <div class="route-stamp-box" :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
@@ -297,6 +297,7 @@ const tourWithProgress = computed(() =>
   color: var(--color-text);
   line-height: 1.25;
   margin: 0;
+  text-wrap: balance;
 }
 
 .route-desc {
@@ -415,6 +416,23 @@ const tourWithProgress = computed(() =>
   align-self: flex-start;
   font-size: 0.8125rem;
   font-weight: 600;
+}
+
+/* The number circle sits on the title's first line; the time goes under it */
+.tour-title-row {
+  align-items: flex-start;
+
+  & .tour-num {
+    margin-top: -1px;
+  }
+
+  & .route-chevron {
+    margin-top: 3px;
+  }
+}
+
+.tour-hours {
+  margin: -4px 0 0 30px;
 }
 
 .tour-num {
