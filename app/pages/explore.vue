@@ -108,6 +108,11 @@ provide(exploreContextKey, { openBranch: openBranchSheet, userLat, userLng })
 
 .tab-pill {
   flex: 1;
+  /* Single-line labels sit on the same line as the last line of a
+     wrapped one ("Extra Credit"), next to the underline. */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   text-align: center;
   padding: 10px 8px;
   border: none;
