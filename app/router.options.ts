@@ -104,6 +104,10 @@ export default <RouterConfig>{
       return finish(false)
     }
 
+    // Switching Explore tabs keeps the scroll position, as when the tabs
+    // were one page; back/forward restores the entry's own.
+    if (to.path.startsWith('/explore/') && from.path.startsWith('/explore/')) return finish(saved ?? false)
+
     const scrollToTop = typeof to.meta.scrollToTop === 'function' ? to.meta.scrollToTop(to, from) : to.meta.scrollToTop
     if (scrollToTop === false) return finish(false)
 

@@ -18,6 +18,10 @@ function scrollToTopIfCurrent(to: string) {
   scrollAppTo({ top: 0, behavior: 'smooth' })
 }
 
+// On an Explore tab, Explore links to that tab, so tapping it only scrolls
+// to the top; /explore itself would redirect to Branches.
+const exploreTo = computed(() => route.path.startsWith('/explore/') ? route.fullPath : '/explore')
+
 const isBranchDetail = computed(() => route.path.startsWith('/branch/'))
 
 const contextualTab = computed(() => {
@@ -44,7 +48,7 @@ const contextualTab = computed(() => {
       <span class="nav-label">Home</span>
     </NuxtLink>
 
-    <NuxtLink to="/explore" class="nav-item" active-class="nav-item-active" :class="{ 'nav-item-active': contextualTab === '/explore' }"
+    <NuxtLink :to="exploreTo" class="nav-item" active-class="nav-item-active" :class="{ 'nav-item-active': contextualTab === '/explore' }"
               @click="scrollToTopIfCurrent('/explore')"
     >
       <IconNavExplore class="nav-icon" />

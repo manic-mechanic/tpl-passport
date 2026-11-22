@@ -46,3 +46,20 @@ test('Explore has no header search or Browse all branches button', async ({ page
   await expect(page.getByRole('searchbox', { name: 'Search branches' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Browse all branches' })).toHaveCount(0)
 })
+
+test('tapping Explore in the bottom bar on a tab stays on that tab', async ({ page }) => {
+  await page.goto('/explore/events')
+  await page.locator('.bottom-nav').getByRole('link', { name: 'Explore' }).click()
+  await page.waitForTimeout(500)
+  await expect(page).toHaveURL(/\/explore\/events$/)
+})
+
+test('switching Explore tabs keeps the scroll position', async ({ page }) => {
+  await page.goto('/explore/branches')
+  await expect(page.getByRole('searchbox', { name: 'Search branches' })).toBeVisible()
+  await page.evaluate(() => window.scrollTo(0, 300))
+  await page.getByRole('tab', { name: 'Day trips' }).click()
+  await expect(page).toHaveURL(/\/explore\/trips\/transit$/)
+  await page.waitForTimeout(300)
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+})
