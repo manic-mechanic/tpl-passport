@@ -139,14 +139,14 @@ function openSheet(branch: Branch) {
   line-height: 18px;
 }
 
-/* The stop and the Directions link share a line when they fit; otherwise
-   the link wraps to sit directly under the stop. */
+/* Directions stays at the right end of the last ride; a long stop name
+   wraps beside it instead of pushing it onto its own line. */
 .leg-dest {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
   column-gap: 10px;
 }
 
