@@ -89,11 +89,10 @@ const filteredBranches = computed(() => {
 }
 
 .picker-list {
+  /* No inner scroll box: the page scrolls, so the list is never cut off */
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   overflow: hidden;
-  max-height: 240px;
-  overflow-y: auto;
 }
 
 .picker-row {

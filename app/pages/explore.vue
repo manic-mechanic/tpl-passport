@@ -40,11 +40,17 @@
         <span>Finding branches near you…</span>
       </div>
 
-      <p v-else-if="geoStatus === 'denied'" class="geo-denied">{{ geoDeniedMessage }}</p>
-
       <div v-else-if="geoStatus === 'ready'" class="near-me-list">
         <BranchCard v-for="item in nearMeBranches" :key="item.branch.BranchCode" :branch="item.branch"
                     :distance="item.distanceLabel" as-button @select="openBranchSheet"
+        />
+      </div>
+
+      <!-- No location: every branch, A–Z. Explore never prompts for location
+           on its own; that waits for the Explore redesign. -->
+      <div v-else class="near-me-list">
+        <BranchCard v-for="branch in sortedBranches" :key="branch.BranchCode" :branch="branch"
+                    as-button @select="openBranchSheet"
         />
       </div>
     </section>
@@ -79,7 +85,8 @@
 <script setup lang="ts">
 import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
-import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
+import { physicalBranches, sortedBranches, haversineKm, formatDist } from '~/composables/useRegion'
+import { cachedPosition, getPosition, locationAccess } from '~/lib/geolocation'
 import IconSearch from '~/components/icons/IconSearch.vue'
 
 const { $posthog } = useNuxtApp()
@@ -101,26 +108,22 @@ watch(activeTab, (tab) => {
 // ── Near Me ──────────────────────────────────────────────────────────
 const userLat = ref<number | null>(null)
 const userLng = ref<number | null>(null)
-const geoStatus = ref<'loading' | 'ready' | 'denied'>('loading')
-const geoDeniedMessage = computed(() =>
-  navigator?.geolocation
-    ? 'Allow location access to see branches near you.'
-    : 'Geolocation not available on this device.'
-)
+const geoStatus = ref<'loading' | 'ready' | 'none'>('none')
 
-onMounted(() => {
-  if (!navigator?.geolocation) {
-    geoStatus.value = 'denied'
-    return
+// Near Me loads only when it won't bring up a prompt by itself: a recent
+// position is cached, or this device has allowed location (see
+// locationAccess). Otherwise the tab lists every branch.
+onMounted(async () => {
+  if (!cachedPosition() && await locationAccess() !== 'granted') return
+  geoStatus.value = 'loading'
+  try {
+    const pos = await getPosition({ timeout: 20000 })
+    userLat.value = pos.latitude
+    userLng.value = pos.longitude
+    geoStatus.value = 'ready'
+  } catch {
+    geoStatus.value = 'none'
   }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      userLat.value = pos.coords.latitude
-      userLng.value = pos.coords.longitude
-      geoStatus.value = 'ready'
-    },
-    () => { geoStatus.value = 'denied' }
-  )
 })
 
 const nearMeBranches = computed(() => {
@@ -254,12 +257,6 @@ function openBranchSheet(branch: Branch) {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   padding: 14px 0;
-}
-
-.geo-denied {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  padding: 8px 0;
 }
 
 .geo-spinner {
