@@ -11,7 +11,7 @@
         </li>
         <!-- The ride from this branch to the next, drawn as a transit-map
              line: each ride's last stop, transfers as open circles, and a
-             dashed line for a leg that's all walking -->
+             dotted line for a leg that's all walking -->
         <li v-if="stop.branch && stop.next && stop.leg" class="leg"
             :class="{ 'leg-walk': !legRides(stop.leg).length }"
             :aria-label="`From ${stop.branch.BranchName} to ${stop.next.BranchName}`"
@@ -22,7 +22,7 @@
               <p class="leg-ride" :class="{ 'leg-transfer': r > 0 }">
                 <TtcRouteBadge v-if="row" :mode="row.mode" :line="row.line ?? ''" :line-name="row.lineName" />
                 <span class="leg-dest">
-                  <span class="leg-stop">{{ row ? shortStopName(row.toStop) : 'Walk' }}</span>
+                  <span v-if="row" class="leg-stop">{{ shortStopName(row.toStop) }}</span>
                   <a v-if="r === legRows(stop.leg).length - 1" :href="transitDirectionsUrl(stop.branch, stop.next)"
                      target="_blank" rel="noopener" class="leg-link" aria-label="Directions (opens another site)"
                      @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
@@ -112,13 +112,35 @@ function openSheet(branch: Branch) {
   padding: 0 0 0 22px;
 }
 
-/* The tour's line, in its own colour, running from one branch to the next */
+/* The tour's line, in its own colour, running from one branch to the next,
+   with a station dot where it meets each branch */
 .leg-rail {
+  position: relative;
   flex-shrink: 0;
   width: 4px;
-  margin: 2px 0;
+  margin: 6px 0;
   border-radius: 2px;
   background: var(--route-color);
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border-radius: 50%;
+    background: var(--route-color);
+  }
+
+  &::before {
+    top: -5px;
+  }
+
+  &::after {
+    bottom: -5px;
+  }
 }
 
 /* All walking: a dotted line instead of a solid one */
@@ -126,6 +148,12 @@ function openSheet(branch: Branch) {
   background: none;
   border-left: 4px dotted var(--route-color);
   border-radius: 0;
+
+  /* centre the station dots on the dotted border */
+  &::before,
+  &::after {
+    left: -2px;
+  }
 }
 
 .leg-body {
