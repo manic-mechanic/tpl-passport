@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { physicalBranches } from '../app/composables/useRegion'
 import {
-  formatMinutes,
+  formatHours,
   getTourRoute,
   isTourOn,
   isTourReferral,
-  legMinutes,
   legRides,
   routeProgress,
   shortStopName,
@@ -39,19 +38,21 @@ describe('Your Library Tour data', () => {
 })
 
 describe('tour helpers', () => {
-  it('formats minutes as hours and minutes', () => {
-    expect(formatMinutes(45)).toBe('45 min')
-    expect(formatMinutes(120)).toBe('2 h')
-    expect(formatMinutes(184)).toBe('3 h 4 min')
+  it('rounds route length to the nearest half hour', () => {
+    expect(formatHours(10)).toBe('~0.5 hours')
+    expect(formatHours(60)).toBe('~1 hour')
+    expect(formatHours(132)).toBe('~2 hours')
+    expect(formatHours(135)).toBe('~2.5 hours')
+    expect(formatHours(184)).toBe('~3 hours')
+    expect(formatHours(205)).toBe('~3.5 hours')
   })
 
-  it('totals a leg and lists only its rides', () => {
+  it('lists only the rides in a leg', () => {
     const leg = [
       { mode: 'WALK' as const, minutes: 2, meters: 150 },
       { mode: 'BUS' as const, minutes: 8, lineName: '45 Kipling' },
       { mode: 'WALK' as const, minutes: 1, meters: 80 },
     ]
-    expect(legMinutes(leg)).toBe(11)
     expect(legRides(leg).map(s => s.lineName)).toEqual(['45 Kipling'])
   })
 

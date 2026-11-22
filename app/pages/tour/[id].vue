@@ -2,16 +2,12 @@
   <main class="page-content" :style="{ '--route-color': tour.color, '--route-on': textOnColor(tour.color) }">
     <PageBanner :title="tour.title" back-label="Day trips" back-to="/explore?tab=routes&mode=transit">
       <template #sub>
-        {{ formatMinutes(tour.travelMin) }} · {{ tour.walkKm }} km walking
+        {{ formatHours(tour.travelMin) }}
       </template>
     </PageBanner>
 
     <div class="tour-progress-head">
       <span class="tour-chip">Route {{ tour.id }}</span>
-      <span class="tour-progress-label">
-        <template v-if="visited === stops.length">All {{ stops.length }} visited</template>
-        <template v-else>{{ visited }} of {{ stops.length }} visited</template>
-      </span>
     </div>
 
     <ol class="stops">
@@ -27,9 +23,7 @@
           <span class="leg-rail" aria-hidden="true" />
           <div class="leg-body">
             <div class="leg-head">
-              <span class="leg-time">
-                {{ formatMinutes(legMinutes(stop.leg)) }}<template v-if="!legRides(stop.leg).length"> walk</template>
-              </span>
+              <span v-if="!legRides(stop.leg).length" class="leg-time">Walk</span>
               <a :href="transitDirectionsUrl(stop.branch, stop.next)" target="_blank" rel="noopener" class="leg-link"
                  aria-label="Directions (opens another site)"
                  @click="$posthog?.capture('tour_directions_tapped', { route_id: tour.id, leg: i + 1 })"
@@ -59,9 +53,8 @@ import IconExternal from '~/components/icons/IconExternal.vue'
 import { branchesByCode } from '~/composables/useRegion'
 import { usePassportStore } from '~/stores/passport'
 import {
-  formatMinutes,
+  formatHours,
   getTourRoute,
-  legMinutes,
   legRides,
   shortStopName,
   textOnColor,

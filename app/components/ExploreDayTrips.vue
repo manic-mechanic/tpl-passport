@@ -7,6 +7,15 @@
       <IconMode class="mode-icon" v-html="mode.icon" />
       {{ mode.label }}
     </button>
+    <div class="mode-tab mode-tab--soon" role="tab" aria-selected="false" aria-disabled="true"
+         aria-label="Bike and car routes coming soon"
+    >
+      <span class="mode-icons" aria-hidden="true">
+        <IconMode class="mode-icon" v-html="BIKE_ICON" />
+        <IconMode class="mode-icon" v-html="CAR_ICON" />
+      </span>
+      Coming soon
+    </div>
   </nav>
 
   <!-- Walking routes -->
@@ -60,14 +69,10 @@
     >
       <div class="route-meta-row">
         <span class="tour-chip">Route {{ tour.id }}</span>
-        <span class="route-info">{{ formatMinutes(tour.travelMin) }}</span>
+        <span class="route-info">{{ formatHours(tour.travelMin) }}</span>
         <IconChevron class="route-chevron" />
       </div>
       <p class="route-name">{{ tour.title }}</p>
-      <p class="tour-visited">
-        <template v-if="tour.visited === tour.total">All {{ tour.total }} visited</template>
-        <template v-else>{{ tour.visited }} of {{ tour.total }} visited</template>
-      </p>
       <div class="route-stamps">
         <div v-for="b in tour.branchObjects.slice(0, 4)" :key="b.BranchCode" class="route-stamp-item">
           <div :class="{ 'route-stamp-ghost': !passport.hasVisited(b.BranchCode) }">
@@ -88,7 +93,7 @@ import type { Branch } from '@tpl-passport/shared'
 import { usePassportStore } from '~/stores/passport'
 import { branchesByCode, buildMapsUrl } from '~/composables/useRegion'
 import routesData from '#data/routes.json'
-import { LIBRARY_TOUR, TOUR_END_LABEL, formatMinutes, isTourOn, routeProgress, textOnColor, tourRoutes } from '~/lib/libraryTour'
+import { LIBRARY_TOUR, TOUR_END_LABEL, formatHours, isTourOn, routeProgress, textOnColor, tourRoutes } from '~/lib/libraryTour'
 import IconExternal from '~/components/icons/IconExternal.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -129,6 +134,8 @@ const routesWithProgress = computed(() =>
     })
 )
 
+const BIKE_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>'
+const CAR_ICON = '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>'
 
 // ── Your Library Tour (transit) ──────────────────────────────────────
 // The card shows while the tour is on; the routes stay after it ends.
@@ -207,6 +214,16 @@ const tourWithProgress = computed(() =>
   }
 }
 
+
+.mode-tab--soon {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.mode-icons {
+  display: flex;
+  gap: 4px;
+}
 
 .mode-icon {
   width: 20px;
@@ -402,12 +419,6 @@ const tourWithProgress = computed(() =>
   border-radius: 999px;
   padding: 2px 8px;
   flex-shrink: 0;
-}
-
-.tour-visited {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
 }
 
 </style>

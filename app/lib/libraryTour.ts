@@ -50,16 +50,10 @@ export function getTourRoute(id: string | number): TourRoute | undefined {
   return tourRoutes.find(r => String(r.id) === String(id))
 }
 
-// "45 min", "2 h", "3 h 4 min"
-export function formatMinutes(total: number): string {
-  const h = Math.floor(total / 60)
-  const m = Math.round(total % 60)
-  if (!h) return `${m} min`
-  return m ? `${h} h ${m} min` : `${h} h`
-}
-
-export function legMinutes(leg: TourSegment[]): number {
-  return leg.reduce((sum, s) => sum + s.minutes, 0)
+// A rough route length, to the nearest half hour: "~1 hour", "~2.5 hours".
+export function formatHours(minutes: number): string {
+  const hours = Math.max(0.5, Math.round(minutes / 30) / 2)
+  return `~${hours} ${hours === 1 ? 'hour' : 'hours'}`
 }
 
 // The rides in a leg, e.g. ["45 Kipling", "Line 2"]. Walks are left out.
