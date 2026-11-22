@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Branch } from '@tpl-passport/shared'
+import { eventLocationKey, type Branch } from '@tpl-passport/shared'
 import { physicalBranches, haversineKm } from '~/composables/useRegion'
 import { formatAudiences, formatEventTime } from '~/composables/useEvents'
 import { localDayKey } from '@tpl-passport/shared'
@@ -92,7 +92,7 @@ interface ExploreEvent {
 
 // ── Events (What's On) ───────────────────────────────────────────────
 const branchByShortName = new Map(
-  physicalBranches.map(b => [b.BranchName.replace(/ Branch$/i, '').toLowerCase(), b])
+  physicalBranches.map(b => [eventLocationKey(b.BranchName), b])
 )
 
 function formatEventDateParts(dateStr: string) {
@@ -119,7 +119,7 @@ function eventFromRaw(raw: RawEvent): ExploreEvent {
       time: raw.StartTime ?? '',
       audiences: raw.Audiences ?? raw.AgeGroup ?? raw['Age Group'] ?? '',
       locationName,
-      branch: branchByShortName.get(locationName.toLowerCase()) ?? null,
+      branch: branchByShortName.get(eventLocationKey(locationName)) ?? null,
     }
 }
 
