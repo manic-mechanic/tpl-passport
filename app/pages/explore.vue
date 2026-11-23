@@ -108,8 +108,12 @@ provide(exploreContextKey, { openBranch: openBranchSheet, userLat, userLng })
 
 .tab-pill {
   flex: 1;
+  /* Single-line labels centre on a wrapped one ("Extra Credit"). */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 10px 8px;
+  padding: 10px 8px 6px;
   border: none;
   border-bottom: 2.5px solid transparent;
   margin-bottom: -1.5px;

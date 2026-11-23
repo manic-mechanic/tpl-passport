@@ -27,6 +27,7 @@
 </template>
 
 <script setup lang="ts">
+import { branchSearchMatcher } from '~/lib/branchSearch'
 import { sortedBranches } from '~/composables/useRegion'
 
 const emit = defineEmits<{
@@ -38,7 +39,7 @@ const query = ref('')
 
 const filteredBranches = computed(() => {
   const q = query.value.toLowerCase().trim()
-  return q ? sortedBranches.filter(b => b.BranchName.toLowerCase().includes(q)) : sortedBranches
+  return q ? sortedBranches.filter(branchSearchMatcher(q, { withAddress: false })) : sortedBranches
 })
 </script>
 
