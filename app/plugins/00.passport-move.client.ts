@@ -1,6 +1,9 @@
 import { loadPassportState, parseStoredPassport, savePassportState } from '~/lib/passportStorage'
 import { getPhotoBlob, savePhoto } from '~/composables/usePhotoStore'
-import { MOVE_DONE, MOVE_PARAM, MOVE_READY, OLD_ORIGIN, cameFromOldSite, mergeMovedPassport, readMoveData, type MoveData } from '~/lib/siteMove'
+import {
+  MOVE_DATA, MOVE_DONE, MOVE_FAILED_URL, MOVE_FRAGMENT_KEY, MOVE_PARAM, MOVE_READY, OLD_ORIGIN,
+  cameFromOldSite, mergeMovedPassport, moveMessageType, readMoveData, type MoveData,
+} from '~/lib/siteMove'
 import { reportError } from '~/lib/reportError'
 
 // Receives a passport moved from the old site address (see lib/siteMove.ts).
@@ -19,8 +22,8 @@ function waitForMove(opener: Window): Promise<MoveData | null> {
     }
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== OLD_ORIGIN || event.source !== opener) return
-      const data = readMoveData(event.data)
-      if (data) finish(data)
+      // A malformed DATA message is final too: nothing better is coming.
+      if (moveMessageType(event.data) === MOVE_DATA) finish(readMoveData(event.data))
     }
     const timer = setTimeout(() => finish(null), WAIT_MS)
     window.addEventListener('message', onMessage)
@@ -31,30 +34,51 @@ function waitForMove(opener: Window): Promise<MoveData | null> {
 async function importMove(data: MoveData) {
   const moved = parseStoredPassport(data.passport)
   if (!moved) throw new Error('Moved passport could not be read')
-  savePassportState(mergeMovedPassport(loadPassportState(), moved.payload))
-  // Photos are keyed by check-in timestamp. A photo already here wins.
+  // Photos first: if one fails, nothing points at it yet, and a retry skips
+  // the ones already saved. Keyed by check-in timestamp; a photo already
+  // here wins.
   for (const { key, blob } of data.photos) {
     if (!(await getPhotoBlob(key))) await savePhoto(key, blob)
   }
+  savePassportState(mergeMovedPassport(loadPassportState(), moved.payload))
 }
 
-async function receiveMove(fragment: string) {
+// The fallback's fragment, stashed by the inline <head> script in
+// nuxt.config.ts. Read once.
+function takeFragment(): string {
+  try {
+    const fragment = sessionStorage.getItem(MOVE_FRAGMENT_KEY) ?? ''
+    sessionStorage.removeItem(MOVE_FRAGMENT_KEY)
+    return fragment
+  } catch {
+    return ''
+  }
+}
+
+// Returns where to go next: the clean URL, or back to the old page when a
+// fallback move can't be accepted.
+async function receiveMove(cleanUrl: string): Promise<string> {
   // window.opener is typed `any`; it's the old page's window or null.
   const opener: Window | null = window.opener
+  const fragment = takeFragment()
+  const referrer = document.referrer
 
   let data: MoveData | null = null
-  if (opener) {
-    data = await waitForMove(opener)
-  } else if (fragment && cameFromOldSite(document.referrer)) {
+  if (fragment) {
     // Fallback for when the new tab loses its link to the old page (iOS
     // Home Screen apps): the passport without photos, in the fragment.
+    if (!cameFromOldSite(referrer)) return MOVE_FAILED_URL
     try {
       data = { passport: decodeURIComponent(fragment), photos: [] }
     } catch {
-      data = null
+      return MOVE_FAILED_URL
     }
+  } else if (opener && (!referrer || cameFromOldSite(referrer))) {
+    // Some browsers send no referrer, so only a referrer from another site
+    // rules the old page out. Anything else waits for it to answer.
+    data = await waitForMove(opener)
   }
-  if (!data) return
+  if (!data) return cleanUrl
 
   try {
     await importMove(data)
@@ -62,24 +86,25 @@ async function receiveMove(fragment: string) {
   } catch (error) {
     // The old page keeps its copy and offers to try again.
     reportError(error, { area: 'persistence', operation: 'import_moved_passport' })
+    if (!opener) return MOVE_FAILED_URL
   }
+  return cleanUrl
 }
 
 export default defineNuxtPlugin(async () => {
   const url = new URL(window.location.href)
   if (url.searchParams.get(MOVE_PARAM) !== '1') return
-  // The fallback carries the passport in the fragment. Take it off the URL at
-  // once, so an error report can't include it, and never let the app start on
-  // this URL: the router already holds it and would navigate to it, sending it
-  // with the pageview. Instead, finish by loading the clean URL.
-  const fragment = url.hash.slice(1)
+  // Never let the app start on this URL: the router already holds it and
+  // would navigate to it and send it with the pageview. Finish by loading
+  // the clean URL instead.
   url.searchParams.delete(MOVE_PARAM)
+  url.hash = ''
   const cleanUrl = url.pathname + url.search
-  window.history.replaceState(null, '', cleanUrl)
+  let next = cleanUrl
   try {
-    await receiveMove(fragment)
+    next = await receiveMove(cleanUrl)
   } finally {
-    window.location.replace(cleanUrl)
+    window.location.replace(next)
   }
   // Hold the app until that load replaces this page.
   await new Promise(() => {})

@@ -21,6 +21,12 @@ import type { PassportCheckIn, PassportPersistedState } from '~/types/passport'
 export const OLD_ORIGIN = 'https://tpl-passport.vercel.app'
 export const NEW_ORIGIN = 'https://www.librarypassport.ca'
 export const MOVE_PARAM = 'passport-move'
+// The fallback's fragment, moved here by an inline <head> script (see
+// nuxt.config.ts) before any app code, Sentry included, can see the URL.
+export const MOVE_FRAGMENT_KEY = 'tpl-passport-move-fragment'
+// Sent back to the old page when the fallback can't be accepted, so the
+// person isn't left on an empty passport without knowing why.
+export const MOVE_FAILED_URL = `${OLD_ORIGIN}/moving.html?failed=1`
 
 export const MOVE_READY = 'tpl-passport-move:ready'
 export const MOVE_DATA = 'tpl-passport-move:data'
@@ -38,6 +44,11 @@ export interface MoveData {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+// The type of a move message, or null for anything else.
+export function moveMessageType(data: unknown): string | null {
+  return isObject(data) && typeof data.type === 'string' ? data.type : null
 }
 
 // Validates a DATA message from the old site. Malformed photo entries are

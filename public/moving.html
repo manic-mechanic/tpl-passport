@@ -52,10 +52,24 @@
   var NEW_ORIGIN = 'https://www.librarypassport.ca'
   var MOVED_KEY = 'tpl-passport-moved'
 
+  // Where to continue on the new site: the path the visit asked for.
   function targetUrl() {
     var to = new URLSearchParams(location.search).get('to') || '/'
-    // Only a path on the new site: never another host.
-    return NEW_ORIGIN + (/^\/(?![\/\\])/.test(to) ? to : '/')
+    try {
+      var url = new URL(to, NEW_ORIGIN)
+      // Only a path on the new site: never another host.
+      if (url.origin !== NEW_ORIGIN) return NEW_ORIGIN + '/'
+      // Never forward a move link. Coming from here, the new site would take
+      // it as a genuine move, so any link through this page could plant a
+      // passport on whoever follows it. Only the button below makes one.
+      if (url.searchParams.has('passport-move')) {
+        url.searchParams.delete('passport-move')
+        url.hash = ''
+      }
+      return url.href
+    } catch (e) {
+      return NEW_ORIGIN + '/'
+    }
   }
 
   function storedPassport() {
@@ -151,7 +165,8 @@
     moveButton.hidden = false
     moveButton.disabled = true
     setStatus('Opening the new site…')
-    popup = window.open(NEW_ORIGIN + '/?passport-move=1', '_blank')
+    // A named window, so trying again reuses the same tab.
+    popup = window.open(NEW_ORIGIN + '/?passport-move=1', 'passport-move')
     if (!popup) {
       moveButton.disabled = false
       return showFallback('Your browser blocked the new tab. Allow it and try again, or move without photos.')
@@ -166,17 +181,34 @@
     if (event.origin !== NEW_ORIGIN || !popup || event.source !== popup) return
     var type = event.data && event.data.type
     if (type === MOVE_READY) {
+      var passport = storedPassport()
+      // Cleared since this page loaded: nothing left to move. Answer anyway,
+      // so the new tab stops waiting.
+      if (!passport) {
+        popup.postMessage({ type: MOVE_DATA, passport: null }, NEW_ORIGIN)
+        return finishMove()
+      }
       setStatus('Moving your passport…')
       readPhotos().then(function (photos) {
-        popup.postMessage({ type: MOVE_DATA, passport: storedPassport(), photos: photos }, NEW_ORIGIN)
+        popup.postMessage({ type: MOVE_DATA, passport: passport, photos: photos }, NEW_ORIGIN)
       })
     } else if (type === MOVE_DONE) {
-      clearTimeout(timer)
-      try { localStorage.setItem(MOVED_KEY, new Date().toISOString()) } catch (e) {}
-      setStatus('Done. Your passport is now at www.librarypassport.ca.')
-      setTimeout(function () { location.replace(targetUrl()) }, 1500)
+      finishMove()
     }
   })
+
+  function finishMove() {
+    clearTimeout(timer)
+    try { localStorage.setItem(MOVED_KEY, new Date().toISOString()) } catch (e) {}
+    setStatus('Done. Your passport is now at www.librarypassport.ca.')
+    setTimeout(function () { location.replace(targetUrl()) }, 1500)
+  }
+
+  // The new site sends people back here when it couldn't accept a move
+  // without photos.
+  if (new URLSearchParams(location.search).get('failed') === '1') {
+    showFallback('Your passport didn’t move. Try again.')
+  }
 
   moveButton.addEventListener('click', startMove)
   document.getElementById('retry').addEventListener('click', startMove)

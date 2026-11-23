@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MOVE_DATA, cameFromOldSite, hasPassportData, mergeMovedPassport, readMoveData } from '../app/lib/siteMove'
+import { MOVE_DATA, cameFromOldSite, hasPassportData, mergeMovedPassport, moveMessageType, readMoveData } from '../app/lib/siteMove'
 import type { PassportCheckIn, PassportPersistedState } from '../app/types/passport'
 
 const checkIn = (branchCode: string, timestamp: string, note = ''): PassportCheckIn => ({ branchCode, timestamp, note })
@@ -94,6 +94,15 @@ describe('readMoveData', () => {
 
   it('treats missing photos as none', () => {
     expect(readMoveData({ type: MOVE_DATA, passport: '{}' })).toEqual({ passport: '{}', photos: [] })
+  })
+})
+
+describe('moveMessageType', () => {
+  it('reads the type of a move message', () => {
+    expect(moveMessageType({ type: MOVE_DATA, passport: null })).toBe(MOVE_DATA)
+    expect(moveMessageType({ type: 3 })).toBeNull()
+    expect(moveMessageType('tpl-passport-move:data')).toBeNull()
+    expect(moveMessageType(null)).toBeNull()
   })
 })
 
