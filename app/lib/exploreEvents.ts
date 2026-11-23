@@ -1,6 +1,6 @@
 // Turns /api/all-events records into the What's On list (ExploreEvents).
 import type { Branch } from '@tpl-passport/shared'
-import { BRANCH_TIME_ZONE, haversineKm, localDayKey } from '@tpl-passport/shared'
+import { BRANCH_TIME_ZONE, eventLocationKey, haversineKm, localDayKey } from '@tpl-passport/shared'
 
 // One record from /api/all-events (the CKAN TPL events feed).
 export interface RawEvent {
@@ -30,24 +30,10 @@ export interface ExploreEvent {
   url: string | null
 }
 
-// Branch names as the feed writes them: no " Branch" suffix (but Long Branch
-// keeps its name), and either kind of apostrophe.
-export function branchKey(name: string): string {
-  return name
-    .replace(/(.) Branch$/i, '$1')
-    .replace(/[’‘`]/g, '\'')
-    .trim()
-    .toLowerCase()
-}
-
+// Branches by the feed's LocationName for them (eventLocationKey: straight
+// apostrophes, Long Branch kept whole).
 export function branchLookup(branches: Branch[]): Map<string, Branch> {
-  const map = new Map<string, Branch>()
-  for (const b of branches) {
-    map.set(branchKey(b.BranchName), b)
-    // "Long Branch" is also its own short name.
-    map.set(b.BranchName.trim().toLowerCase().replace(/[’‘`]/g, '\''), b)
-  }
-  return map
+  return new Map(branches.map(b => [eventLocationKey(b.BranchName), b]))
 }
 
 // The feed lists some events twice, once under "<Branch> - Closed", and has
@@ -77,7 +63,7 @@ export function toExploreEvents(raw: RawEvent[], branches: Map<string, Branch>):
       audiences: r.Audiences ?? '',
       types: parseTypes(r.EventTypes),
       locationName,
-      branch: branches.get(branchKey(locationName)) ?? null,
+      branch: branches.get(eventLocationKey(locationName)) ?? null,
       url: eventUrl(r.EventID),
     })
   }

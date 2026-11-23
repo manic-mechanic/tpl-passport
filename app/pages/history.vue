@@ -40,8 +40,7 @@
                 :meta="formatTime(visit.timestamp)"
                 :has-note="!!visit.note?.trim()"
                 :has-photo="!!photoUrls[visit.timestamp]"
-                as-button
-                @select="openSheet"
+                :to="visitPath(visit.timestamp)"
               />
             </li>
           </ul>
@@ -55,10 +54,6 @@
       <p>No visits yet.<br>Check in at any branch to start your history.</p>
     </div>
   </main>
-
-  <BaseSheet v-model:open="sheetOpen" :height="sheetHeight">
-    <BranchDetail v-if="activeBranch" :branch="activeBranch" source="history" @open-branch="openSheet" />
-  </BaseSheet>
 </template>
 
 <script setup lang="ts">
@@ -68,6 +63,7 @@ import { usePassportStore } from '~/stores/passport'
 import { branchesByCode } from '~/composables/useRegion'
 import { getCheckInPhotoSrc, releasePhotoSrc } from '~/composables/usePhotoStore'
 import { localDayKey } from '@tpl-passport/shared'
+import { visitPath } from '~/lib/visitPhoto'
 import IconClock from '~/components/icons/IconClock.vue'
 
 const { $posthog } = useNuxtApp()
@@ -140,15 +136,6 @@ function formatTime(iso: string) {
   if (localDayKey(d) === localDayKey(new Date()))
     return d.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })
   return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
-}
-
-const sheetOpen = ref(false)
-const activeBranch = ref<Branch | null>(null)
-const sheetHeight = 'calc(100svh - var(--nav-height) - 60px)'
-
-function openSheet(branch: Branch) {
-  activeBranch.value = branch
-  sheetOpen.value = true
 }
 
 function goBack() {

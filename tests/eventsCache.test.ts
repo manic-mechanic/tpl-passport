@@ -30,14 +30,7 @@ describe('branch codes to feed names', () => {
   it('maps codes to the names the feed uses, straight apostrophe included', async () => {
     const { feedNamesForCodes } = await import('../server/lib/ckanEvents')
     const names = feedNamesForCodes('we, LB,zzz,WE')
-    expect(names).toContain('Weston')
-    expect(names).toHaveLength(2)
+    expect(names).toEqual(['Long Branch', 'Weston'])
     expect(feedNamesForCodes('')).toEqual([])
-  })
-
-  it('keeps Long Branch whole and straightens Ethennonnhawahstihnen’', async () => {
-    const { feedLocationName } = await import('../server/lib/ckanEvents')
-    expect(feedLocationName('Long Branch')).toBe('Long Branch')
-    expect(feedLocationName('Ethennonnhawahstihnen’')).toBe('Ethennonnhawahstihnen\'')
   })
 })

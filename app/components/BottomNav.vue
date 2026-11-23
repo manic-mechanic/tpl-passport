@@ -25,8 +25,11 @@ const exploreTo = computed(() => route.path.startsWith('/explore/') ? route.full
 const isBranchDetail = computed(() => route.path.startsWith('/branch/'))
 
 const contextualTab = computed(() => {
-  if (!isBranchDetail.value) return null
   const state = router.options.history.state
+  // A visit page: the check-in it confirms, or one opened from History
+  // (part of the passport).
+  if (route.path.startsWith('/visit/')) return state?.checkedIn === true ? '/check-in' : '/passport'
+  if (!isBranchDetail.value) return null
   const back = typeof state?.back === 'string' ? state.back : ''
   const original = typeof state?.originalSource === 'string' ? state.originalSource : ''
   const effective = (back.startsWith('/branch/') && original) ? original : back
