@@ -1,29 +1,33 @@
 <template>
   <div class="events-list">
-    <div class="events-toolbar">
-      <!-- Day: step through the loaded week, or pick from the list -->
+    <!-- Day (prev/next around the date) and Filter, centred together -->
+    <div class="events-controls">
       <div class="day-picker">
         <button class="day-step" :disabled="dayIndex <= 0" aria-label="Previous day" @click="stepDay(-1)">
           <IconChevron class="day-step-icon day-step-prev" />
         </button>
-        <label class="day-current">
-          <span class="day-rel">{{ dayRelative(day) }}</span>
-          <span class="day-date">{{ dayDate(day) }}</span>
-          <select class="overlay-select" aria-label="Choose a day" :value="day" @change="pickDay(($event.target as HTMLSelectElement).value)">
-            <option v-for="d in days" :key="d" :value="d">{{ dayOptionLabel(d) }}</option>
-          </select>
-        </label>
+        <input
+          :value="day"
+          class="events-date-input"
+          type="date"
+          aria-label="Day"
+          :min="days[0]"
+          :max="days[days.length - 1]"
+          required
+          @change="pickDay(($event.target as HTMLInputElement).value)"
+        >
         <button class="day-step" :disabled="dayIndex >= days.length - 1" aria-label="Next day" @click="stepDay(1)">
           <IconChevron class="day-step-icon" />
         </button>
       </div>
-      <button class="filter-btn" :class="{ active: activeFilterCount > 0 }" @click="filtersOpen = true">
-        Filter<template v-if="activeFilterCount"> ({{ activeFilterCount }})</template>
+      <button class="filter-btn" :class="{ active: activeFilterCount > 0 || sort !== 'time' }"
+              :aria-label="activeFilterCount ? `Filter (${activeFilterCount} on)` : 'Filter'" @click="filtersOpen = true"
+      >
+        <IconFilter class="filter-icon" />
       </button>
     </div>
     <p v-if="locateError" class="events-note">{{ locateError }}</p>
 
-    <!-- Events for the day -->
     <div v-if="state === 'loading' || !state" class="geo-state">
       <span class="geo-spinner" />
       <span>Loading events…</span>
@@ -33,40 +37,32 @@
       <button class="text-btn" @click="loadDay(day)">Try again</button>
     </p>
     <template v-else>
-      <section v-for="group in groups" :key="group.time" class="programme-group">
-        <h3 v-if="group.time" class="programme-time">{{ group.time }}</h3>
-        <ul class="programme">
-          <li v-for="event in group.events" :key="event.id" class="event-row" :class="{ clickable: event.branch }"
-              :role="event.branch ? 'button' : undefined" :tabindex="event.branch ? 0 : undefined"
-              :aria-label="event.branch ? `${event.title}, ${event.locationName}. Open branch` : undefined"
-              @click="event.branch && openBranch(event.branch)"
-              @keydown.enter.self="event.branch && openBranch(event.branch)"
-          >
-            <div class="cal" aria-hidden="true">
-              <span class="cal-month">{{ dateParts(event.date).month }}</span>
-              <span class="cal-day">{{ dateParts(event.date).day }}</span>
-              <span class="cal-weekday">{{ dateParts(event.date).weekday }}</span>
-            </div>
-            <div class="event-info">
-              <p class="event-title">{{ event.title }}</p>
-              <p class="event-meta">
-                <span class="event-meta-text">
-                  <span v-if="!group.time" class="event-time">{{ formatEventTime(event.start) }}</span>
-                  <span class="event-branch">
-                    <IconCheckMark v-if="event.branch && passport.hasVisited(event.branch.BranchCode)" class="event-visited" role="img" aria-label="Visited" />{{ event.branch ? shortName(event.branch) : event.locationName }}</span>
-                  <span v-if="event.audiences" class="event-ages">{{ formatAudiences(event.audiences) }}</span>
-                </span>
-                <a v-if="event.url" :href="event.url" target="_blank" rel="noopener" class="event-link"
-                   :aria-label="`${event.title} on the TPL website (opens another site)`"
-                   @click.stop="$posthog?.capture('whats_on_event_link_tapped', { title: event.title })"
-                   @keydown.enter.stop
-                ><IconExternal class="event-link-icon" aria-hidden="true" /></a>
-              </p>
-            </div>
-            <IconChevron v-if="event.branch" class="event-chevron" aria-hidden="true" />
-          </li>
-        </ul>
-      </section>
+      <div v-for="event in shown" :key="event.id" class="event-row" :class="{ clickable: event.branch }"
+           :role="event.branch ? 'button' : undefined" :tabindex="event.branch ? 0 : undefined"
+           :aria-label="event.branch ? `${event.title}, ${event.locationName}. Open branch` : undefined"
+           @click="event.branch && openBranch(event.branch)"
+           @keydown.enter.self="event.branch && openBranch(event.branch)"
+      >
+        <div class="event-date" aria-hidden="true">
+          <span class="event-month">{{ dateParts(event.date).month }}</span>
+          <span class="event-day">{{ dateParts(event.date).day }}</span>
+        </div>
+        <div class="event-info">
+          <p class="event-title">
+            {{ event.title }}<a v-if="event.url" :href="event.url" target="_blank" rel="noopener" class="event-link"
+                                :aria-label="`${event.title} on the TPL website (opens another site)`"
+                                @click.stop="$posthog?.capture('whats_on_event_link_tapped', { title: event.title })"
+                                @keydown.enter.stop
+            ><IconExternal class="event-link-icon" aria-hidden="true" /></a>
+          </p>
+          <p class="event-meta">
+            <StampDot v-if="event.branch" class="event-stamp" :branch-code="event.branch.BranchCode"
+                      :ward-no="event.branch.WardNo" :visited="passport.hasVisited(event.branch.BranchCode)"
+            />{{ [event.branch ? shortName(event.branch) : event.locationName, formatEventTime(event.start), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}
+          </p>
+        </div>
+        <IconChevron v-if="event.branch" class="event-chevron" aria-hidden="true" />
+      </div>
 
       <template v-if="shown.length === 0">
         <p v-if="dayEvents.length > 0" class="events-note">
@@ -144,7 +140,7 @@ import {
   timeOfDay, toExploreEvents, torontoNow,
   type AgeGroupId, type EventSort, type ExploreEvent, type RawEvent, type TimeOfDay,
 } from '~/lib/exploreEvents'
-import IconCheckMark from '~/components/icons/IconCheckMark.vue'
+import IconFilter from '~/components/icons/IconFilter.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
 import IconExternal from '~/components/icons/IconExternal.vue'
 
@@ -345,7 +341,7 @@ function dateParts(dateStr: string) {
   const d = new Date(dateStr + 'T00:00:00')
   return {
     day: d.getDate(),
-    month: d.toLocaleDateString('en-CA', { month: 'short' }).replace('.', ''),
+    month: d.toLocaleDateString('en-CA', { month: 'short' }).replace('.', '').toUpperCase(),
     weekday: d.toLocaleDateString('en-CA', { weekday: 'short' }),
   }
 }
@@ -377,39 +373,9 @@ function dayLabel(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-CA', { weekday: 'long' })
 }
 
-function dayOptionLabel(d: string) {
-  const date = new Date(d + 'T00:00:00').toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' })
-  if (d === today.value) return `Today, ${date}`
-  if (d === addDays(today.value, 1)) return `Tomorrow, ${date}`
-  return date
-}
 
-// By time, events sit under their start time; nearest first, in one list
-// with the time on each row.
-const groups = computed(() => {
-  if (sort.value === 'nearest') return [{ time: '', events: shown.value }]
-  const out: { time: string, events: ExploreEvent[] }[] = []
-  for (const e of shown.value) {
-    const time = formatEventTime(e.start) || 'Time to be announced'
-    const last = out[out.length - 1]
-    if (last?.time === time) last.events.push(e)
-    else out.push({ time, events: [e] })
-  }
-  return out
-})
 
-function dayRelative(d: string) {
-  if (d === today.value) return 'Today'
-  if (d === addDays(today.value, 1)) return 'Tomorrow'
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-CA', { weekday: 'long' })
-}
 
-function dayDate(d: string) {
-  const opts: Intl.DateTimeFormatOptions = d === today.value || d === addDays(today.value, 1)
-    ? { weekday: 'short', month: 'short', day: 'numeric' }
-    : { month: 'short', day: 'numeric' }
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-CA', opts)
-}
 
 onMounted(async () => {
   startClock()
@@ -450,25 +416,24 @@ onBeforeUnmount(stopClock)
 .events-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-/* ── Toolbar: day picker and Filter ──────────────────────────────── */
-.events-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  margin-top: -8px;
 }
 
-/* The arrows are joined to the day */
+/* ── Controls: day picker and filter, centred as one group ───────── */
+.events-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .day-picker {
   display: flex;
+  align-items: stretch;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
-  overflow: hidden;
 }
 
 .day-step {
@@ -498,52 +463,41 @@ onBeforeUnmount(stopClock)
   transform: rotate(180deg);
 }
 
-.day-current {
-  position: relative;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 6px 10px;
+.events-date-input {
+  min-width: 0;
+  padding: 8px 6px;
+  border: none;
   border-inline: 1px solid var(--color-border);
+  border-radius: 0;
   font-size: 0.875rem;
+  font-family: var(--font-body);
   color: var(--color-text);
-  white-space: nowrap;
-}
-
-.day-rel {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-brand-text);
-}
-
-.day-date {
-  color: var(--color-text-mid);
-}
-
-/* A native select over the label: the phone's own picker, our looks. */
-.overlay-select {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  opacity: 0;
-  cursor: pointer;
-  font-size: 16px;
+  background: var(--color-surface);
 }
 
 .filter-btn {
-  padding: 6px 2px;
-  border: none;
-  background: none;
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
   cursor: pointer;
 
   &.active {
-    color: var(--color-brand-text);
+    background: var(--tpl-navy);
+    border-color: var(--tpl-navy);
+    color: #fff;
   }
+}
+
+.filter-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .events-note {
@@ -570,41 +524,15 @@ onBeforeUnmount(stopClock)
   }
 }
 
-/* ── Programme: events under their start time ─────────────────────── */
-.programme-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.programme-time {
-  margin: 8px 0 0;
-  font-family: var(--font-display);
-  font-size: 1.0625rem;
-  font-weight: 600;
-  font-variant-numeric: lining-nums;
-  color: var(--color-brand-text);
-}
-
-/* One sheet per time slot, rows ruled off, like a printed listing */
-.programme {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-sm);
-}
-
+/* ── Rows ────────────────────────────────────────────────────────── */
 .event-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 10px 10px 12px;
-
-  & + & {
-    border-top: 1px solid var(--color-border-soft);
-  }
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
 }
 
 .event-row.clickable {
@@ -614,51 +542,34 @@ onBeforeUnmount(stopClock)
   &:active {
     background: var(--color-paper);
   }
-
-  &:focus-visible {
-    outline: 2px solid var(--tpl-blue);
-    outline-offset: -2px;
-  }
 }
 
-/* A tear-off desk calendar page */
-.cal {
+.event-date {
   flex-shrink: 0;
+  width: 46px;
+  background: color-mix(in srgb, var(--tpl-blue) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tpl-blue) 25%, transparent);
+  border-radius: var(--radius-sm, 6px);
+  padding: 6px 4px 7px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 40px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--tpl-navy) 30%, var(--color-border));
-  border-radius: 6px;
-  background: var(--color-surface);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--tpl-navy) 15%, transparent);
+  gap: 1px;
 }
 
-.cal-month {
-  align-self: stretch;
-  padding: 1px 0 2px;
-  background: var(--tpl-navy);
-  color: #fff;
-  font-size: 0.625rem;
-  font-weight: 600;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.cal-day {
-  margin-top: 2px;
-  font-family: var(--font-display);
-  font-size: 1.1875rem;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--color-brand-text);
-}
-
-.cal-weekday {
-  padding-bottom: 3px;
+.event-month {
   font-size: 0.5625rem;
-  color: var(--color-text-muted);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--tpl-blue);
+}
+
+.event-day {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-brand-text);
 }
 
 .event-info {
@@ -666,90 +577,54 @@ onBeforeUnmount(stopClock)
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .event-title {
-  margin: 0;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.4;
   color: var(--color-text);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.event-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   margin: 0;
-  font-size: 0.8125rem;
 }
 
-/* One line, cut short if it doesn't fit: (time) branch, then ages */
-.event-meta-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.event-time {
-  margin-right: 8px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.event-branch {
-  color: var(--color-text-mid);
-}
-
-/* Checked in here before */
-.event-visited {
-  display: inline-block;
-  width: 13px;
-  height: 13px;
-  margin-right: 3px;
-  vertical-align: -2px;
-  color: var(--color-success);
-}
-
-.event-ages {
-  margin-left: 8px;
-  color: var(--color-text-muted);
-}
-
-/* The event's TPL page, with a bigger tap area than it shows */
+/* The event's TPL page: a small mark at the end of the title */
 .event-link {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin: -6px -4px -6px 0;
+  display: inline-flex;
+  vertical-align: -1px;
+  margin-left: 5px;
+  padding: 2px;
   color: var(--color-text-muted);
-  border-radius: var(--radius-sm);
-
-  &:active {
-    background: var(--color-paper);
-  }
 }
 
 .event-link-icon {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
+}
+
+.event-meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-stamp {
+  margin-right: 5px;
+  vertical-align: -1px;
 }
 
 .event-chevron {
-  flex-shrink: 0;
   width: 14px;
   height: 14px;
   stroke: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
 .events-load-more {
