@@ -43,17 +43,16 @@
       <ul v-if="events.length" class="events-list">
         <li v-for="(evt, i) in events" :key="`${evt.date}-${i}`">
           <!-- Each event links to its page on the TPL site, when it has one -->
-          <component :is="evt.url ? 'a' : 'div'" class="event-row" v-bind="evt.url ? {
-            href: evt.url, target: '_blank', rel: 'noopener',
-            'aria-label': `${evt.title} on the TPL website (opens another site)`,
-          } : {}" @click="evt.url && trackEventLinkTapped(evt.title)"
+          <component :is="evt.url ? 'a' : 'div'" class="event-row"
+                     v-bind="evt.url ? { href: evt.url, target: '_blank', rel: 'noopener' } : {}"
+                     @click="evt.url && trackEventLinkTapped(evt.title)"
           >
             <div class="event-date-badge">
               <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
               <span class="event-day">{{ formatEventDay(evt.date) }}</span>
             </div>
             <div class="event-info">
-              <span class="event-title">{{ evt.title }}<IconExternal v-if="evt.url" class="event-link-icon" aria-hidden="true" /></span>
+              <span class="event-title">{{ evt.title }}<IconExternal v-if="evt.url" class="event-link-icon" aria-hidden="true" /><span v-if="evt.url" class="sr-only"> (opens another site)</span></span>
               <span class="event-meta">{{ evt.time }}<template v-if="evt.age"> · {{ evt.age }}</template></span>
             </div>
           </component>
@@ -389,6 +388,17 @@ const nearbyBranches = computed(() => {
 
 a.event-row:active .event-title {
   color: var(--tpl-blue);
+}
+
+/* Read out, not shown */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* After the title, kept with its last word */
