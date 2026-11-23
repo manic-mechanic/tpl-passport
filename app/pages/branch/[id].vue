@@ -47,6 +47,7 @@ function resolveNav(path: string) {
   if (path.startsWith('/explore'))   return { to: path,        label: 'Explore'   }
   if (path.startsWith('/check-in'))  return { to: '/check-in', label: 'Check in'  }
   if (path.startsWith('/day-trips')) return { to: path,        label: 'Day trips' }
+  if (path.startsWith('/visit/'))    return { to: path,        label: 'Visit'     }
   return { to: '/explore', label: 'Explore' }
 }
 
@@ -73,6 +74,12 @@ const source = computed(() => {
   if (back.startsWith('/passport')) return 'passport'
   if (back.startsWith('/check-in')) return 'check-in'
   if (back.startsWith('/branch/'))  return 'nearby'
+  // A visit page passes on where it was opened from, so branch views keep
+  // the source they had when the visit was a panel on History or Check in.
+  if (back.startsWith('/visit/')) {
+    const from = router.options.history.state?.visitSource
+    return from === 'history' || from === 'check-in' ? from : 'visit'
+  }
   if (back === '/')                 return 'home'
   return 'explore'
 })
