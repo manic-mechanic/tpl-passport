@@ -57,6 +57,16 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
       ],
       script: [
+        // tpl-passport.vercel.app, Vercel's built-in production address, has
+        // moved to www.librarypassport.ca. Send its visits to public/moving.html
+        // before the app starts, so the old address runs no analytics, error
+        // reporting or sign-in. That page moves any saved passport across
+        // (browsers keep each address's storage apart) and then redirects.
+        // Not a server redirect: that would strand saved passports there.
+        {
+          innerHTML: "if(location.hostname==='tpl-passport.vercel.app')location.replace('/moving.html?to='+encodeURIComponent(location.pathname+location.search+location.hash))",
+          tagPosition: 'head',
+        },
         // Mark the installed app before first paint; main.css switches it to
         // the pinned-document layout ("Installed app scrolling"). iOS Home
         // Screen apps don't always match display-mode: standalone, so also
