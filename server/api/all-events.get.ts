@@ -7,9 +7,12 @@
 // Query params:
 // - offset: start day offset from today (0=today)
 // - days: number of days to fetch (1-7)
+// - branches: optional branch codes ("WE,HIL"). Then the days come for
+//   just those branches, in one CKAN call (the week view with a branch
+//   filter on), instead of a call per day for every branch.
 import { reportServerError } from '../lib/reportServerError'
 import { eventDates } from '../lib/eventDates'
-import { compareEvents, fetchCkanEvents, setEventsCacheHeaders, type CkanEventRecord } from '../lib/ckanEvents'
+import { compareEvents, feedNamesForCodes, fetchCkanEvents, fetchCkanEventsFor, setEventsCacheHeaders, type CkanEventRecord } from '../lib/ckanEvents'
 // Short, since the CDN caches the response on top of this (see
 // eventsCacheControl): together an event change shows within about 25 min.
 const CACHE_TTL = 5 * 60 * 1000
@@ -46,6 +49,23 @@ export default defineEventHandler(async (event) => {
   const offset = Math.max(0, Math.min(6, Number.parseInt(String(query.offset ?? '0'), 10) || 0))
   const days = Math.max(1, Math.min(7, Number.parseInt(String(query.days ?? '7'), 10) || 7))
   const dates = eventDates(offset, days)
+
+  if (query.branches !== undefined) {
+    const names = feedNamesForCodes(query.branches)
+    if (names.length === 0) {
+      setEventsCacheHeaders(event, false)
+      return []
+    }
+    try {
+      const records = await fetchCkanEventsFor(dates, names)
+      setEventsCacheHeaders(event, true)
+      return records.sort(compareEvents)
+    } catch (error) {
+      reportServerError(error, { area: 'events', operation: 'branch_week_fetch', branches: names.length, days })
+      throw createError({ statusCode: 502, statusMessage: 'Events feed unavailable' })
+    }
+  }
+
   const results = await Promise.all(dates.map(fetchEventsForDate))
   setEventsCacheHeaders(event, results.every(r => r !== null))
   return results.flatMap(r => r ?? []).sort(compareEvents)

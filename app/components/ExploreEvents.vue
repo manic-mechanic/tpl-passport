@@ -254,12 +254,50 @@ const weekCount = ref(1)
 const shownDays = computed(() => day.value === WEEK ? days.value.slice(0, weekCount.value) : [day.value])
 const lastShown = computed(() => shownDays.value[shownDays.value.length - 1]!)
 
+// With a branch filter on, the week comes in one request for just those
+// branches (see loadBranchWeek), not a day at a time for every branch.
+// placeCodes is defined further down; day is checked first.
+const branchWeekOn = computed(() => day.value === WEEK && placeCodes.value !== null)
+const branchWeekKey = computed(() => [...(placeCodes.value ?? [])].sort().join(','))
+const branchWeek = ref<{ key: string, from: string, state: 'loading' | 'error' | 'done', events: ExploreEvent[] } | null>(null)
+const branchWeekCurrent = computed(() =>
+  branchWeek.value?.key === branchWeekKey.value && branchWeek.value.from === today.value ? branchWeek.value : null
+)
+
 // The list waits for its first day; later days of the week load under it.
-const state = computed(() => stateByDay.value[shownDays.value[0]!])
-const moreState = computed(() => day.value === WEEK && weekCount.value > 1 ? stateByDay.value[lastShown.value] : undefined)
-const weekDone = computed(() => weekCount.value >= days.value.length && stateByDay.value[lastShown.value] === 'done')
+const state = computed(() => branchWeekOn.value
+  ? branchWeekCurrent.value?.state
+  : stateByDay.value[shownDays.value[0]!])
+const moreState = computed(() => day.value === WEEK && !branchWeekOn.value && weekCount.value > 1 ? stateByDay.value[lastShown.value] : undefined)
+const weekDone = computed(() => branchWeekOn.value
+  || (weekCount.value >= days.value.length && stateByDay.value[lastShown.value] === 'done'))
+
+async function loadBranchWeek() {
+  const key = branchWeekKey.value
+  const from = today.value
+  if (!key) {
+    branchWeek.value = { key, from, state: 'done', events: [] }
+    return
+  }
+  if (branchWeekCurrent.value?.state === 'loading' || branchWeekCurrent.value?.state === 'done') return
+  branchWeek.value = { key, from, state: 'loading', events: [] }
+  try {
+    const records: unknown = await $fetch('/api/all-events', { query: { offset: 0, days: DAYS, branches: key } })
+    const raw = (Array.isArray(records) ? records : []) as RawEvent[]
+    if (branchWeek.value?.key !== key) return // the filter changed meanwhile
+    branchWeek.value = { key, from, state: 'done', events: toExploreEvents(raw.filter(r => days.value.includes(r.StartDateLocal)), branches) }
+  } catch (error) {
+    if (branchWeek.value?.key === key) branchWeek.value = { key, from, state: 'error', events: [] }
+    reportError(error, { area: 'events', operation: 'branch_week_fetch', branches: key.split(',').length })
+  }
+}
 
 function retry() {
+  if (branchWeekOn.value) {
+    branchWeek.value = null
+    loadBranchWeek()
+    return
+  }
   shownDays.value.filter(d => stateByDay.value[d] === 'error').forEach(loadDay)
 }
 
@@ -269,7 +307,7 @@ function retry() {
 const weekEnd = ref<HTMLElement | null>(null)
 
 function loadMoreIfNear() {
-  if (day.value !== WEEK || weekCount.value >= days.value.length) return
+  if (day.value !== WEEK || branchWeekOn.value || weekCount.value >= days.value.length) return
   if (stateByDay.value[lastShown.value] !== 'done') return
   const el = weekEnd.value
   if (!el || el.getBoundingClientRect().top > window.innerHeight + 400) return
@@ -281,18 +319,22 @@ function loadMoreIfNear() {
 // Load what's shown and the next day, so stepping forward is instant.
 watch(day, (d) => {
   if (d === WEEK) weekCount.value = 1
-  shownDays.value.forEach(ensureLoaded)
+  if (!branchWeekOn.value) shownDays.value.forEach(ensureLoaded)
   if (d !== WEEK) ensureLoaded(days.value[days.value.indexOf(d) + 1])
 }, { immediate: true })
 
-watch(shownDays, list => list.forEach(ensureLoaded))
+watch(shownDays, (list) => {
+  if (!branchWeekOn.value) list.forEach(ensureLoaded)
+})
 
 // A new day: drop what was loaded and move off a day that's gone.
 watch(today, (t) => {
   eventsByDay.value = {}
   stateByDay.value = {}
   if (day.value !== WEEK && day.value < t) day.value = t
-  shownDays.value.forEach(ensureLoaded)
+  branchWeek.value = null
+  if (branchWeekOn.value) loadBranchWeek()
+  else shownDays.value.forEach(ensureLoaded)
 })
 
 // Opening in the evening with today all over: start on tomorrow instead.
@@ -397,6 +439,13 @@ const placeCodes = computed<Set<string> | null>(() => {
   return new Set(option?.codes ?? [])
 })
 
+// The week with a branch filter: one request whenever the branches change.
+// Back to all branches, the week loads a day at a time again.
+watch([branchWeekOn, branchWeekKey], ([on]) => {
+  if (on) loadBranchWeek()
+  else if (day.value === WEEK) shownDays.value.forEach(ensureLoaded)
+})
+
 async function setFilter(filter: 'age' | 'kind' | 'time' | 'place', value: string) {
   if (filter === 'age') age.value = (value || null) as AgeGroupId | null
   else if (filter === 'kind') kind.value = value || null
@@ -438,9 +487,11 @@ function dateParts(dateStr: string) {
 
 // ── What's shown ──────────────────────────────────────────────────────
 // The events still to come: today's that haven't ended, all of later days'.
-const dayEvents = computed(() =>
-  shownDays.value.flatMap(d => (eventsByDay.value[d] ?? []).filter(e => d !== today.value || !isOver(e, now.value)))
-)
+const dayEvents = computed(() => {
+  const notOver = (e: ExploreEvent) => e.date !== today.value || !isOver(e, now.value)
+  if (branchWeekOn.value) return (branchWeekCurrent.value?.events ?? []).filter(notOver)
+  return shownDays.value.flatMap(d => eventsByDay.value[d] ?? []).filter(notOver)
+})
 
 const shown = computed(() => {
   const codes = placeCodes.value
