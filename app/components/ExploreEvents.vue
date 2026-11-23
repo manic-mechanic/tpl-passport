@@ -97,44 +97,64 @@
     <div class="filter-sheet">
       <h2 class="filter-title">Filter</h2>
       <div class="field">
-        <label for="ev-age">Ages</label>
-        <select id="ev-age" :value="age ?? ''" @change="setFilter('age', ($event.target as HTMLSelectElement).value)">
-          <option value="">All ages</option>
-          <option v-for="g in AGE_GROUPS" :key="g.id" :value="g.id">{{ g.label }}</option>
-        </select>
+        <label for="ev-place">Branches</label>
+        <span class="select">
+          <select id="ev-place" :value="place" @change="setFilter('place', ($event.target as HTMLSelectElement).value)">
+            <option value="">All branches</option>
+            <option v-if="homeBranch" value="home">Home branch ({{ shortName(homeBranch) }})</option>
+            <option v-if="access !== 'denied'" value="near">Near me</option>
+            <optgroup v-for="group in placeGroups" :key="group.label" :label="group.label">
+              <option v-for="o in group.options" :key="o.id" :value="o.id">{{ o.label }}</option>
+            </optgroup>
+          </select>
+          <IconChevron class="select-chevron" aria-hidden="true" />
+        </span>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="ev-time">Time</label>
+          <span class="select">
+            <select id="ev-time" :value="time ?? ''" @change="setFilter('time', ($event.target as HTMLSelectElement).value)">
+              <option value="">Any time</option>
+              <option v-for="t in TIMES_OF_DAY" :key="t.id" :value="t.id">{{ t.label }}</option>
+            </select>
+            <IconChevron class="select-chevron" aria-hidden="true" />
+          </span>
+        </div>
+        <div class="field">
+          <label for="ev-age">Ages</label>
+          <span class="select">
+            <select id="ev-age" :value="age ?? ''" @change="setFilter('age', ($event.target as HTMLSelectElement).value)">
+              <option value="">All ages</option>
+              <option v-for="g in AGE_GROUPS" :key="g.id" :value="g.id">{{ g.label }}</option>
+            </select>
+            <IconChevron class="select-chevron" aria-hidden="true" />
+          </span>
+        </div>
       </div>
       <div class="field">
         <label for="ev-type">Type</label>
-        <select id="ev-type" :value="kind ?? ''" @change="setFilter('kind', ($event.target as HTMLSelectElement).value)">
-          <option value="">All types</option>
-          <option v-for="t in typeOptions" :key="t" :value="t">{{ t }}</option>
-        </select>
+        <span class="select">
+          <select id="ev-type" :value="kind ?? ''" @change="setFilter('kind', ($event.target as HTMLSelectElement).value)">
+            <option value="">All types</option>
+            <option v-for="t in typeOptions" :key="t" :value="t">{{ t }}</option>
+          </select>
+          <IconChevron class="select-chevron" aria-hidden="true" />
+        </span>
       </div>
-      <div class="field">
-        <label for="ev-time">Time</label>
-        <select id="ev-time" :value="time ?? ''" @change="setFilter('time', ($event.target as HTMLSelectElement).value)">
-          <option value="">Any time</option>
-          <option v-for="t in TIMES_OF_DAY" :key="t.id" :value="t.id">{{ t.label }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="ev-place">Branches</label>
-        <select id="ev-place" :value="place" @change="setFilter('place', ($event.target as HTMLSelectElement).value)">
-          <option value="">All branches</option>
-          <option v-if="homeBranch" value="home">Home branch ({{ shortName(homeBranch) }})</option>
-          <option v-if="access !== 'denied'" value="near">Near me</option>
-          <optgroup v-for="group in placeGroups" :key="group.label" :label="group.label">
-            <option v-for="o in group.options" :key="o.id" :value="o.id">{{ o.label }}</option>
-          </optgroup>
-        </select>
-      </div>
-      <div class="field">
-        <label for="ev-sort">Sort</label>
-        <select id="ev-sort" :value="sort" @change="setSort(($event.target as HTMLSelectElement).value as EventSort)">
-          <option value="time">By time</option>
-          <option v-if="access !== 'denied'" value="nearest">Nearest first</option>
-        </select>
-      </div>
+      <fieldset v-if="access !== 'denied'" class="field">
+        <legend>Sort</legend>
+        <div :key="sortRedraw" class="segmented">
+          <label>
+            <input type="radio" name="ev-sort" value="time" :checked="sort === 'time'" @change="setSort('time')">
+            <span>By time</span>
+          </label>
+          <label>
+            <input type="radio" name="ev-sort" value="nearest" :checked="sort === 'nearest'" @change="setSort('nearest')">
+            <span>Nearest first</span>
+          </label>
+        </div>
+      </fieldset>
       <p v-if="locating" class="events-note">Finding your location…</p>
       <p v-else-if="locateError" class="events-note">{{ locateError }}</p>
       <div class="filter-actions">
@@ -395,8 +415,14 @@ function clearFilters() {
   place.value = ''
 }
 
+// Bumped to redraw the sort toggle when "Nearest first" can't be used.
+const sortRedraw = ref(0)
+
 async function setSort(value: EventSort) {
-  if (value === 'nearest' && !(await locate())) return
+  if (value === 'nearest' && !(await locate())) {
+    sortRedraw.value++ // put the toggle back on "By time"
+    return
+  }
   sort.value = value
   $posthog?.capture('whats_on_sort_changed', { sort: sort.value })
 }
@@ -789,21 +815,101 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
 
-  label {
+  > label,
+  > legend {
+    padding: 0;
+    margin-bottom: 6px;
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--color-text-mid);
   }
 
+  > label {
+    margin-bottom: 0;
+  }
+}
+
+/* Time and ages side by side */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* A select with its own chevron, set in from the edge */
+.select {
+  position: relative;
+  display: block;
+
   select {
-    padding: 8px 10px;
+    width: 100%;
+    padding: 8px 34px 8px 12px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface);
     color: var(--color-text);
     font-family: var(--font-body);
     font-size: 16px;
+    appearance: none;
+    cursor: pointer;
+    text-overflow: ellipsis;
+  }
+}
+
+.select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 12px;
+  height: 12px;
+  stroke: var(--color-text-muted);
+  transform: translateY(-50%) rotate(90deg);
+  pointer-events: none;
+}
+
+/* Sort: two options in one block */
+.segmented {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+
+  label {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+  }
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  span {
+    display: block;
+    padding: 7px 8px;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--color-text-mid);
+  }
+
+  input:checked + span {
+    background: var(--tpl-navy);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  input:focus-visible + span {
+    outline: 2px solid var(--tpl-blue);
+    outline-offset: 1px;
   }
 }
 
