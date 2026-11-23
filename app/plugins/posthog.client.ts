@@ -1,4 +1,5 @@
 import type { PostHog } from 'posthog-js'
+import { analyticsEnabled } from '~/lib/analyticsEnabled'
 
 // What the app calls on $posthog. Kept to these two so the SDK can load after
 // first render: posthog-js is the largest library in the app (~170 KB min).
@@ -8,10 +9,11 @@ export interface Analytics {
 }
 
 export default defineNuxtPlugin(() => {
-  const { public: { isDev, posthogKey, posthogHost } } = useRuntimeConfig()
+  const { public: { isDev, vercelEnv, posthogKey, posthogHost } } = useRuntimeConfig()
 
-  // $posthog is null in dev, so callers use $posthog?.capture(...).
-  if (isDev) return { provide: { posthog: null as Analytics | null } }
+  // $posthog is null outside Vercel production (dev, previews, custom
+  // environments, local and CI builds), so callers use $posthog?.capture(...).
+  if (!analyticsEnabled({ vercelEnv, isDev })) return { provide: { posthog: null as Analytics | null } }
 
   // Calls made before the SDK has loaded wait here, in order, and are replayed
   // once it's ready. Events keep the time they happened.
