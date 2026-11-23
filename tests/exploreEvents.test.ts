@@ -1,7 +1,7 @@
 import type { Branch } from '@tpl-passport/shared'
 import { physicalBranches } from '@tpl-passport/shared'
 import {
-  addDays, branchLookup, cleanLocationName, isOver, matchesAge, sortEvents, timeOfDay, toExploreEvents, torontoNow, torontoToday,
+  addDays, branchLookup, cleanLocationName, eventTypes, parseTypes, isOver, matchesAge, sortEvents, timeOfDay, toExploreEvents, torontoNow, torontoToday,
   type RawEvent,
 } from '../app/lib/exploreEvents'
 
@@ -90,5 +90,20 @@ describe('What\'s On events', () => {
     const [e] = toExploreEvents([raw({ EventID: '6ad01e84e9f71840dd71f257' })], branches)
     expect(e!.url).toBe('https://tpl.bibliocommons.com/events/6ad01e84e9f71840dd71f257')
     expect(toExploreEvents([raw({})], branches)[0]!.url).toBeNull()
+  })
+})
+
+describe('event types', () => {
+  it('splits the feed\'s types and drops stray zero-width spaces', () => {
+    expect(parseTypes('Crafts & Hobbies, Fabrication Studio​')).toEqual(['Crafts & Hobbies', 'Fabrication Studio'])
+    expect(parseTypes(undefined)).toEqual([])
+  })
+
+  it('lists the types among events A to Z, once each', () => {
+    const events = toExploreEvents([
+      raw({ EventTypes: 'Culture, Crafts & Hobbies' }),
+      raw({ Title: 'Chess', EventTypes: 'Games & Sports, Culture' }),
+    ], branches)
+    expect(eventTypes(events)).toEqual(['Crafts & Hobbies', 'Culture', 'Games & Sports'])
   })
 })

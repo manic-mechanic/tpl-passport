@@ -10,7 +10,7 @@ import { getStampColor, getStampShape, getStampRotation } from '~/composables/us
 
 const props = withDefaults(defineProps<{
   branchCode: string
-  wardNo: number | string
+  wardNo: number | string | null
   visited: boolean
   size?: number
 }>(), { size: 11 })
@@ -29,7 +29,7 @@ const style = computed(() => {
     width: `${width}px`,
     height: `${height}px`,
     borderRadius: radius,
-    color: getStampColor(props.wardNo).color,
+    color: getStampColor(props.wardNo ?? 1).color,
     transform: `rotate(${getStampRotation(props.branchCode)}deg)`,
   }
 })

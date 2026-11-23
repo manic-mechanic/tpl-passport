@@ -66,7 +66,7 @@
         <IconChevron v-if="event.branch" class="event-chevron" aria-hidden="true" />
       </div>
 
-      <template v-if="shown.length === 0">
+      <template v-if="shown.length === 0 && (day !== WEEK || weekDone)">
         <p v-if="dayEvents.length > 0" class="events-note">
           No events match these filters.
           <button class="text-btn" @click="clearFilters">Clear filters</button>
@@ -78,10 +78,17 @@
           See {{ dayLabel(days[dayIndex + 1]!) }}
         </button>
       </template>
-      <p v-if="failedDays.length" class="events-note">
-        Couldn't load {{ failedDays.map(dayLabel).join(', ') }}.
-        <button class="text-btn" @click="retry">Try again</button>
-      </p>
+      <!-- This week: the next day loads as this comes into view -->
+      <div v-if="day === WEEK && !weekDone" ref="weekEnd" class="week-end">
+        <p v-if="moreState === 'error'" class="events-note">
+          Couldn't load {{ dayLabel(lastShown) }}.
+          <button class="text-btn" @click="retry">Try again</button>
+        </p>
+        <div v-else class="geo-state">
+          <span class="geo-spinner" />
+          <span>Loading {{ dayLabel(stateByDay[lastShown] === 'done' ? days[weekCount] ?? lastShown : lastShown) }}…</span>
+        </div>
+      </div>
     </template>
   </div>
 
@@ -94,6 +101,13 @@
         <select id="ev-age" :value="age ?? ''" @change="setFilter('age', ($event.target as HTMLSelectElement).value)">
           <option value="">All ages</option>
           <option v-for="g in AGE_GROUPS" :key="g.id" :value="g.id">{{ g.label }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="ev-type">Type</label>
+        <select id="ev-type" :value="kind ?? ''" @change="setFilter('kind', ($event.target as HTMLSelectElement).value)">
+          <option value="">All types</option>
+          <option v-for="t in typeOptions" :key="t" :value="t">{{ t }}</option>
         </select>
       </div>
       <div class="field">
@@ -125,7 +139,7 @@
       <p v-else-if="locateError" class="events-note">{{ locateError }}</p>
       <div class="filter-actions">
         <button class="text-btn" :disabled="activeFilterCount === 0 && sort === 'time'" @click="clearFilters(); sort = 'time'">Clear</button>
-        <button class="done-btn" @click="filtersOpen = false">Show {{ shown.length }} {{ shown.length === 1 ? 'event' : 'events' }}</button>
+        <button class="done-btn" @click="filtersOpen = false">{{ day === WEEK && !weekDone ? 'Show events' : `Show ${shown.length} ${shown.length === 1 ? 'event' : 'events'}` }}</button>
       </div>
     </div>
   </BaseSheet>
@@ -142,7 +156,7 @@ import { tourRoutes } from '~/lib/libraryTour'
 import { usePassportStore } from '~/stores/passport'
 import routesData from '#data/routes.json'
 import {
-  AGE_GROUPS, TIMES_OF_DAY, addDays, branchLookup, isOver, matchesAge, sortEvents,
+  AGE_GROUPS, TIMES_OF_DAY, addDays, branchLookup, eventTypes, isOver, matchesAge, sortEvents,
   timeOfDay, toExploreEvents, torontoNow,
   type AgeGroupId, type EventSort, type ExploreEvent, type RawEvent, type TimeOfDay,
 } from '~/lib/exploreEvents'
@@ -214,28 +228,44 @@ function ensureLoaded(d: string | undefined) {
 const WEEK = 'week'
 const day = ref(today.value)
 const dayIndex = computed(() => days.value.indexOf(day.value))
-const shownDays = computed(() => day.value === WEEK ? days.value : [day.value])
+// The week loads a day at a time: the next day once the end of the list
+// comes into view (see weekEnd below).
+const weekCount = ref(1)
+const shownDays = computed(() => day.value === WEEK ? days.value.slice(0, weekCount.value) : [day.value])
+const lastShown = computed(() => shownDays.value[shownDays.value.length - 1]!)
 
-// The week is ready once every day has answered; failed days are noted
-// under the list. One day shows its own state.
-const state = computed(() => {
-  const states = shownDays.value.map(d => stateByDay.value[d])
-  if (states.some(s => !s || s === 'loading')) return 'loading'
-  return states.every(s => s === 'error') ? 'error' : 'done'
-})
-const failedDays = computed(() =>
-  day.value === WEEK ? days.value.filter(d => stateByDay.value[d] === 'error') : []
-)
+// The list waits for its first day; later days of the week load under it.
+const state = computed(() => stateByDay.value[shownDays.value[0]!])
+const moreState = computed(() => day.value === WEEK && weekCount.value > 1 ? stateByDay.value[lastShown.value] : undefined)
+const weekDone = computed(() => weekCount.value >= days.value.length && stateByDay.value[lastShown.value] === 'done')
 
 function retry() {
   shownDays.value.filter(d => stateByDay.value[d] === 'error').forEach(loadDay)
 }
 
+// The end of the week's list. When it's on screen or close to it, the
+// next day loads, once the last one has. Checked on scroll and after each
+// load (a short filtered list can show the end without any scrolling).
+const weekEnd = ref<HTMLElement | null>(null)
+
+function loadMoreIfNear() {
+  if (day.value !== WEEK || weekCount.value >= days.value.length) return
+  if (stateByDay.value[lastShown.value] !== 'done') return
+  const el = weekEnd.value
+  if (!el || el.getBoundingClientRect().top > window.innerHeight + 400) return
+  weekCount.value += 1
+}
+
+
+
 // Load what's shown and the next day, so stepping forward is instant.
 watch(day, (d) => {
+  if (d === WEEK) weekCount.value = 1
   shownDays.value.forEach(ensureLoaded)
   if (d !== WEEK) ensureLoaded(days.value[days.value.indexOf(d) + 1])
 }, { immediate: true })
+
+watch(shownDays, list => list.forEach(ensureLoaded))
 
 // A new day: drop what was loaded and move off a day that's gone.
 watch(today, (t) => {
@@ -296,7 +326,14 @@ const age = ref<AgeGroupId | null>(null)
 const time = ref<TimeOfDay | null>(null)
 const place = ref('')
 const sort = ref<EventSort>('time')
-const activeFilterCount = computed(() => [age.value, time.value, place.value].filter(Boolean).length)
+const kind = ref<string | null>(null)
+const activeFilterCount = computed(() => [age.value, kind.value, time.value, place.value].filter(Boolean).length)
+
+// Types in what's loaded so far, plus the chosen one so it stays listed.
+const typeOptions = computed(() => {
+  const list = eventTypes(Object.values(eventsByDay.value).flat())
+  return kind.value && !list.includes(kind.value) ? [...list, kind.value].sort((a, b) => a.localeCompare(b)) : list
+})
 const filtersOpen = ref(false)
 
 const homeBranch = computed(() => branchesByCode[passport.profile.homeBranch ?? ''] ?? null)
@@ -340,17 +377,19 @@ const placeCodes = computed<Set<string> | null>(() => {
   return new Set(option?.codes ?? [])
 })
 
-async function setFilter(kind: 'age' | 'time' | 'place', value: string) {
-  if (kind === 'age') age.value = (value || null) as AgeGroupId | null
-  else if (kind === 'time') time.value = (value || null) as TimeOfDay | null
+async function setFilter(filter: 'age' | 'kind' | 'time' | 'place', value: string) {
+  if (filter === 'age') age.value = (value || null) as AgeGroupId | null
+  else if (filter === 'kind') kind.value = value || null
+  else if (filter === 'time') time.value = (value || null) as TimeOfDay | null
   else {
     if (value === 'near' && !(await locate())) return
     place.value = value
   }
-  $posthog?.capture('whats_on_filter_changed', { filter: kind, value: value || 'all' })
+  $posthog?.capture('whats_on_filter_changed', { filter, value: value || 'all' })
 }
 
 function clearFilters() {
+  kind.value = null
   age.value = null
   time.value = null
   place.value = ''
@@ -381,11 +420,15 @@ const shown = computed(() => {
   const codes = placeCodes.value
   const list = dayEvents.value.filter(e =>
     matchesAge(e, age.value)
+    && (!kind.value || e.types.includes(kind.value))
     && (!time.value || timeOfDay(e.start) === time.value)
     && (!codes || (!!e.branch && codes.has(e.branch.BranchCode)))
   )
   return sortEvents(list, lat.value, lng.value, sort.value)
 })
+
+// After each load or filter change, the end may already be in view.
+watch([day, weekCount, () => stateByDay.value[lastShown.value], () => shown.value.length], () => nextTick(loadMoreIfNear))
 
 function openBranch(b: Branch) {
   emit('open-branch', b)
@@ -412,13 +455,29 @@ function dayLabel(d: string) {
 
 
 
+// Passive, and only does work in the week view near its end.
+function listen(on: boolean) {
+  if (on) window.addEventListener('scroll', loadMoreIfNear, { passive: true })
+  else window.removeEventListener('scroll', loadMoreIfNear)
+}
+
 onMounted(async () => {
   startClock()
+  listen(true)
   access.value = await locationAccess()
 })
-onActivated(startClock)
-onDeactivated(stopClock)
-onBeforeUnmount(stopClock)
+onActivated(() => {
+  startClock()
+  listen(true)
+})
+onDeactivated(() => {
+  stopClock()
+  listen(false)
+})
+onBeforeUnmount(() => {
+  stopClock()
+  listen(false)
+})
 </script>
 
 <style scoped>
@@ -569,6 +628,7 @@ onBeforeUnmount(stopClock)
 }
 
 .events-note {
+  text-wrap: pretty;
   font-size: 0.875rem;
   color: var(--color-text-muted);
   padding: 8px 0;
@@ -649,6 +709,7 @@ onBeforeUnmount(stopClock)
 }
 
 .event-title {
+  text-wrap: pretty;
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.4;
@@ -736,7 +797,7 @@ onBeforeUnmount(stopClock)
   }
 
   select {
-    padding: 10px;
+    padding: 8px 10px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-surface);

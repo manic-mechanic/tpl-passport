@@ -12,6 +12,7 @@ export interface RawEvent {
   EndTime?: string
   LocationName?: string
   Audiences?: string
+  EventTypes?: string
 }
 
 export interface ExploreEvent {
@@ -22,6 +23,8 @@ export interface ExploreEvent {
   start: string
   end: string
   audiences: string
+  // The feed's categories, e.g. "Crafts & Hobbies".
+  types: string[]
   locationName: string
   branch: Branch | null
   url: string | null
@@ -72,6 +75,7 @@ export function toExploreEvents(raw: RawEvent[], branches: Map<string, Branch>):
       start,
       end: r.EndTime ?? '',
       audiences: r.Audiences ?? '',
+      types: parseTypes(r.EventTypes),
       locationName,
       branch: branches.get(branchKey(locationName)) ?? null,
       url: eventUrl(r.EventID),
@@ -141,6 +145,17 @@ export type AgeGroupId = typeof AGE_GROUPS[number]['id']
 
 function audienceList(audiences: string): string[] {
   return audiences.split(',').map(a => a.trim()).filter(Boolean)
+}
+
+// "Crafts & Hobbies, Culture" → ["Crafts & Hobbies", "Culture"]. Some
+// names carry a stray zero-width space.
+export function parseTypes(raw: string | undefined): string[] {
+  return (raw ?? '').split(',').map(t => t.replace(/\u200b/g, '').trim()).filter(Boolean)
+}
+
+// The types among some events, A to Z.
+export function eventTypes(events: ExploreEvent[]): string[] {
+  return [...new Set(events.flatMap(e => e.types))].sort((a, b) => a.localeCompare(b))
 }
 
 export function matchesAge(event: ExploreEvent, age: AgeGroupId | null): boolean {
