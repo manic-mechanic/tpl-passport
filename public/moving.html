@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Library Passport has moved</title>
+<link rel="canonical" href="https://www.librarypassport.ca/">
+<style>
+  :root {
+    --bg: #f2ede3; --paper: #faf7f1; --text: #1a1a1a; --text-mid: #4a4a4a;
+    --navy: #001c71; --border: #d4cfc4; --error: #a4262c;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111850; --paper: #1b2366; --text: #f5f3ee; --text-mid: #c9c6d9; --navy: #f5f3ee; --border: #343d85; --error: #ffb3b3; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+    background: var(--bg); color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    /* As in main.css: never leave one word alone on the last line */
+    text-wrap: pretty;
+  }
+  main { width: 100%; max-width: 420px; background: var(--paper); border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px; }
+  h1 { margin: 0 0 12px; font: 600 1.6rem/1.2 Georgia, "Times New Roman", serif; color: var(--navy); text-wrap: balance; }
+  p { margin: 0 0 12px; color: var(--text-mid); }
+  strong { color: var(--text); }
+  button {
+    display: block; width: 100%; margin-top: 8px; padding: 14px 20px; border-radius: 100px;
+    font-family: inherit; font-size: 1rem; font-weight: 600; line-height: 1.2;
+    cursor: pointer; border: 1px solid var(--navy);
+  }
+  .primary { background: var(--navy); color: var(--bg); }
+  .secondary { background: transparent; color: var(--navy); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  #status { margin: 12px 0 0; }
+  #status:empty { margin: 0; }
+  #status.error { color: var(--error); }
+  [hidden] { display: none !important; }
+</style>
+<script>
+  // tpl-passport.vercel.app has moved to www.librarypassport.ca. The app's
+  // HTML sends every visit on the old address here (see nuxt.config.ts).
+  // Visitors with nothing saved go straight on; anyone with a saved passport
+  // is offered to move it, photos included, since browsers keep each
+  // address's storage apart. app/lib/siteMove.ts has the other side and the
+  // message names used below.
+  var OLD_HOST = 'tpl-passport.vercel.app'
+  var NEW_ORIGIN = 'https://www.librarypassport.ca'
+  var MOVED_KEY = 'tpl-passport-moved'
+
+  // Where to continue on the new site: the path the visit asked for.
+  function targetUrl() {
+    var to = new URLSearchParams(location.search).get('to') || '/'
+    try {
+      var url = new URL(to, NEW_ORIGIN)
+      // Only a path on the new site: never another host.
+      if (url.origin !== NEW_ORIGIN) return NEW_ORIGIN + '/'
+      // Never forward a move link. Coming from here, the new site would take
+      // it as a genuine move, so any link through this page could plant a
+      // passport on whoever follows it. Only the button below makes one.
+      if (url.searchParams.has('passport-move')) {
+        url.searchParams.delete('passport-move')
+        url.hash = ''
+      }
+      return url.href
+    } catch (e) {
+      return NEW_ORIGIN + '/'
+    }
+  }
+
+  function storedPassport() {
+    try { return localStorage.getItem('tpl-passport') } catch (e) { return null }
+  }
+
+  // Mirrors hasPassportData in app/lib/siteMove.ts.
+  function hasPassportData(raw) {
+    try {
+      var parsed = JSON.parse(raw)
+      var data = parsed && parsed.version ? parsed.data : parsed
+      if (!data) return false
+      var profile = data.profile || {}
+      return (data.checkIns || []).length > 0
+        || (data.completedChallenges || []).length > 0
+        || !!(profile.name || profile.homeBranch || profile.favouriteBook)
+    } catch (e) {
+      return false
+    }
+  }
+
+  var moved = false
+  try { moved = !!localStorage.getItem(MOVED_KEY) } catch (e) {}
+  if (location.hostname !== OLD_HOST) {
+    location.replace('/')
+  } else if (moved || !hasPassportData(storedPassport())) {
+    location.replace(targetUrl())
+  }
+</script>
+</head>
+<body>
+<main>
+  <h1>Library Passport has moved</h1>
+  <p>It’s now at <strong>www.librarypassport.ca</strong>.</p>
+  <p>Tap the button to send your visits, photos and badges to the new site.</p>
+  <button type="button" class="primary" id="move">Move my passport</button>
+  <p id="status" role="status" aria-live="polite"></p>
+  <div id="fallback" hidden>
+    <button type="button" class="secondary" id="retry">Try again</button>
+    <button type="button" class="secondary" id="no-photos">Move without photos</button>
+  </div>
+</main>
+<script>
+  var MOVE_READY = 'tpl-passport-move:ready'
+  var MOVE_DATA = 'tpl-passport-move:data'
+  var MOVE_DONE = 'tpl-passport-move:done'
+  var WAIT_MS = 20000
+
+  var moveButton = document.getElementById('move')
+  var statusEl = document.getElementById('status')
+  var fallback = document.getElementById('fallback')
+  var popup = null
+  var timer = null
+
+  function setStatus(text, isError) {
+    statusEl.textContent = text
+    statusEl.className = isError ? 'error' : ''
+  }
+
+  function showFallback(text) {
+    clearTimeout(timer)
+    setStatus(text, true)
+    moveButton.hidden = true
+    fallback.hidden = false
+  }
+
+  // Every stored photo as { key, blob }. Photos are keyed by check-in time.
+  function readPhotos() {
+    return new Promise(function (resolve) {
+      var request
+      try { request = indexedDB.open('tpl-passport-photos') } catch (e) { return resolve([]) }
+      request.onerror = function () { resolve([]) }
+      request.onsuccess = function () {
+        var db = request.result
+        if (!db.objectStoreNames.contains('photos')) { db.close(); return resolve([]) }
+        var store = db.transaction('photos', 'readonly').objectStore('photos')
+        var keys = store.getAllKeys()
+        var blobs = store.getAll()
+        blobs.onerror = function () { resolve([]) }
+        blobs.onsuccess = function () {
+          var photos = []
+          for (var i = 0; i < keys.result.length; i++) {
+            if (blobs.result[i] instanceof Blob) photos.push({ key: String(keys.result[i]), blob: blobs.result[i] })
+          }
+          resolve(photos)
+        }
+      }
+    })
+  }
+
+  function startMove() {
+    fallback.hidden = true
+    moveButton.hidden = false
+    moveButton.disabled = true
+    setStatus('Opening the new site…')
+    // A named window, so trying again reuses the same tab.
+    popup = window.open(NEW_ORIGIN + '/?passport-move=1', 'passport-move')
+    if (!popup) {
+      moveButton.disabled = false
+      return showFallback('Your browser blocked the new tab. Allow it and try again, or move without photos.')
+    }
+    clearTimeout(timer)
+    timer = setTimeout(function () {
+      showFallback('The new site didn’t answer. Try again, or move without photos.')
+    }, WAIT_MS)
+  }
+
+  window.addEventListener('message', function (event) {
+    if (event.origin !== NEW_ORIGIN || !popup || event.source !== popup) return
+    var type = event.data && event.data.type
+    if (type === MOVE_READY) {
+      var passport = storedPassport()
+      // Cleared since this page loaded: nothing left to move. Answer anyway,
+      // so the new tab stops waiting.
+      if (!passport) {
+        popup.postMessage({ type: MOVE_DATA, passport: null }, NEW_ORIGIN)
+        return finishMove()
+      }
+      setStatus('Moving your passport…')
+      readPhotos().then(function (photos) {
+        popup.postMessage({ type: MOVE_DATA, passport: passport, photos: photos }, NEW_ORIGIN)
+      })
+    } else if (type === MOVE_DONE) {
+      finishMove()
+    }
+  })
+
+  function finishMove() {
+    clearTimeout(timer)
+    try { localStorage.setItem(MOVED_KEY, new Date().toISOString()) } catch (e) {}
+    setStatus('Done. Your passport is now at www.librarypassport.ca.')
+    setTimeout(function () { location.replace(targetUrl()) }, 1500)
+  }
+
+  // The new site sends people back here when it couldn't accept a move
+  // without photos.
+  if (new URLSearchParams(location.search).get('failed') === '1') {
+    showFallback('Your passport didn’t move. Try again.')
+  }
+
+  moveButton.addEventListener('click', startMove)
+  document.getElementById('retry').addEventListener('click', startMove)
+  document.getElementById('no-photos').addEventListener('click', function () {
+    // The passport (no photos) rides in the fragment, which never reaches a
+    // server. The new site only takes it from a visit that came from here.
+    location.href = NEW_ORIGIN + '/?passport-move=1#' + encodeURIComponent(storedPassport() || '')
+  })
+</script>
+</body>
+</html>

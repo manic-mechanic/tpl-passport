@@ -47,6 +47,13 @@ function hasStorage() {
   return typeof localStorage !== 'undefined'
 }
 
+// Reads a raw stored passport (the localStorage value) in any storage
+// version. Also used for a passport handed over from the old site address.
+export function parseStoredPassport(raw: string): { version: number; payload: PassportPersistedState } | null {
+  const migrated = migratePayload(JSON.parse(raw))
+  return migrated?.payload ? { version: migrated.version, payload: migrated.payload } : null
+}
+
 export function loadPassportState(): Partial<PassportPersistedState> {
   if (!hasStorage()) return {}
 
@@ -54,15 +61,14 @@ export function loadPassportState(): Partial<PassportPersistedState> {
   if (!raw) return {}
 
   try {
-    const parsed = JSON.parse(raw)
-    const migrated = migratePayload(parsed)
-    if (!migrated?.payload) return {}
+    const parsed = parseStoredPassport(raw)
+    if (!parsed) return {}
 
-    if (migrated.version !== STORAGE_VERSION) {
-      savePassportState(migrated.payload)
+    if (parsed.version !== STORAGE_VERSION) {
+      savePassportState(parsed.payload)
     }
 
-    return migrated.payload
+    return parsed.payload
   } catch (error) {
     reportError(error, {
       area: 'persistence',

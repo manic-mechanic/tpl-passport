@@ -156,6 +156,7 @@ Do **not** send the user's name or home branch in identify calls — not needed,
 | Event | When fired | Properties |
 |---|---|---|
 | `achievement_unlocked` | An achievement flips from locked to earned | `achievement_id`, `achievement_title` |
+| `passport_moved` | A passport moved from tpl-passport.vercel.app finished importing (sent on the load after the move) | `method` (`one_tap` or `without_photos`), `visits`, `photos` |
 | `passport_viewed` | Passport page opened | `visit_count`, `completion_pct` |
 | `history_viewed` | History page opened | — |
 
