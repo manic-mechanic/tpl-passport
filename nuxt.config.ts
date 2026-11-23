@@ -2,6 +2,7 @@ import { readdir } from 'node:fs/promises'
 import pkg from './package.json'
 import { fileURLToPath } from 'node:url'
 import { routePagesToStaticShell } from './build/vercelStaticShell'
+import { POSTHOG_API_HOST, POSTHOG_ASSETS_HOST, POSTHOG_PROXY_PATH } from './app/lib/posthogProxy'
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url))
 
@@ -118,7 +119,10 @@ export default defineNuxtConfig({
       bypassGeofence: false,
       authBase: 'https://auth.librarypassport.ca',
       posthogKey: '',
-      posthogHost: 'https://us.i.posthog.com',
+      // SHA-256 hashes of account emails whose devices are left out of
+      // analytics once signed in (see app/lib/internalUser.ts). Set by
+      // NUXT_PUBLIC_INTERNAL_EMAIL_HASHES, read at build time on Vercel.
+      internalEmailHashes: '',
       // Vercel deployment environment (production / preview / development),
       // captured at build time so the browser can tag Sentry events with it.
       vercelEnv: process.env.VERCEL_ENV ?? '',
@@ -149,6 +153,24 @@ export default defineNuxtConfig({
   // time, so on Vercel they take effect on the next deploy, not at runtime.
   // Other builds (CI's node server) keep reading them per request.
   routeRules: isVercelBuild ? { '/': { prerender: true } } : {},
+
+  nitro: {
+    vercel: {
+      config: {
+        // PostHog through our own domain, so content blockers that block
+        // posthog.com don't drop events (app/lib/posthogProxy.ts). Rewritten
+        // at Vercel's edge rather than with Nitro's `proxy` route rule, which
+        // would run every event through the server function and hide the
+        // visitor's IP from PostHog's location lookup. Query strings pass
+        // through. Assets first, as the catch-all would match them too.
+        routes: [
+          { src: `^${POSTHOG_PROXY_PATH}/static/(.*)$`, dest: `${POSTHOG_ASSETS_HOST}/static/$1` },
+          { src: `^${POSTHOG_PROXY_PATH}/array/(.*)$`, dest: `${POSTHOG_ASSETS_HOST}/array/$1` },
+          { src: `^${POSTHOG_PROXY_PATH}/(.*)$`, dest: `${POSTHOG_API_HOST}/$1` },
+        ],
+      },
+    },
+  },
 
   hooks: {
     // Guard against shipping client source maps: if the Nitro preset's public
