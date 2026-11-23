@@ -1,6 +1,6 @@
 // Shared CKAN (Toronto Open Data) access for the TPL events routes.
 import type { H3Event } from 'h3'
-import { dayRangeUtc } from '@tpl-passport/shared'
+import { branchesByCode, dayRangeUtc, eventLocationName } from '@tpl-passport/shared'
 import { torontoDayKey } from './eventDates'
 
 // A TPL event record from the CKAN datastore (only the fields used here).
@@ -54,6 +54,29 @@ export async function fetchCkanEvents(date: string, locationName?: string): Prom
   const res = await $fetch<CkanSearchResponse>(`${CKAN}/datastore_search?id=${EVENTS_RESOURCE}&filters=${filters}&limit=200&sort=StartTime%20asc`)
   if (!res?.success || !Array.isArray(res.result?.records)) {
     throw new Error(`CKAN datastore_search returned no records for ${date}${locationName ? ` (${locationName})` : ''}`)
+  }
+  return res.result.records
+}
+
+// Branch codes from a query ("WE,HIL") to feed names; unknown codes are
+// dropped. A district, the largest group the app sends, has about 30, so
+// more than MAX_BRANCHES is refused (null) rather than quietly cut.
+export const MAX_BRANCHES = 40
+export function feedNamesForCodes(raw: unknown): string[] | null {
+  const codes = String(raw ?? '').split(',').map(c => c.trim().toUpperCase()).filter(Boolean)
+  const names = [...new Set(codes.map(c => branchesByCode[c]?.BranchName).filter((n): n is string => !!n).map(eventLocationName))]
+  return names.length > MAX_BRANCHES ? null : names.sort()
+}
+
+export const CKAN_EVENTS_LIMIT = 2000
+
+// Several days of events for some branches, in one CKAN call: datastore
+// filters take a list of values per field. Throws like fetchCkanEvents.
+export async function fetchCkanEventsFor(dates: string[], locationNames: string[]): Promise<CkanEventRecord[]> {
+  const filters = encodeURIComponent(JSON.stringify({ LocationName: locationNames, StartDateLocal: dates }))
+  const res = await $fetch<CkanSearchResponse>(`${CKAN}/datastore_search?id=${EVENTS_RESOURCE}&filters=${filters}&limit=${CKAN_EVENTS_LIMIT}&sort=StartTime%20asc`)
+  if (!res?.success || !Array.isArray(res.result?.records)) {
+    throw new Error(`CKAN datastore_search returned no records for ${dates.join(',')} (${locationNames.length} branches)`)
   }
   return res.result.records
 }

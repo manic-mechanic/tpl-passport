@@ -98,6 +98,7 @@ import IconExternal from '~/components/icons/IconExternal.vue'
 import IconMode from '~/components/icons/IconMode.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
 import type { TripMode } from '~/lib/exploreRoutes'
+import { stampLabel } from '~/lib/stampLabel'
 
 // Day Trips tab: suggested multi-branch routes, filtered by transport mode.
 const { $posthog } = useNuxtApp()
@@ -140,17 +141,6 @@ const routesWithProgress = computed(() =>
 // A route card previews its first three stamps; with "+n" for the rest,
 // that leaves each name column room for most two-word names.
 const STAMPS_SHOWN = 3
-
-// Branch names under the stamps on a route card: a few long names get their everyday short form, and a slash
-// may break ("Pape/Danforth").
-const STAMP_LABELS: Record<string, string> = {
-  CL: 'North York',
-  OV: 'Oakwood Village',
-  TRL: 'Reference Library',
-}
-function stampLabel(b: Branch): string {
-  return (STAMP_LABELS[b.BranchCode] ?? b.BranchName.replace(/ Branch$/, '')).replace(/\//g, '/\u200B')
-}
 
 const BIKE_ICON = '<circle cx="6" cy="15" r="3"/><circle cx="18" cy="15" r="3"/><path d="M6 15l4-6h4l2 6"/><path d="M10 9l2 6"/><path d="M15 9h3"/>'
 const CAR_ICON = '<path d="M5 11l2-5h10l2 5v5H5z"/><circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/><path d="M5 13h14"/>'
