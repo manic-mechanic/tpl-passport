@@ -8,11 +8,12 @@ import { fetchCheckIns, pushCheckIn } from '~/composables/useCheckInSync'
 import { fetchProfile, pushProfile } from '~/composables/useProfileSync'
 import { clearPhotos, getPhotoBlob, movePhoto } from '~/composables/usePhotoStore'
 import { authClient } from '~/lib/auth-client'
-import { uploadCheckInPhotoResult, type UploadFailure } from '~/lib/checkInPhoto'
+import type { UploadFailure } from '~/lib/checkInPhoto'
+import { backUpVisitPhoto, photoBackupInFlight } from '~/lib/visitPhoto'
 import { reportError } from '~/lib/reportError'
 import { reconcileCheckIns } from '~/lib/checkInSyncMerge'
 import { reconcileProfile } from '~/lib/profileSyncMerge'
-import { useAccount, useSignedIn } from '~/composables/useAuthState'
+import { useAccount, useAccountSyncing, useSignedIn } from '~/composables/useAuthState'
 
 // Make sure everything on this device is on the server: merge with the server
 // list, push local-only and merged records, and upload photos that only exist
@@ -43,23 +44,27 @@ async function flushToServer(): Promise<FlushResult> {
   const pushes = await Promise.all([...localOnly, ...updated].map(ci => pushCheckIn(ci)))
   if (pushes.includes(false)) ok = false
 
-  // Photos saved on this device that never got a hosted copy. Stop at the
-  // rate limit or a full account: the rest would only get the same answer.
+  // Photos on this device the server doesn't have yet: no hosted copy, or a
+  // hosted URL the server didn't take. Stop at the rate limit or a full
+  // account: the rest would only get the same answer. A backup the visit
+  // page already started is waited for instead of uploading the photo twice.
   let stoppedAt: Extract<UploadFailure, 'rate_limited' | 'quota'> | null = null
-  for (const ci of passport.checkIns.filter(c => c.hasPhoto && !c.photoUri)) {
+  for (const ci of passport.checkIns.filter(c => c.hasPhoto && (!c.photoUri || c.photoPending))) {
     try {
-      const blob = await getPhotoBlob(ci.timestamp)
-      if (!blob) continue
-      const upload = await uploadCheckInPhotoResult(blob)
-      if (!upload.ok) {
-        ok = false
-        if (upload.reason === 'rate_limited' || upload.reason === 'quota') {
-          stoppedAt = upload.reason
-          break
-        }
-        continue
+      let result = await photoBackupInFlight(ci.timestamp)
+      if (!result) {
+        const blob = ci.photoUri ? null : await getPhotoBlob(ci.timestamp)
+        if (!ci.photoUri && !blob) continue
+        const run = await backUpVisitPhoto(ci.timestamp, blob, passport.markCheckInHasPhoto, ci.photoUri ?? null)
+        // Overtaken by a newer photo for this visit: wait for that one.
+        result = run.state === 'superseded' ? await photoBackupInFlight(ci.timestamp) : run
       }
-      if (!(await passport.markCheckInHasPhoto(ci.timestamp, upload.url))) ok = false
+      if (!result || result.state === 'uploaded') continue
+      ok = false
+      if (result.state === 'failed' && (result.reason === 'rate_limited' || result.reason === 'quota')) {
+        stoppedAt = result.reason
+        break
+      }
     } catch (error) {
       ok = false
       reportError(error, { area: 'sync', operation: 'upload_pending_photo' })
@@ -73,6 +78,16 @@ async function flushToServer(): Promise<FlushResult> {
 // Pull the server profile and check-ins into the local store and push up
 // anything that only exists locally. Best-effort: failures are reported, not thrown.
 export async function syncAccount(fallbackName = '') {
+  const syncing = useAccountSyncing()
+  syncing.value = true
+  try {
+    await syncAccountData(fallbackName)
+  } finally {
+    syncing.value = false
+  }
+}
+
+async function syncAccountData(fallbackName: string) {
   const passport = usePassportStore()
 
   // user_profile is the source of truth for name + homeBranch.

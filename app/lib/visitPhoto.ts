@@ -22,25 +22,50 @@ export type PhotoUploadStatus =
   | { state: 'uploaded' }
   | { state: 'failed', reason: UploadFailure | 'patch' }
 
+// Backups in flight, by check-in timestamp: the latest one for each. Only the
+// latest backup of a check-in saves its URL, so a photo changed while an
+// earlier one is still uploading isn't overwritten when that one finishes.
+const inFlight = new Map<string, Promise<PhotoUploadStatus>>()
+
+// The backup still running for this check-in, if any (the visit page's, or the
+// sign-in sync's), so another caller can wait for it instead of uploading the
+// same photo again.
+export function photoBackupInFlight(timestamp: string): Promise<PhotoUploadStatus> | null {
+  return inFlight.get(timestamp) ?? null
+}
+
 // Uploads the photo and saves its hosted URL on the check-in. With a hosted
 // URL already in hand (an upload whose URL didn't reach the check-in), only
 // the URL is saved again. Failures are reported where they happen:
 // uploadCheckInPhotoResult and patchCheckInPhoto (via markHosted) report
-// the unexpected ones.
-export async function backUpVisitPhoto(
+// the unexpected ones. A backup overtaken by a newer one for the same
+// check-in resolves to { state: 'superseded' } without saving its URL.
+export function backUpVisitPhoto(
   timestamp: string,
   blob: Blob | null,
   markHosted: (timestamp: string, url: string) => Promise<boolean>,
   hostedUrl: string | null = null,
-): Promise<PhotoUploadStatus> {
-  let url = hostedUrl
-  if (!url) {
-    if (!blob) return { state: 'failed', reason: 'failed' }
-    const upload = await uploadCheckInPhotoResult(blob)
-    if (!upload.ok) return { state: 'failed', reason: upload.reason }
-    url = upload.url
-  }
-  return await markHosted(timestamp, url) ? { state: 'uploaded' } : { state: 'failed', reason: 'patch' }
+): Promise<PhotoUploadStatus | { state: 'superseded' }> {
+  let current: Promise<PhotoUploadStatus> | null = null
+  const run = (async (): Promise<PhotoUploadStatus | { state: 'superseded' }> => {
+    let url = hostedUrl
+    if (!url) {
+      if (!blob) return { state: 'failed', reason: 'failed' }
+      const upload = await uploadCheckInPhotoResult(blob)
+      if (inFlight.get(timestamp) !== current) return { state: 'superseded' }
+      if (!upload.ok) return { state: 'failed', reason: upload.reason }
+      url = upload.url
+    }
+    return await markHosted(timestamp, url) ? { state: 'uploaded' } : { state: 'failed', reason: 'patch' }
+  })()
+  // What waiters see: a superseded run hands them the newer one's result.
+  const waited: Promise<PhotoUploadStatus> = run.then(r => r.state === 'superseded'
+    ? (inFlight.get(timestamp) ?? { state: 'failed', reason: 'failed' })
+    : r)
+  current = waited
+  inFlight.set(timestamp, waited)
+  void waited.finally(() => { if (inFlight.get(timestamp) === waited) inFlight.delete(timestamp) })
+  return run
 }
 
 export function uploadFailureText(reason: UploadFailure | 'patch'): string {

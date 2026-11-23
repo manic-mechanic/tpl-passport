@@ -74,7 +74,12 @@ const source = computed(() => {
   if (back.startsWith('/passport')) return 'passport'
   if (back.startsWith('/check-in')) return 'check-in'
   if (back.startsWith('/branch/'))  return 'nearby'
-  if (back.startsWith('/visit/'))   return 'visit'
+  // A visit page passes on where it was opened from, so branch views keep
+  // the source they had when the visit was a panel on History or Check in.
+  if (back.startsWith('/visit/')) {
+    const from = router.options.history.state?.visitSource
+    return from === 'history' || from === 'check-in' ? from : 'visit'
+  }
   if (back === '/')                 return 'home'
   return 'explore'
 })

@@ -7,7 +7,7 @@ const { reportError, uploadCheckInPhotoResult } = vi.hoisted(() => ({
 vi.mock('../app/lib/reportError', () => ({ reportError }))
 vi.mock('../app/lib/checkInPhoto', () => ({ uploadCheckInPhotoResult }))
 
-const { backUpVisitPhoto, isShareCancel, savePhotoToDevice, uploadFailureText, visitPath } = await import('../app/lib/visitPhoto')
+const { backUpVisitPhoto, photoBackupInFlight, isShareCancel, savePhotoToDevice, uploadFailureText, visitPath } = await import('../app/lib/visitPhoto')
 
 const blob = new Blob(['x'], { type: 'image/jpeg' })
 const ts = '2026-11-22T15:04:05.123Z'
@@ -53,6 +53,32 @@ describe('backUpVisitPhoto', () => {
 
   it('fails without a photo to upload', async () => {
     expect(await backUpVisitPhoto(ts, null, async () => true)).toEqual({ state: 'failed', reason: 'failed' })
+  })
+
+  it('a newer photo overtakes an earlier upload, which then saves nothing', async () => {
+    let finishFirst: (v: unknown) => void = () => {}
+    uploadCheckInPhotoResult
+      .mockImplementationOnce(() => new Promise(r => { finishFirst = r }))
+      .mockResolvedValueOnce({ ok: true, url: 'https://photos.test/b.jpg' })
+    const markHosted = vi.fn(async () => true)
+    const first = backUpVisitPhoto(ts, blob, markHosted)
+    const second = backUpVisitPhoto(ts, blob, markHosted)
+    expect(await second).toEqual({ state: 'uploaded' })
+    finishFirst({ ok: true, url: 'https://photos.test/a.jpg' })
+    expect(await first).toEqual({ state: 'superseded' })
+    expect(markHosted).toHaveBeenCalledTimes(1)
+    expect(markHosted).toHaveBeenCalledWith(ts, 'https://photos.test/b.jpg')
+  })
+
+  it('lets another caller wait for a backup in flight', async () => {
+    uploadCheckInPhotoResult.mockResolvedValue({ ok: false, reason: 'rate_limited' })
+    expect(photoBackupInFlight(ts)).toBeNull()
+    const run = backUpVisitPhoto(ts, blob, async () => true)
+    const waiting = photoBackupInFlight(ts)
+    expect(waiting).not.toBeNull()
+    expect(await waiting).toEqual({ state: 'failed', reason: 'rate_limited' })
+    await run
+    expect(photoBackupInFlight(ts)).toBeNull()
   })
 })
 

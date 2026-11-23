@@ -19,6 +19,12 @@ export function useAuthSettled() {
   return useState<boolean>('auth:settled', () => false)
 }
 
+// True while syncAccount() is bringing in the account's check-ins, so a page
+// for one check-in can wait for it instead of saying it doesn't exist.
+export function useAccountSyncing() {
+  return useState<boolean>('auth:syncing', () => false)
+}
+
 // The signed-in account, for Settings. isGoogle is null until known.
 export interface AccountInfo {
   email: string

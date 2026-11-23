@@ -13,14 +13,14 @@
         <p v-if="justCheckedIn" class="visit-label">Stamp collected!</p>
         <p class="visit-branch">{{ branch?.BranchName ?? visit.branchCode }}</p>
         <p class="visit-date">{{ visitDate }}</p>
-        <NuxtLink v-if="branch" :to="`/branch/${visit.branchCode}`" class="btn-primary">View branch</NuxtLink>
+        <NuxtLink v-if="branch" :to="{ path: `/branch/${visit.branchCode}`, state: { visitSource } }" class="btn-primary">View branch</NuxtLink>
       </div>
 
       <p v-if="visit.note?.trim()" class="visit-note">{{ visit.note }}</p>
 
       <section class="visit-photo" aria-label="Photo">
         <template v-if="photoSrc">
-          <img :src="photoSrc" class="visit-photo-img" alt="Check-in photo" />
+          <img :src="photoSrc" class="visit-photo-img" alt="Check-in photo" @load="loadHostedBlob" />
           <p class="photo-status" :class="`photo-status--${status.state}`" role="status">
             <span v-if="status.state === 'uploading'" class="photo-spinner" aria-hidden="true" />
             <IconCheckMark v-else-if="status.state === 'uploaded'" class="photo-status-icon" aria-hidden="true" />
@@ -36,14 +36,14 @@
             {{ photoSrc ? 'Change photo' : 'Add photo' }}
             <input type="file" accept="image/*" class="photo-input" @change="onPhotoCapture" />
           </label>
-          <button v-if="photoBlob" type="button" class="photo-btn" @click="onSavePhoto">
+          <button v-if="photoBlob || hostedSrc" type="button" class="photo-btn" @click="onSavePhoto">
             <IconSave />
             Save photo
           </button>
         </div>
       </section>
 
-      <div v-if="newBadges.length" class="badge-earned-list">
+      <div v-if="justCheckedIn && newBadges.length" class="badge-earned-list">
         <div v-for="badge in newBadges" :key="badge.id" class="badge-earned-row">
           <svg class="badge-earned-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 9h12l-2-6H8L6 9z" /><circle cx="12" cy="15" r="5" />
@@ -66,6 +66,8 @@
       </div>
     </template>
 
+    <p v-else-if="loadingVisits" class="empty-state">Loading…</p>
+
     <p v-else class="empty-state">
       We couldn't find that visit.<br>
       <NuxtLink to="/history">See your history</NuxtLink>
@@ -79,9 +81,9 @@ import { branchesByCode, sortedBranches, haversineKm } from '~/composables/useRe
 import { BADGES, buildBadgeCtx } from '~/composables/useBadges'
 import { getPhotoBlob, savePhoto } from '~/composables/usePhotoStore'
 import { compressPhoto } from '~/lib/checkInPhoto'
-import { backUpVisitPhoto, savePhotoToDevice, uploadFailureText, type PhotoUploadStatus } from '~/lib/visitPhoto'
+import { backUpVisitPhoto, photoBackupInFlight, savePhotoToDevice, uploadFailureText, type PhotoUploadStatus } from '~/lib/visitPhoto'
 import { reportError } from '~/lib/reportError'
-import { canSyncToServer, useAuthKnown, useSignedIn } from '~/composables/useAuthState'
+import { canSyncToServer, useAccountSyncing, useAuthKnown, useSignedIn } from '~/composables/useAuthState'
 import IconCheckMark from '~/components/icons/IconCheckMark.vue'
 import IconPhoto from '~/components/icons/IconPhoto.vue'
 import IconSave from '~/components/icons/IconSave.vue'
@@ -102,6 +104,10 @@ const authKnown = useAuthKnown()
 const timestamp = computed(() => String(route.params.id ?? ''))
 const visit = computed(() => passport.checkIns.find(c => c.timestamp === timestamp.value) ?? null)
 const branch = computed(() => visit.value ? branchesByCode[visit.value.branchCode] : undefined)
+// Not here yet, but it may be coming: on a new device the visit arrives with
+// the sign-in sync, after the session check.
+const accountSyncing = useAccountSyncing()
+const loadingVisits = computed(() => !authKnown.value || accountSyncing.value)
 
 const historyState = router.options.history.state
 const justCheckedIn = historyState?.checkedIn === true
@@ -111,6 +117,10 @@ const backLabel = back.startsWith('/check-in') ? 'Check in'
   : back.startsWith('/branch/') ? 'Branch'
   : back === '/' ? 'Home'
   : 'History'
+
+// For the branch page's analytics: the source a branch view had back when
+// the visit was a panel on Check in or History.
+const visitSource = justCheckedIn ? 'check-in' : back.startsWith('/history') ? 'history' : 'visit'
 
 function goBack() {
   if (back) router.back()
@@ -131,7 +141,8 @@ const visitDate = computed(() => {
 
 const photoBlob = ref<Blob | null>(null)
 const localSrc = ref<string | null>(null)
-const photoSrc = computed(() => localSrc.value ?? visit.value?.photoUri ?? null)
+const hostedSrc = computed(() => visit.value?.photoUri ?? null)
+const photoSrc = computed(() => localSrc.value ?? hostedSrc.value)
 const photoError = ref('')
 
 function showBlob(blob: Blob | null) {
@@ -141,30 +152,46 @@ function showBlob(blob: Blob | null) {
 }
 onUnmounted(() => showBlob(null))
 
-onMounted(async () => {
-  const ts = timestamp.value
-  if (!visit.value?.hasPhoto) return
+// This device's copy, loaded once the visit is known: on a new device that
+// can be after the sign-in sync brings it in. Loaded again if a sync brings
+// a photo for a visit that had none here.
+let loadedFor: string | null = null
+watch(() => visit.value?.hasPhoto ? timestamp.value : null, async (ts) => {
+  if (!ts || loadedFor === ts || photoBlob.value) return
+  loadedFor = ts
   let blob: Blob | null = null
   try {
     blob = await getPhotoBlob(ts)
   } catch {
     // IndexedDB unavailable (e.g. some private modes): the hosted copy shows.
   }
-  if (!blob && visit.value?.photoUri) {
-    // So the hosted copy can be saved to the device too.
-    blob = await fetch(visit.value.photoUri).then(r => r.ok ? r.blob() : null, () => null)
-  }
   // A photo taken while this was loading wins.
   if (blob && !photoBlob.value && ts === timestamp.value) showBlob(blob)
-})
+}, { immediate: true })
+
+// With only the hosted copy, fetch it once the image has shown (not in
+// competition with it), so "Save photo" can share it straight from the tap.
+// If the photo host doesn't allow that, "Save photo" opens the hosted copy.
+let hostedFetchedFor: string | null = null
+async function loadHostedBlob() {
+  const url = hostedSrc.value
+  if (photoBlob.value || !url || localSrc.value || hostedFetchedFor === url) return
+  hostedFetchedFor = url
+  const blob = await fetch(url).then(r => r.ok ? r.blob() : null, () => null)
+  if (blob && !photoBlob.value && hostedSrc.value === url) showBlob(blob)
+}
 
 // Set by an upload on this page. Until then it follows the check-in: a
-// hosted URL means uploaded; a signed-in user's photo without one hasn't
-// been uploaded yet (the next sync, or Retry, uploads it).
-const uploadStatus = ref<PhotoUploadStatus | null>(null)
-const status = computed<PhotoUploadStatus | { state: 'pending' }>(() => {
+// hosted URL the server has means uploaded; otherwise (photoPending, or no
+// hosted URL) a signed-in user's photo hasn't been uploaded yet (the next
+// sync, or Retry, uploads it). 'unsaved': IndexedDB couldn't keep it and
+// there was no upload to fall back on.
+type VisitPhotoStatus = PhotoUploadStatus | { state: 'pending' } | { state: 'unsaved' }
+const uploadStatus = ref<VisitPhotoStatus | null>(null)
+const status = computed<VisitPhotoStatus>(() => {
   if (uploadStatus.value) return uploadStatus.value
-  if (visit.value?.photoUri) return { state: 'uploaded' }
+  const v = visit.value
+  if (v?.photoUri && !v.photoPending) return { state: 'uploaded' }
   return signedIn.value ? { state: 'pending' } : { state: 'local' }
 })
 const statusText = computed(() => {
@@ -174,29 +201,38 @@ const statusText = computed(() => {
     case 'uploaded': return 'Uploaded'
     case 'pending': return 'Not uploaded yet.'
     case 'local': return 'Saved on this device'
+    case 'unsaved': return 'Not saved: this device couldn’t keep it. Sign in to back it up.'
     case 'failed': return uploadFailureText(s.reason)
   }
   return ''
 })
+// Retry needs something to send: this device's photo, or a hosted URL the
+// server hasn't taken yet.
 const canRetry = computed(() => {
   const s = status.value
-  return s.state === 'pending' || (s.state === 'failed' && s.reason !== 'quota' && s.reason !== 'unauthorized')
+  const retryable = s.state === 'pending' || (s.state === 'failed' && s.reason !== 'quota' && s.reason !== 'unauthorized')
+  const v = visit.value
+  return retryable && (!!photoBlob.value || !!(v?.photoUri && v.photoPending))
 })
 
 let uploadRun = 0
-async function upload(blob: Blob | null, hostedUrl: string | null = null) {
+// A new photo always starts its own backup. Retry joins one already running
+// for this visit (e.g. the sign-in sync's) instead of uploading it twice.
+async function upload(blob: Blob | null, hostedUrl: string | null, joinRunning: boolean) {
   const ts = timestamp.value
   const run = ++uploadRun
   uploadStatus.value = { state: 'uploading' }
-  const result = await backUpVisitPhoto(ts, blob, passport.markCheckInHasPhoto, hostedUrl)
+  const running = joinRunning ? photoBackupInFlight(ts) : null
+  let result = running ? await running : await backUpVisitPhoto(ts, blob, passport.markCheckInHasPhoto, hostedUrl)
+  if (result.state === 'superseded') result = await photoBackupInFlight(ts) ?? { state: 'failed', reason: 'failed' }
   if (run === uploadRun) uploadStatus.value = result
 }
 
 function retryUpload() {
-  const s = status.value
-  // The upload worked but the check-in didn't take its URL: send the URL again.
-  if (s.state === 'failed' && s.reason === 'patch' && visit.value?.photoUri) void upload(null, visit.value.photoUri)
-  else void upload(photoBlob.value)
+  const v = visit.value
+  // The upload worked but the server didn't take its URL: send the URL again.
+  if (v?.photoUri && v.photoPending) void upload(null, v.photoUri, true)
+  else void upload(photoBlob.value, null, true)
 }
 
 async function onPhotoCapture(event: Event) {
@@ -212,19 +248,28 @@ async function onPhotoCapture(event: Event) {
     return
   }
   showBlob(blob)
+  let saved = true
   try {
     await savePhoto(ts, blob)
   } catch (error) {
+    saved = false
     reportError(error, { area: 'persistence', operation: 'save_photo' })
   }
-  void passport.markCheckInHasPhoto(ts)
-  $posthog?.capture('photo_taken', { branch_code: visit.value.branchCode })
-  if (canSyncToServer()) await upload(blob)
-  else uploadStatus.value = { state: 'local' }
+  $posthog?.capture('photo_taken', { branch_code: visit.value.branchCode, saved_on_device: saved })
+  // Only a photo this device kept is recorded before it uploads; one it
+  // couldn't keep is recorded by the upload, or not at all.
+  if (saved) void passport.markCheckInHasPhoto(ts)
+  if (canSyncToServer()) await upload(blob, null, false)
+  else uploadStatus.value = saved ? { state: 'local' } : { state: 'unsaved' }
 }
 
 async function onSavePhoto() {
-  if (!photoBlob.value) return
+  if (!photoBlob.value) {
+    // The hosted copy couldn't be fetched here: open it, to save from there.
+    if (hostedSrc.value) window.open(hostedSrc.value, '_blank', 'noopener')
+    $posthog?.capture('photo_saved', { outcome: 'opened', branch_code: visit.value?.branchCode })
+    return
+  }
   const outcome = await savePhotoToDevice(photoBlob.value)
   $posthog?.capture('photo_saved', { outcome, branch_code: visit.value?.branchCode })
 }
@@ -235,7 +280,9 @@ const showSignInNudge = computed(() =>
   justCheckedIn && authKnown.value && !signedIn.value && passport.checkIns.length === 1
 )
 
-// Badges this visit earned: those earned with it and not with the visits before it.
+// Badges this check-in earned: those earned with it and not with the visits
+// before it. Shown only right after checking in, since they're worked out
+// from today's home branch and challenges.
 const newBadges = computed(() => {
   const v = visit.value
   if (!v) return []

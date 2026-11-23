@@ -46,7 +46,9 @@
 import type { PassportCheckIn } from '~/types/passport'
 import { usePassportStore } from '~/stores/passport'
 import { getCheckInPhotoSrc, releasePhotoSrc, savePhoto } from '~/composables/usePhotoStore'
-import { compressPhoto, uploadCheckInPhoto } from '~/lib/checkInPhoto'
+import { compressPhoto } from '~/lib/checkInPhoto'
+import { backUpVisitPhoto } from '~/lib/visitPhoto'
+import { reportError } from '~/lib/reportError'
 import { canSyncToServer } from '~/composables/useAuthState'
 import IconNote from './icons/IconNote.vue'
 import IconPhoto from './icons/IconPhoto.vue'
@@ -115,18 +117,29 @@ async function onVisitPhotoCapture(event: Event, timestamp: string) {
   if (!file) return
   const blob = await compressPhoto(file)
   if (!blob) return
-  await savePhoto(timestamp, blob)
+  let saved = true
+  try {
+    await savePhoto(timestamp, blob)
+  } catch (error) {
+    // Not kept on this device: only the upload can keep it.
+    saved = false
+    reportError(error, { area: 'persistence', operation: 'save_photo' })
+    if (!canSyncToServer()) return
+  }
   releasePhotoSrc(photoUrls.value[timestamp])
   photoUrls.value[timestamp] = URL.createObjectURL(blob)
-  passport.markCheckInHasPhoto(timestamp)
+  // The new photo replaces any hosted one (and stays pending until its own
+  // hosted URL reaches the server). Mark it as loaded so the watcher doesn't
+  // reload it over the copy already showing.
+  photoLoadedFor.set(timestamp, '')
+  if (saved) void passport.markCheckInHasPhoto(timestamp)
   if (canSyncToServer()) {
-    const publicUrl = await uploadCheckInPhoto(blob)
-    if (publicUrl) {
+    void backUpVisitPhoto(timestamp, blob, (ts, url) => {
       // The new hosted URL would otherwise make the watcher reload this
       // photo; this device's copy is already showing.
-      photoLoadedFor.set(timestamp, publicUrl)
-      passport.markCheckInHasPhoto(timestamp, publicUrl)
-    }
+      photoLoadedFor.set(ts, url)
+      return passport.markCheckInHasPhoto(ts, url)
+    })
   }
 }
 </script>

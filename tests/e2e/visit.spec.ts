@@ -115,6 +115,32 @@ test('a failed upload shows, and Retry uploads it', async ({ page }) => {
   expect(server.patches).toEqual(['https://photos.example.com/2.jpg'])
 })
 
+test('a changed photo whose upload fails is not shown as uploaded after a reload', async ({ page }) => {
+  const server = await signedInServer(page, [200, 500])
+  await disableLocationCheck(page)
+  await createCheckIn(page, 'change photo')
+  await page.locator('input.photo-input').setInputFiles(photoPath)
+  await expect(page.locator('.photo-status')).toHaveText('Uploaded')
+
+  await page.locator('input.photo-input').setInputFiles(photoPath)
+  await expect(page.locator('.photo-status')).toContainText('Upload failed.')
+  await page.reload()
+  await expect(page.locator('.photo-status')).toContainText('Not uploaded yet.')
+  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
+  expect(server.patches).toEqual(['https://photos.example.com/1.jpg'])
+})
+
+test('badges earned show after checking in, not when the visit is opened from History', async ({ page }) => {
+  await disableLocationCheck(page)
+  await createCheckIn(page, 'first visit')
+  await expect(page.getByText('Badge earned!').first()).toBeVisible()
+
+  await page.goto('/history')
+  await page.locator('.checkin-list a').first().click()
+  await expect(page.getByText('first visit')).toBeVisible()
+  await expect(page.getByText('Badge earned!')).toHaveCount(0)
+})
+
 for (const outcome of ['save', 'cancel'] as const) {
   test(`the visit page stays usable after Save photo (share sheet ${outcome})`, async ({ page }) => {
     const errors: string[] = []

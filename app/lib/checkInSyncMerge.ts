@@ -11,8 +11,9 @@ function branchDayKey(checkIn: PassportCheckIn): string {
 }
 
 // Merges server and local check-ins.
-// - Server wins when both have the same timestamp, except for a photo the
-//   server copy is missing: if this device has one (a hosted photoUri, or a
+// - Server wins when both have the same timestamp, except for a photo this
+//   device changed and hasn't sent yet (photoPending: this device's photo
+//   wins, still pending), and a photo the server copy is missing: if this device has one (a hosted photoUri, or a
 //   hasPhoto flag for a photo still only in IndexedDB), it's kept. A hosted
 //   photoUri is returned in `updated` so the caller pushes it up; a local-only
 //   photo keeps hasPhoto so the caller's pending-upload pass uploads it.
@@ -44,7 +45,15 @@ export function reconcileCheckIns(
   for (const local of localCheckIns) {
     const sameTimestamp = serverByTimestamp.get(local.timestamp)
     if (sameTimestamp) {
-      if (!sameTimestamp.hasPhoto && (local.hasPhoto || local.photoUri)) {
+      if (local.photoPending) {
+        // This device changed the photo and the server doesn't have the new
+        // one yet: keep this device's. The caller's pending-photo pass
+        // uploads it (or sends its hosted URL again).
+        sameTimestamp.hasPhoto = true
+        sameTimestamp.photoPending = true
+        if (local.photoUri) sameTimestamp.photoUri = local.photoUri
+        else delete sameTimestamp.photoUri
+      } else if (!sameTimestamp.hasPhoto && (local.hasPhoto || local.photoUri)) {
         sameTimestamp.hasPhoto = true
         if (local.photoUri) {
           sameTimestamp.photoUri = local.photoUri
