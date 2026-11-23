@@ -1,5 +1,5 @@
 <template>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" v-bind="$attrs">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
     <!-- Stamp seal: outer ring + inner ring + check -->
     <circle cx="12" cy="12" r="9" />
     <circle cx="12" cy="12" r="5.5" stroke-dasharray="2.5 2" />
