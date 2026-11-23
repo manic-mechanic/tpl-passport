@@ -34,3 +34,13 @@ describe('branch codes to feed names', () => {
     expect(feedNamesForCodes('')).toEqual([])
   })
 })
+
+describe('branch code limits', () => {
+  it('refuses more branches than a district rather than cutting the list', async () => {
+    const { feedNamesForCodes, MAX_BRANCHES } = await import('../server/lib/ckanEvents')
+    const { physicalBranches } = await import('@tpl-passport/shared')
+    const codes = physicalBranches.map(b => b.BranchCode)
+    expect(feedNamesForCodes(codes.slice(0, MAX_BRANCHES).join(','))).toHaveLength(MAX_BRANCHES)
+    expect(feedNamesForCodes(codes.slice(0, MAX_BRANCHES + 1).join(','))).toBeNull()
+  })
+})

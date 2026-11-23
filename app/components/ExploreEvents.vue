@@ -23,7 +23,7 @@
         </button>
       </div>
       <button class="filter-btn" :class="{ active: activeFilterCount > 0 || sort !== 'time' }"
-              :aria-label="activeFilterCount ? `Filter (${activeFilterCount} on)` : 'Filter'" @click="filtersOpen = true"
+              :aria-label="filterButtonLabel" @click="filtersOpen = true"
       >
         <IconFilter class="filter-icon" />
       </button>
@@ -39,22 +39,23 @@
       <button class="text-btn" @click="retry">Try again</button>
     </p>
     <template v-else>
-      <div v-for="event in shown" :key="event.id" class="event-row" :class="{ clickable: event.branch }"
-           :role="event.branch ? 'button' : undefined" :tabindex="event.branch ? 0 : undefined"
-           :aria-label="event.branch ? `${event.title}, ${event.locationName}. Open branch` : undefined"
-           @click="event.branch && openBranch(event.branch)"
-           @keydown.enter.self="event.branch && openBranch(event.branch)"
-      >
+      <div v-for="event in shown" :key="event.id" class="event-row" :class="{ clickable: event.branch }">
         <div class="event-date" aria-hidden="true">
           <span class="event-month">{{ dateParts(event.date).month }}</span>
           <span class="event-day">{{ dateParts(event.date).day }}</span>
         </div>
         <div class="event-info">
+          <!-- The title is the row's button (it covers the whole card); the
+               TPL link sits above it, so it isn't nested in the button. -->
           <p class="event-title">
-            {{ event.title }}<a v-if="event.url" :href="event.url" target="_blank" rel="noopener" class="event-link"
-                                :aria-label="`${event.title} on the TPL website (opens another site)`"
-                                @click.stop="$posthog?.capture('whats_on_event_link_tapped', { title: event.title })"
-                                @keydown.enter.stop
+            <button v-if="event.branch" type="button" class="event-open"
+                    :aria-label="`${event.title}, ${event.locationName}. Open branch`" @click="openBranch(event.branch)"
+            >
+              {{ event.title }}
+            </button><template v-else>{{ event.title }}</template><a
+              v-if="event.url" :href="event.url" target="_blank" rel="noopener" class="event-link"
+              :aria-label="`${event.title} on the TPL website (opens another site)`"
+              @click="$posthog?.capture('whats_on_event_link_tapped', { title: event.title })"
             ><IconExternal class="event-link-icon" aria-hidden="true" /></a>
           </p>
           <p class="event-meta">
@@ -99,7 +100,7 @@
       <div class="field">
         <label for="ev-place">Branches</label>
         <span class="select">
-          <select id="ev-place" :value="place" @change="setFilter('place', ($event.target as HTMLSelectElement).value)">
+          <select id="ev-place" :key="placeRedraw" :value="place" @change="setFilter('place', ($event.target as HTMLSelectElement).value)">
             <option value="">All branches</option>
             <option v-if="homeBranch" value="home">Home branch ({{ shortName(homeBranch) }})</option>
             <option v-if="access !== 'denied'" value="near">Near me</option>
@@ -284,10 +285,11 @@ async function loadBranchWeek() {
   try {
     const records: unknown = await $fetch('/api/all-events', { query: { offset: 0, days: DAYS, branches: key } })
     const raw = (Array.isArray(records) ? records : []) as RawEvent[]
-    if (branchWeek.value?.key !== key) return // the filter changed meanwhile
+    // The filter or the day changed meanwhile: a newer request owns it.
+    if (branchWeek.value?.key !== key || branchWeek.value.from !== from) return
     branchWeek.value = { key, from, state: 'done', events: toExploreEvents(raw.filter(r => days.value.includes(r.StartDateLocal)), branches) }
   } catch (error) {
-    if (branchWeek.value?.key === key) branchWeek.value = { key, from, state: 'error', events: [] }
+    if (branchWeek.value?.key === key && branchWeek.value.from === from) branchWeek.value = { key, from, state: 'error', events: [] }
     reportError(error, { area: 'events', operation: 'branch_week_fetch', branches: key.split(',').length })
   }
 }
@@ -313,8 +315,6 @@ function loadMoreIfNear() {
   if (!el || el.getBoundingClientRect().top > window.innerHeight + 400) return
   weekCount.value += 1
 }
-
-
 
 // Load what's shown and the next day, so stepping forward is instant.
 watch(day, (d) => {
@@ -393,15 +393,17 @@ const activeFilterCount = computed(() => [age.value, kind.value, time.value, pla
 
 // Types in what's loaded so far, plus the chosen one so it stays listed.
 const typeOptions = computed(() => {
-  const list = eventTypes(Object.values(eventsByDay.value).flat())
+  const list = eventTypes([...Object.values(eventsByDay.value).flat(), ...(branchWeek.value?.events ?? [])])
   return kind.value && !list.includes(kind.value) ? [...list, kind.value].sort((a, b) => a.localeCompare(b)) : list
 })
 const filtersOpen = ref(false)
 
 const homeBranch = computed(() => branchesByCode[passport.profile.homeBranch ?? ''] ?? null)
 
+// Branch names carry no " Branch" suffix to strip (and "Long Branch" is a
+// name), so this is just the name.
 function shortName(b: Branch) {
-  return b.BranchName.replace(/ Branch$/, '')
+  return b.BranchName
 }
 
 // Branch groups: the Library Tour routes, the walking day trips, districts.
@@ -451,7 +453,10 @@ async function setFilter(filter: 'age' | 'kind' | 'time' | 'place', value: strin
   else if (filter === 'kind') kind.value = value || null
   else if (filter === 'time') time.value = (value || null) as TimeOfDay | null
   else {
-    if (value === 'near' && !(await locate())) return
+    if (value === 'near' && !(await locate())) {
+      placeRedraw.value++ // show the branch filter that's actually on again
+      return
+    }
     place.value = value
   }
   $posthog?.capture('whats_on_filter_changed', { filter, value: value || 'all' })
@@ -464,8 +469,18 @@ function clearFilters() {
   place.value = ''
 }
 
-// Bumped to redraw the sort toggle when "Nearest first" can't be used.
+// Bumped to redraw the sort toggle when "Nearest first" can't be used, and
+// the branch select when "Near me" can't.
 const sortRedraw = ref(0)
+const placeRedraw = ref(0)
+
+const filterButtonLabel = computed(() => {
+  const on = [
+    activeFilterCount.value ? `${activeFilterCount.value} on` : '',
+    sort.value === 'nearest' ? 'nearest first' : '',
+  ].filter(Boolean)
+  return on.length ? `Filter (${on.join(', ')})` : 'Filter'
+})
 
 async function setSort(value: EventSort) {
   if (value === 'nearest' && !(await locate())) {
@@ -481,7 +496,6 @@ function dateParts(dateStr: string) {
   return {
     day: d.getDate(),
     month: d.toLocaleDateString('en-CA', { month: 'short' }).replace('.', '').toUpperCase(),
-    weekday: d.toLocaleDateString('en-CA', { weekday: 'short' }),
   }
 }
 
@@ -527,10 +541,6 @@ function dayLabel(d: string) {
   if (d === addDays(today.value, 1)) return 'tomorrow'
   return new Date(d + 'T00:00:00').toLocaleDateString('en-CA', { weekday: 'long' })
 }
-
-
-
-
 
 // Passive, and only does work in the week view near its end.
 function listen(on: boolean) {
@@ -731,6 +741,7 @@ onBeforeUnmount(() => {
 
 /* ── Rows ────────────────────────────────────────────────────────── */
 .event-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -744,8 +755,27 @@ onBeforeUnmount(() => {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 
-  &:active {
+  &:has(.event-open:active) {
     background: var(--color-paper);
+  }
+
+  &:has(.event-open:focus-visible) {
+    outline: 2px solid var(--tpl-blue);
+    outline-offset: 2px;
+  }
+}
+
+/* The title as a plain-looking button whose tap area is the whole card */
+.event-open {
+  all: unset;
+  display: inline;
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
   }
 }
 
@@ -800,6 +830,8 @@ onBeforeUnmount(() => {
 
 /* The event's TPL page: a small mark at the end of the title */
 .event-link {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   vertical-align: -1px;
   margin-left: 5px;

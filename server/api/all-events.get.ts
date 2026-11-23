@@ -12,7 +12,7 @@
 //   filter on), instead of a call per day for every branch.
 import { reportServerError } from '../lib/reportServerError'
 import { eventDates } from '../lib/eventDates'
-import { compareEvents, feedNamesForCodes, fetchCkanEvents, fetchCkanEventsFor, setEventsCacheHeaders, type CkanEventRecord } from '../lib/ckanEvents'
+import { compareEvents, CKAN_EVENTS_LIMIT, feedNamesForCodes, fetchCkanEvents, fetchCkanEventsFor, setEventsCacheHeaders, type CkanEventRecord } from '../lib/ckanEvents'
 // Short, since the CDN caches the response on top of this (see
 // eventsCacheControl): together an event change shows within about 25 min.
 const CACHE_TTL = 5 * 60 * 1000
@@ -52,12 +52,19 @@ export default defineEventHandler(async (event) => {
 
   if (query.branches !== undefined) {
     const names = feedNamesForCodes(query.branches)
+    if (names === null) {
+      throw createError({ statusCode: 400, statusMessage: 'Too many branches' })
+    }
     if (names.length === 0) {
       setEventsCacheHeaders(event, false)
       return []
     }
     try {
       const records = await fetchCkanEventsFor(dates, names)
+      // At CKAN's limit the list may be cut short; say so rather than hide it.
+      if (records.length >= CKAN_EVENTS_LIMIT) {
+        reportServerError(new Error(`Branch week hit the ${CKAN_EVENTS_LIMIT}-record limit`), { area: 'events', operation: 'branch_week_fetch', branches: names.length, days })
+      }
       setEventsCacheHeaders(event, true)
       return records.sort(compareEvents)
     } catch (error) {
