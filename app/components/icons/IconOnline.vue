@@ -1,7 +1,0 @@
-<template>
-  <!-- Online: a laptop -->
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" v-bind="$attrs">
-    <rect x="4" y="5" width="16" height="11" rx="1.5" />
-    <path d="M2 19h20" />
-  </svg>
-</template>

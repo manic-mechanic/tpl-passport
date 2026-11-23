@@ -1,7 +1,7 @@
 import type { Branch } from '@tpl-passport/shared'
 import { physicalBranches } from '@tpl-passport/shared'
 import {
-  addDays, ageTone, branchLookup, cleanLocationName, isOver, matchesAge, sortEvents, timeOfDay, toExploreEvents, torontoNow, torontoToday,
+  addDays, branchLookup, cleanLocationName, isOver, matchesAge, sortEvents, timeOfDay, toExploreEvents, torontoNow, torontoToday,
   type RawEvent,
 } from '../app/lib/exploreEvents'
 
@@ -76,15 +76,6 @@ describe('What\'s On events', () => {
     expect(matchesAge(adults!, 'adults')).toBe(true)
     expect(matchesAge(adults!, 'seniors')).toBe(true)
     expect(matchesAge(adults!, null)).toBe(true)
-  })
-
-  it('tones rows by who they are for', () => {
-    expect(ageTone('School Age Children (6-12)')).toBe('kids')
-    expect(ageTone('Teens (13-17), School Age Children (6-12)')).toBe('kids')
-    expect(ageTone('Teens (13-17)')).toBe('teens')
-    expect(ageTone('Adults (18+), Older Adults')).toBe('adults')
-    expect(ageTone('Adults (18+), Preschool Children (0-5)')).toBe('family')
-    expect(ageTone('')).toBe('none')
   })
 
   it('buckets start times into morning, afternoon and evening', () => {

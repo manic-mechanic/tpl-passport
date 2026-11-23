@@ -149,24 +149,10 @@ export function matchesAge(event: ExploreEvent, age: AgeGroupId | null): boolean
   return audienceList(event.audiences).some(a => wanted.includes(a))
 }
 
-// Who an event is for, broadly: tints the row's border.
-export type AgeTone = 'kids' | 'teens' | 'adults' | 'family' | 'none'
-export function ageTone(audiences: string): AgeTone {
-  const list = audienceList(audiences)
-  const kids = list.some(a => a.includes('Children'))
-  const teens = list.some(a => a.startsWith('Teens'))
-  const adults = list.some(a => a.includes('Adults'))
-  if (adults && (kids || teens)) return 'family'
-  if (adults) return 'adults'
-  if (teens && !kids) return 'teens'
-  if (kids || teens) return 'kids'
-  return 'none'
-}
-
 export const TIMES_OF_DAY = [
-  { id: 'morning', label: 'Morning', hint: 'before noon' },
-  { id: 'afternoon', label: 'Afternoon', hint: 'noon to 5pm' },
-  { id: 'evening', label: 'Evening', hint: 'from 5pm' },
+  { id: 'morning', label: 'Morning' },
+  { id: 'afternoon', label: 'Afternoon' },
+  { id: 'evening', label: 'Evening' },
 ] as const
 export type TimeOfDay = typeof TIMES_OF_DAY[number]['id']
 
