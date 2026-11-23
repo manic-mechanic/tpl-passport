@@ -47,7 +47,7 @@
         <div class="event-info">
           <!-- The title is the row's button (it covers the whole card); the
                TPL link sits above it, so it isn't nested in the button. -->
-          <!-- The title is the row's button (it covers the whole card). -->
+          <!-- The title is the row's button; it covers the whole card. -->
           <p class="event-title">
             <button v-if="event.branch" type="button" class="event-open"
                     :aria-label="`${event.title}, ${event.locationName}. Open branch`" @click="openBranch(event.branch)"
@@ -56,19 +56,10 @@
             </button>
             <span v-else class="event-title-text">{{ event.title }}</span>
           </p>
-          <!-- Branch, time and ages on one line, cut short if need be, with
-               the TPL link right after: the same spot on every row, and
-               above the title's button so it isn't nested in it. -->
           <p class="event-meta">
-            <span class="event-meta-text">
-              <StampDot v-if="event.branch" class="event-stamp" :branch-code="event.branch.BranchCode"
-                        :ward-no="event.branch.WardNo" :visited="passport.hasVisited(event.branch.BranchCode)"
-              />{{ [event.branch ? shortName(event.branch) : event.locationName, formatEventTime(event.start), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}
-            </span>
-            <a v-if="event.url" :href="event.url" target="_blank" rel="noopener" class="event-link"
-               :aria-label="`${event.title} on the TPL website (opens another site)`"
-               @click="$posthog?.capture('whats_on_event_link_tapped', { title: event.title })"
-            ><IconExternal class="event-link-icon" aria-hidden="true" /></a>
+            <StampDot v-if="event.branch" class="event-stamp" :branch-code="event.branch.BranchCode"
+                      :ward-no="event.branch.WardNo" :visited="passport.hasVisited(event.branch.BranchCode)"
+            />{{ [event.branch ? shortName(event.branch) : event.locationName, formatEventTime(event.start), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}
           </p>
         </div>
         <IconChevron v-if="event.branch" class="event-chevron" aria-hidden="true" />
@@ -190,7 +181,6 @@ import {
 } from '~/lib/exploreEvents'
 import IconFilter from '~/components/icons/IconFilter.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
-import IconExternal from '~/components/icons/IconExternal.vue'
 
 // What's On tab: a day of events across all branches, by Toronto date like
 // /api/all-events, for the next week. Today's finished events are left out.
@@ -841,33 +831,10 @@ onBeforeUnmount(() => {
 }
 
 /* The event's TPL page: a small mark at the end of the title */
-/* A bigger tap area than it shows, without moving the line */
-.event-link {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  display: flex;
-  margin: -8px -8px -8px -2px;
-  padding: 8px;
-  color: var(--color-text-muted);
-}
-
-.event-link-icon {
-  width: 12px;
-  height: 12px;
-}
-
 .event-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   margin: 0;
-}
-
-.event-meta-text {
-  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

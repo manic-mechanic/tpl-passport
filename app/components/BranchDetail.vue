@@ -41,15 +41,22 @@
     <section class="detail-section">
       <h2 class="detail-heading">Upcoming events</h2>
       <ul v-if="events.length" class="events-list">
-        <li v-for="(evt, i) in events" :key="`${evt.date}-${i}`" class="event-row">
-          <div class="event-date-badge">
-            <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
-            <span class="event-day">{{ formatEventDay(evt.date) }}</span>
-          </div>
-          <div class="event-info">
-            <span class="event-title">{{ evt.title }}</span>
-            <span class="event-meta">{{ evt.time }}<template v-if="evt.age"> · {{ evt.age }}</template></span>
-          </div>
+        <li v-for="(evt, i) in events" :key="`${evt.date}-${i}`">
+          <!-- Each event links to its page on the TPL site, when it has one -->
+          <component :is="evt.url ? 'a' : 'div'" class="event-row" v-bind="evt.url ? {
+            href: evt.url, target: '_blank', rel: 'noopener',
+            'aria-label': `${evt.title} on the TPL website (opens another site)`,
+          } : {}" @click="evt.url && trackEventLinkTapped(evt.title)"
+          >
+            <div class="event-date-badge">
+              <span class="event-month">{{ formatEventMonth(evt.date) }}</span>
+              <span class="event-day">{{ formatEventDay(evt.date) }}</span>
+            </div>
+            <div class="event-info">
+              <span class="event-title">{{ evt.title }}<IconExternal v-if="evt.url" class="event-link-icon" aria-hidden="true" /></span>
+              <span class="event-meta">{{ evt.time }}<template v-if="evt.age"> · {{ evt.age }}</template></span>
+            </div>
+          </component>
         </li>
       </ul>
       <p v-else-if="!eventsPending" class="events-empty">No events today or tomorrow.</p>
@@ -104,6 +111,7 @@ import { usePassportStore } from '~/stores/passport'
 import { physicalBranches, haversineKm, formatDist } from '~/composables/useRegion'
 import { compassPoints } from '~/composables/useBadges'
 import { formatAudiences, formatEventTime } from '~/composables/useEvents'
+import { eventUrl } from '~/lib/exploreEvents'
 import IconExternal from './icons/IconExternal.vue'
 import IconParking from './icons/IconParking.vue'
 import IconTelephone from './icons/IconTelephone.vue'
@@ -123,6 +131,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ 'open-branch': [branch: Branch] }>()
 
 interface BranchEvent {
+  EventID?: string
   Title?: string
   StartDateLocal?: string
   StartTime?: string
@@ -145,6 +154,10 @@ onMounted(() => {
     source: props.source,
   })
 })
+
+function trackEventLinkTapped(title: string) {
+  $posthog?.capture('branch_event_link_tapped', { branch_code: props.branch.BranchCode, title })
+}
 
 function trackTplLinkTapped() {
   $posthog?.capture('tpl_link_tapped', { branch_code: props.branch.BranchCode })
@@ -199,6 +212,7 @@ const events = computed(() =>
     date: e.StartDateLocal ?? '',
     time: formatEventTime(e.StartTime),
     age: formatAudiences(e.Audiences),
+    url: eventUrl(e.EventID),
   }))
 )
 
@@ -368,6 +382,23 @@ const nearbyBranches = computed(() => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a.event-row:active .event-title {
+  color: var(--tpl-blue);
+}
+
+/* After the title, kept with its last word */
+.event-link-icon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 5px;
+  vertical-align: -1px;
+  color: var(--color-text-muted);
 }
 
 .event-date-badge {
