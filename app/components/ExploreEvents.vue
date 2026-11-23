@@ -47,21 +47,19 @@
         <div class="event-info">
           <!-- The title is the row's button (it covers the whole card); the
                TPL link sits above it, so it isn't nested in the button. -->
+          <!-- The title is the row's button; it covers the whole card. -->
           <p class="event-title">
             <button v-if="event.branch" type="button" class="event-open"
                     :aria-label="`${event.title}, ${event.locationName}. Open branch`" @click="openBranch(event.branch)"
             >
               {{ event.title }}
-            </button><template v-else>{{ event.title }}</template><a
-              v-if="event.url" :href="event.url" target="_blank" rel="noopener" class="event-link"
-              :aria-label="`${event.title} on the TPL website (opens another site)`"
-              @click="$posthog?.capture('whats_on_event_link_tapped', { title: event.title })"
-            ><IconExternal class="event-link-icon" aria-hidden="true" /></a>
+            </button>
+            <span v-else class="event-title-text">{{ event.title }}</span>
           </p>
           <p class="event-meta">
             <StampDot v-if="event.branch" class="event-stamp" :branch-code="event.branch.BranchCode"
                       :ward-no="event.branch.WardNo" :visited="passport.hasVisited(event.branch.BranchCode)"
-            />{{ [event.branch ? shortName(event.branch) : event.locationName, formatEventTime(event.start), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}
+            /><span class="event-meta-text">{{ [event.branch ? shortName(event.branch) : event.locationName, formatEventTime(event.start), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}</span>
           </p>
         </div>
         <IconChevron v-if="event.branch" class="event-chevron" aria-hidden="true" />
@@ -183,7 +181,6 @@ import {
 } from '~/lib/exploreEvents'
 import IconFilter from '~/components/icons/IconFilter.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
-import IconExternal from '~/components/icons/IconExternal.vue'
 
 // What's On tab: a day of events across all branches, by Toronto date like
 // /api/all-events, for the next week. Today's finished events are left out.
@@ -768,7 +765,6 @@ onBeforeUnmount(() => {
 /* The title as a plain-looking button whose tap area is the whole card */
 .event-open {
   all: unset;
-  display: inline;
   cursor: pointer;
 
   &::after {
@@ -821,41 +817,39 @@ onBeforeUnmount(() => {
   font-weight: 600;
   line-height: 1.4;
   color: var(--color-text);
+  margin: 0;
+}
+
+/* Two lines at most, set on the text's own box (the button, or a span
+   for an online event): browsers differ on clamping an inline child. */
+.event-title .event-open,
+.event-title-text {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin: 0;
 }
 
 /* The event's TPL page: a small mark at the end of the title */
-.event-link {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  vertical-align: -1px;
-  margin-left: 5px;
-  padding: 2px;
-  color: var(--color-text-muted);
-}
-
-.event-link-icon {
-  width: 12px;
-  height: 12px;
-}
-
+/* A row, so the stamp sits centred on the line of text */
 .event-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   margin: 0;
+}
+
+.event-meta-text {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .event-stamp {
-  margin-right: 5px;
-  vertical-align: -1px;
+  flex-shrink: 0;
 }
 
 .event-chevron {
