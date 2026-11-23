@@ -59,7 +59,7 @@
           <p class="event-meta">
             <StampDot v-if="event.branch" class="event-stamp" :branch-code="event.branch.BranchCode"
                       :ward-no="event.branch.WardNo" :visited="passport.hasVisited(event.branch.BranchCode)"
-            />{{ [event.branch ? shortName(event.branch) : event.locationName, formatEventTime(event.start), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}
+            /><span class="event-meta-text">{{ [event.branch ? shortName(event.branch) : event.locationName, formatEventTime(event.start), formatAudiences(event.audiences)].filter(Boolean).join(' · ') }}</span>
           </p>
         </div>
         <IconChevron v-if="event.branch" class="event-chevron" aria-hidden="true" />
@@ -831,18 +831,25 @@ onBeforeUnmount(() => {
 }
 
 /* The event's TPL page: a small mark at the end of the title */
+/* A row, so the stamp sits centred on the line of text */
 .event-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   margin: 0;
+}
+
+.event-meta-text {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .event-stamp {
-  margin-right: 5px;
-  vertical-align: -1px;
+  flex-shrink: 0;
 }
 
 .event-chevron {
