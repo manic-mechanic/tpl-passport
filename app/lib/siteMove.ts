@@ -27,6 +27,28 @@ export const MOVE_FRAGMENT_KEY = 'tpl-passport-move-fragment'
 // Sent back to the old page when the fallback can't be accepted, so the
 // person isn't left on an empty passport without knowing why.
 export const MOVE_FAILED_URL = `${OLD_ORIGIN}/moving.html?failed=1`
+// A finished move, kept across the reload so it can be counted once
+// analytics has loaded (the move itself runs before it does).
+export const MOVED_EVENT_KEY = 'tpl-passport-moved-event'
+
+// The `passport_moved` analytics event's properties.
+export interface MovedEvent {
+  method: 'one_tap' | 'without_photos'
+  visits: number
+  photos: number
+}
+
+export function parseMovedEvent(raw: string | null): MovedEvent | null {
+  try {
+    const value: unknown = raw ? JSON.parse(raw) : null
+    if (!isObject(value)) return null
+    const { method, visits, photos } = value
+    if ((method !== 'one_tap' && method !== 'without_photos') || typeof visits !== 'number' || typeof photos !== 'number') return null
+    return { method, visits, photos }
+  } catch {
+    return null
+  }
+}
 
 export const MOVE_READY = 'tpl-passport-move:ready'
 export const MOVE_DATA = 'tpl-passport-move:data'

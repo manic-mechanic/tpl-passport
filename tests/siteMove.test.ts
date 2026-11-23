@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MOVE_DATA, cameFromOldSite, hasPassportData, mergeMovedPassport, moveMessageType, readMoveData } from '../app/lib/siteMove'
+import { MOVE_DATA, cameFromOldSite, hasPassportData, mergeMovedPassport, moveMessageType, parseMovedEvent, readMoveData } from '../app/lib/siteMove'
 import type { PassportCheckIn, PassportPersistedState } from '../app/types/passport'
 
 const checkIn = (branchCode: string, timestamp: string, note = ''): PassportCheckIn => ({ branchCode, timestamp, note })
@@ -103,6 +103,17 @@ describe('moveMessageType', () => {
     expect(moveMessageType({ type: 3 })).toBeNull()
     expect(moveMessageType('tpl-passport-move:data')).toBeNull()
     expect(moveMessageType(null)).toBeNull()
+  })
+})
+
+describe('parseMovedEvent', () => {
+  it('reads a stored move and rejects anything else', () => {
+    expect(parseMovedEvent('{"method":"one_tap","visits":3,"photos":1}')).toEqual({ method: 'one_tap', visits: 3, photos: 1 })
+    expect(parseMovedEvent('{"method":"without_photos","visits":2,"photos":0}')).toEqual({ method: 'without_photos', visits: 2, photos: 0 })
+    expect(parseMovedEvent('{"method":"other","visits":3,"photos":1}')).toBeNull()
+    expect(parseMovedEvent('{"method":"one_tap","visits":"3","photos":1}')).toBeNull()
+    expect(parseMovedEvent('not json')).toBeNull()
+    expect(parseMovedEvent(null)).toBeNull()
   })
 })
 

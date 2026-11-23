@@ -1,8 +1,8 @@
 import { loadPassportState, parseStoredPassport, savePassportState } from '~/lib/passportStorage'
 import { getPhotoBlob, savePhoto } from '~/composables/usePhotoStore'
 import {
-  MOVE_DATA, MOVE_DONE, MOVE_FAILED_URL, MOVE_FRAGMENT_KEY, MOVE_PARAM, MOVE_READY, OLD_ORIGIN,
-  cameFromOldSite, mergeMovedPassport, moveMessageType, readMoveData, type MoveData,
+  MOVED_EVENT_KEY, MOVE_DATA, MOVE_DONE, MOVE_FAILED_URL, MOVE_FRAGMENT_KEY, MOVE_PARAM, MOVE_READY, OLD_ORIGIN,
+  cameFromOldSite, mergeMovedPassport, moveMessageType, parseMovedEvent, readMoveData, type MoveData, type MovedEvent,
 } from '~/lib/siteMove'
 import { reportError } from '~/lib/reportError'
 
@@ -31,16 +31,39 @@ function waitForMove(opener: Window): Promise<MoveData | null> {
   })
 }
 
-async function importMove(data: MoveData) {
+// Returns how many visits and photos moved.
+async function importMove(data: MoveData): Promise<{ visits: number, photos: number }> {
   const moved = parseStoredPassport(data.passport)
   if (!moved) throw new Error('Moved passport could not be read')
   // Photos first: if one fails, nothing points at it yet, and a retry skips
   // the ones already saved. Keyed by check-in timestamp; a photo already
   // here wins.
+  let photos = 0
   for (const { key, blob } of data.photos) {
-    if (!(await getPhotoBlob(key))) await savePhoto(key, blob)
+    if (await getPhotoBlob(key)) continue
+    await savePhoto(key, blob)
+    photos++
   }
   savePassportState(mergeMovedPassport(loadPassportState(), moved.payload))
+  return { visits: moved.payload.checkIns.length, photos }
+}
+
+function rememberMovedEvent(event: MovedEvent) {
+  try {
+    sessionStorage.setItem(MOVED_EVENT_KEY, JSON.stringify(event))
+  } catch {
+    // Only the count is lost.
+  }
+}
+
+function takeMovedEvent(): MovedEvent | null {
+  try {
+    const event = parseMovedEvent(sessionStorage.getItem(MOVED_EVENT_KEY))
+    sessionStorage.removeItem(MOVED_EVENT_KEY)
+    return event
+  } catch {
+    return null
+  }
 }
 
 // The fallback's fragment, stashed by the inline <head> script in
@@ -81,7 +104,8 @@ async function receiveMove(cleanUrl: string): Promise<string> {
   if (!data) return cleanUrl
 
   try {
-    await importMove(data)
+    const counts = await importMove(data)
+    rememberMovedEvent({ method: opener ? 'one_tap' : 'without_photos', ...counts })
     opener?.postMessage({ type: MOVE_DONE }, OLD_ORIGIN)
   } catch (error) {
     // The old page keeps its copy and offers to try again.
@@ -91,9 +115,14 @@ async function receiveMove(cleanUrl: string): Promise<string> {
   return cleanUrl
 }
 
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(async (nuxtApp) => {
   const url = new URL(window.location.href)
-  if (url.searchParams.get(MOVE_PARAM) !== '1') return
+  if (url.searchParams.get(MOVE_PARAM) !== '1') {
+    // The load after a move: count it once analytics is up.
+    const moved = takeMovedEvent()
+    if (moved) onNuxtReady(() => nuxtApp.$posthog?.capture('passport_moved', { ...moved }))
+    return
+  }
   // Never let the app start on this URL: the router already holds it and
   // would navigate to it and send it with the pageview. Finish by loading
   // the clean URL instead.
