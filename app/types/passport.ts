@@ -2,6 +2,10 @@ import type { CheckIn, Profile } from '@tpl-passport/shared'
 
 export interface PassportCheckIn extends CheckIn {
   hasPhoto?: boolean
+  // This device's photo isn't on the server yet: either it has no hosted
+  // copy (no photoUri) or the server hasn't taken its hosted URL. It wins
+  // over the server's photo when syncing (see checkInSyncMerge).
+  photoPending?: boolean
 }
 
 export interface PassportProfile extends Profile {

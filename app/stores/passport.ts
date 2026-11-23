@@ -106,18 +106,29 @@ export const usePassportStore = defineStore('passport', () => {
     if (canSyncToServer()) void pushCheckIn({ ...ci })
   }
 
-  // Sets hasPhoto: true on the check-in matching the given timestamp.
-  // Called after a photo is successfully saved to IndexedDB.
-  // Pass photoUri (a hosted URL) to also sync the photo to the server; the
-  // returned promise resolves to whether the server accepted it. Callers that
-  // don't need the result can ignore it.
-  function markCheckInHasPhoto(timestamp: string, photoUri: string | null = null): Promise<boolean> {
+  // Records a photo on the check-in matching the given timestamp.
+  // - Without photoUri: a new photo was saved on this device (IndexedDB). It
+  //   replaces any hosted one, so photoUri is dropped and photoPending set
+  //   until the new photo's hosted URL reaches the server.
+  // - With photoUri (a hosted URL): the URL is saved on the server too. The
+  //   returned promise resolves to whether the server accepted it; until it
+  //   does, photoPending stays set, so the visit page doesn't claim it
+  //   uploaded and the next sign-in sync sends it again.
+  // Callers that don't need the result can ignore it.
+  async function markCheckInHasPhoto(timestamp: string, photoUri: string | null = null): Promise<boolean> {
     const ci = checkIns.value.find(c => c.timestamp === timestamp)
-    if (!ci) return Promise.resolve(false)
+    if (!ci) return false
     ci.hasPhoto = true
-    if (!photoUri) return Promise.resolve(true)
+    ci.photoPending = true
+    if (!photoUri) {
+      delete ci.photoUri
+      return true
+    }
     ci.photoUri = photoUri
-    return patchCheckInPhoto(timestamp, photoUri)
+    const ok = await patchCheckInPhoto(timestamp, photoUri)
+    // Unless a newer photo replaced this one meanwhile.
+    if (ok && ci.photoUri === photoUri) delete ci.photoPending
+    return ok
   }
 
   // Bulk-replace check-ins (used after server sync on sign-in).

@@ -156,4 +156,21 @@ describe('reconcileCheckIns photos on the same check-in', () => {
     expect(merged[0].photoUri).toBe(hosted)
     expect(updated).toEqual([])
   })
+
+  it('keeps a photo this device changed but has not sent, over the server photo', () => {
+    const ts = '2026-04-10T10:00:00.000Z'
+    const server = [{ branchCode: 'AG', timestamp: ts, note: '', hasPhoto: true, photoUri: 'https://photos.test/old.jpg' }]
+    const pendingLocal = [{ branchCode: 'AG', timestamp: ts, note: '', hasPhoto: true, photoPending: true }]
+    expect(reconcileCheckIns(server, pendingLocal).merged[0]).toEqual({ branchCode: 'AG', timestamp: ts, note: '', hasPhoto: true, photoPending: true })
+
+    const hostedLocal = [{ branchCode: 'AG', timestamp: ts, note: '', hasPhoto: true, photoPending: true, photoUri: 'https://photos.test/new.jpg' }]
+    expect(reconcileCheckIns(server, hostedLocal).merged[0]).toMatchObject({ photoUri: 'https://photos.test/new.jpg', photoPending: true })
+  })
+
+  it('takes the server photo when this device has nothing pending', () => {
+    const ts = '2026-04-10T10:00:00.000Z'
+    const server = [{ branchCode: 'AG', timestamp: ts, note: '', hasPhoto: true, photoUri: 'https://photos.test/new.jpg' }]
+    const local = [{ branchCode: 'AG', timestamp: ts, note: '', hasPhoto: true, photoUri: 'https://photos.test/old.jpg' }]
+    expect(reconcileCheckIns(server, local).merged[0].photoUri).toBe('https://photos.test/new.jpg')
+  })
 })

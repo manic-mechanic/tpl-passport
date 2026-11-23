@@ -14,10 +14,13 @@ const nuxtState = {}
 vi.stubGlobal('useState', (key, init) => (nuxtState[key] ??= ref(init())))
 
 // Record server pushes instead of making network requests.
-const { pushCheckIn } = vi.hoisted(() => ({ pushCheckIn: vi.fn(async () => true) }))
+const { pushCheckIn, patchCheckInPhoto } = vi.hoisted(() => ({
+  pushCheckIn: vi.fn(async () => true),
+  patchCheckInPhoto: vi.fn(async () => true),
+}))
 vi.mock('../app/composables/useCheckInSync', () => ({
   pushCheckIn,
-  patchCheckInPhoto: vi.fn(async () => true),
+  patchCheckInPhoto,
 }))
 
 // import.meta.client is undefined in Vitest (not a browser), so the
@@ -249,6 +252,26 @@ describe('markCheckInHasPhoto', () => {
     expect(passport.documentedBranchCount).toBe(0)
     passport.markCheckInHasPhoto(ts)
     expect(passport.documentedBranchCount).toBe(1)
+  })
+
+  it('a new photo on this device drops the old hosted URL and is pending', async () => {
+    const passport = usePassportStore()
+    const ts = passport.checkIn('AG')
+    await passport.markCheckInHasPhoto(ts, 'https://photos.test/old.jpg')
+    expect(passport.checkIns[0].photoPending).toBeUndefined()
+    await passport.markCheckInHasPhoto(ts)
+    expect(passport.checkIns[0]).toMatchObject({ hasPhoto: true, photoPending: true })
+    expect(passport.checkIns[0].photoUri).toBeUndefined()
+  })
+
+  it('stays pending when the server does not take the hosted URL', async () => {
+    const passport = usePassportStore()
+    const ts = passport.checkIn('AG')
+    patchCheckInPhoto.mockResolvedValueOnce(false)
+    expect(await passport.markCheckInHasPhoto(ts, 'https://photos.test/a.jpg')).toBe(false)
+    expect(passport.checkIns[0]).toMatchObject({ photoUri: 'https://photos.test/a.jpg', photoPending: true })
+    expect(await passport.markCheckInHasPhoto(ts, 'https://photos.test/a.jpg')).toBe(true)
+    expect(passport.checkIns[0].photoPending).toBeUndefined()
   })
 })
 

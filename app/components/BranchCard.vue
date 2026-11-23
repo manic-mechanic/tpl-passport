@@ -1,5 +1,5 @@
 <template>
-  <NuxtLink v-if="!asButton" :to="`/branch/${branch.BranchCode}`" class="branch-card"
+  <NuxtLink v-if="!asButton" :to="to ?? `/branch/${branch.BranchCode}`" class="branch-card"
             :class="{ 'branch-card-compact': compact }"
   >
     <span v-if="index !== null" class="card-index">{{ index }}</span>
@@ -51,6 +51,8 @@ const props = withDefaults(defineProps<{
   hasPhoto?: boolean
   asButton?: boolean
   compact?: boolean
+  // Where the card links to; the branch page by default.
+  to?: string | null
 }>(), {
   distance: null,
   meta: null,
@@ -59,6 +61,7 @@ const props = withDefaults(defineProps<{
   hasPhoto: false,
   asButton: false,
   compact: false,
+  to: null,
 })
 
 const stampSize = computed(() => props.compact ? 32 : 40)
