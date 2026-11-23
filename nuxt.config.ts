@@ -134,6 +134,29 @@ export default defineNuxtConfig({
   // Other builds (CI's node server) keep reading them per request.
   routeRules: isVercelBuild ? { '/': { prerender: true } } : {},
 
+  nitro: {
+    vercel: {
+      config: {
+        // tpl-passport.vercel.app is Vercel's built-in production address. Send
+        // it to the real site so there's one production URL: sign-in only works
+        // on librarypassport.ca, and analytics only counts one host. Nitro
+        // writes Vercel's routing itself, so a vercel.json redirect wouldn't
+        // apply. Exact host only, so preview and per-deploy URLs are untouched.
+        // Query strings pass through. Nitro's route type only covers the routes
+        // Nitro writes itself, hence the cast; this is a standard Build Output
+        // API redirect route.
+        routes: [
+          {
+            src: '^/(.*)$',
+            has: [{ type: 'host', value: 'tpl-passport.vercel.app' }],
+            status: 308,
+            headers: { Location: 'https://www.librarypassport.ca/$1' },
+          } as never,
+        ],
+      },
+    },
+  },
+
   hooks: {
     // Guard against shipping client source maps: if the Nitro preset's public
     // dir isn't covered by sentry.sourcemaps.filesToDeleteAfterUpload, fail
