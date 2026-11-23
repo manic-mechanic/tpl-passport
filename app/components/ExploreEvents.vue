@@ -6,16 +6,18 @@
         <button class="day-step" :disabled="dayIndex <= 0" aria-label="Previous day" @click="stepDay(-1)">
           <IconChevron class="day-step-icon day-step-prev" />
         </button>
-        <input
-          :value="day"
-          class="events-date-input"
-          type="date"
-          aria-label="Day"
-          :min="days[0]"
-          :max="days[days.length - 1]"
-          required
-          @change="pickDay(($event.target as HTMLInputElement).value)"
-        >
+        <label class="day-current">
+          <!-- Every option stacked in one cell, only the chosen one visible, so
+               the box keeps the width of the longest and doesn't jump -->
+          <span class="day-labels">
+            <span :class="{ on: day === WEEK }">This week</span>
+            <span v-for="d in days" :key="d" :class="{ on: day === d }">{{ longDate(d) }}</span>
+          </span>
+          <select class="overlay-select" aria-label="Day" :value="day" @change="pickDay(($event.target as HTMLSelectElement).value)">
+            <option :value="WEEK">This week</option>
+            <option v-for="d in days" :key="d" :value="d">{{ longDate(d) }}</option>
+          </select>
+        </label>
         <button class="day-step" :disabled="dayIndex >= days.length - 1" aria-label="Next day" @click="stepDay(1)">
           <IconChevron class="day-step-icon" />
         </button>
@@ -33,8 +35,8 @@
       <span>Loading events…</span>
     </div>
     <p v-else-if="state === 'error'" class="events-note">
-      Couldn't load events for {{ dayLabel(day) }}.
-      <button class="text-btn" @click="loadDay(day)">Try again</button>
+      Couldn't load events for {{ day === WEEK ? 'this week' : dayLabel(day) }}.
+      <button class="text-btn" @click="retry">Try again</button>
     </p>
     <template v-else>
       <div v-for="event in shown" :key="event.id" class="event-row" :class="{ clickable: event.branch }"
@@ -70,12 +72,16 @@
           <button class="text-btn" @click="clearFilters">Clear filters</button>
         </p>
         <p v-else class="events-note">
-          {{ day === today ? 'Nothing else on today.' : `No events on ${dayLabel(day)}.` }}
+          {{ day === WEEK ? 'No events this week.' : day === today ? 'Nothing else on today.' : `No events on ${dayLabel(day)}.` }}
         </p>
-        <button v-if="dayIndex < days.length - 1" class="events-load-more" @click="stepDay(1)">
+        <button v-if="day !== WEEK && dayIndex < days.length - 1" class="events-load-more" @click="stepDay(1)">
           See {{ dayLabel(days[dayIndex + 1]!) }}
         </button>
       </template>
+      <p v-if="failedDays.length" class="events-note">
+        Couldn't load {{ failedDays.map(dayLabel).join(', ') }}.
+        <button class="text-btn" @click="retry">Try again</button>
+      </p>
     </template>
   </div>
 
@@ -203,22 +209,40 @@ function ensureLoaded(d: string | undefined) {
 }
 
 // ── Day ───────────────────────────────────────────────────────────────
+// A single day, or the whole loaded week (WEEK), which sits before today
+// in the list, so "next" from it goes to today.
+const WEEK = 'week'
 const day = ref(today.value)
 const dayIndex = computed(() => days.value.indexOf(day.value))
-const state = computed(() => stateByDay.value[day.value])
+const shownDays = computed(() => day.value === WEEK ? days.value : [day.value])
 
-// Load the day shown and the next one, so stepping forward is instant.
+// The week is ready once every day has answered; failed days are noted
+// under the list. One day shows its own state.
+const state = computed(() => {
+  const states = shownDays.value.map(d => stateByDay.value[d])
+  if (states.some(s => !s || s === 'loading')) return 'loading'
+  return states.every(s => s === 'error') ? 'error' : 'done'
+})
+const failedDays = computed(() =>
+  day.value === WEEK ? days.value.filter(d => stateByDay.value[d] === 'error') : []
+)
+
+function retry() {
+  shownDays.value.filter(d => stateByDay.value[d] === 'error').forEach(loadDay)
+}
+
+// Load what's shown and the next day, so stepping forward is instant.
 watch(day, (d) => {
-  ensureLoaded(d)
-  ensureLoaded(days.value[days.value.indexOf(d) + 1])
+  shownDays.value.forEach(ensureLoaded)
+  if (d !== WEEK) ensureLoaded(days.value[days.value.indexOf(d) + 1])
 }, { immediate: true })
 
 // A new day: drop what was loaded and move off a day that's gone.
 watch(today, (t) => {
   eventsByDay.value = {}
   stateByDay.value = {}
-  if (day.value < t) day.value = t
-  ensureLoaded(day.value)
+  if (day.value !== WEEK && day.value < t) day.value = t
+  shownDays.value.forEach(ensureLoaded)
 })
 
 // Opening in the evening with today all over: start on tomorrow instead.
@@ -231,7 +255,8 @@ const unwatchSkip = watch(() => stateByDay.value[today.value], (s) => {
 })
 
 function pickDay(d: string) {
-  if (days.value.includes(d)) day.value = d
+  if (d === WEEK || days.value.includes(d)) day.value = d
+  $posthog?.capture('whats_on_day_changed', { day: d === WEEK ? 'week' : days.value.indexOf(d) })
 }
 function stepDay(by: number) {
   pickDay(days.value[dayIndex.value + by] ?? day.value)
@@ -347,9 +372,9 @@ function dateParts(dateStr: string) {
 }
 
 // ── What's shown ──────────────────────────────────────────────────────
-// The day's events still to come (all of them, on later days).
+// The events still to come: today's that haven't ended, all of later days'.
 const dayEvents = computed(() =>
-  (eventsByDay.value[day.value] ?? []).filter(e => day.value !== today.value || !isOver(e, now.value))
+  shownDays.value.flatMap(d => (eventsByDay.value[d] ?? []).filter(e => d !== today.value || !isOver(e, now.value)))
 )
 
 const shown = computed(() => {
@@ -367,6 +392,16 @@ function openBranch(b: Branch) {
 }
 
 // ── Formatting ────────────────────────────────────────────────────────
+// "Monday, November 23rd, 2026"
+function longDate(d: string) {
+  const date = new Date(d + 'T00:00:00')
+  const n = date.getDate()
+  const suffix = n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'
+  const weekday = date.toLocaleDateString('en-CA', { weekday: 'long' })
+  const month = date.toLocaleDateString('en-CA', { month: 'long' })
+  return `${weekday}, ${month} ${n}${suffix}, ${date.getFullYear()}`
+}
+
 function dayLabel(d: string) {
   if (d === today.value) return 'today'
   if (d === addDays(today.value, 1)) return 'tomorrow'
@@ -425,12 +460,15 @@ onBeforeUnmount(stopClock)
   justify-content: center;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin: -8px 0 4px;
 }
 
+/* One height for the day box and the filter button */
 .day-picker {
   display: flex;
   align-items: stretch;
+  height: 36px;
+  box-sizing: border-box;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
@@ -463,16 +501,45 @@ onBeforeUnmount(stopClock)
   transform: rotate(180deg);
 }
 
-.events-date-input {
+.day-current {
+  position: relative;
+  display: flex;
+  align-items: center;
   min-width: 0;
-  padding: 8px 6px;
-  border: none;
+  padding: 0 10px;
   border-inline: 1px solid var(--color-border);
-  border-radius: 0;
   font-size: 0.875rem;
-  font-family: var(--font-body);
   color: var(--color-text);
-  background: var(--color-surface);
+  white-space: nowrap;
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--tpl-blue);
+    outline-offset: -2px;
+  }
+}
+
+.day-labels {
+  display: grid;
+  justify-items: center;
+
+  > span {
+    grid-area: 1 / 1;
+    visibility: hidden;
+  }
+
+  > .on {
+    visibility: visible;
+  }
+}
+
+/* The phone's own picker over the label */
+.overlay-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
 }
 
 .filter-btn {
@@ -481,6 +548,7 @@ onBeforeUnmount(stopClock)
   justify-content: center;
   width: 36px;
   height: 36px;
+  box-sizing: border-box;
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
