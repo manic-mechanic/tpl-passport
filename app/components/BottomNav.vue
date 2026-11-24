@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { scrollAppTo } from '~/lib/appScroller'
+import { CHECK_IN_ROUTE } from '~/lib/checkInEntry'
 import IconNavCheckIn from './icons/IconNavCheckIn.vue';
 import IconNavExplore from './icons/IconNavExplore.vue';
 import IconNavHome from './icons/IconNavHome.vue';
@@ -59,7 +60,7 @@ const contextualTab = computed(() => {
     </NuxtLink>
 
     <!-- Primary action — check-in (center) -->
-    <NuxtLink to="/check-in" class="nav-item nav-item-checkin" active-class="nav-item-active" :class="{ 'nav-item-active': contextualTab === '/check-in' }"
+    <NuxtLink :to="CHECK_IN_ROUTE" class="nav-item nav-item-checkin" active-class="nav-item-active" :class="{ 'nav-item-active': contextualTab === '/check-in' }"
               @click="scrollToTopIfCurrent('/check-in')"
     >
       <div class="checkin-orb">

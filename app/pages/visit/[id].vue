@@ -1,8 +1,14 @@
 <template>
   <main class="page-content">
-    <PageBanner :title="branch?.BranchName ?? 'Visit'" :back-label="backLabel" @back="goBack" />
+    <!-- The first check-in gets a celebration instead of the usual page -->
+    <template v-if="visit && branch && isFirstStamp">
+      <div class="first-band" aria-hidden="true" />
+      <FirstStamp :branch="branch" :timestamp="visit.timestamp" />
+    </template>
 
-    <template v-if="visit">
+    <PageBanner v-else :title="branch?.BranchName ?? 'Visit'" :back-label="backLabel" @back="goBack" />
+
+    <template v-if="visit && !(branch && isFirstStamp)">
       <div class="visit-hero">
         <div class="visit-stamp-wrap" :class="{ 'visit-stamp-wrap--new': justCheckedIn }">
           <StampShape :branch-code="visit.branchCode" :ward-no="branch?.WardNo ?? 0" :size="110" />
@@ -66,9 +72,9 @@
       </div>
     </template>
 
-    <p v-else-if="loadingVisits" class="empty-state">Loading…</p>
+    <p v-else-if="!visit && loadingVisits" class="empty-state">Loading…</p>
 
-    <p v-else class="empty-state">
+    <p v-else-if="!visit" class="empty-state">
       We couldn't find that visit.<br>
       <NuxtLink to="/history">See your history</NuxtLink>
     </p>
@@ -276,6 +282,9 @@ async function onSavePhoto() {
 
 // ── After checking in ─────────────────────────────────────────────────────
 
+// The person's very first check-in, right after making it
+const isFirstStamp = computed(() => justCheckedIn && passport.checkIns.length === 1)
+
 const showSignInNudge = computed(() =>
   justCheckedIn && authKnown.value && !signedIn.value && passport.checkIns.length === 1
 )
@@ -309,6 +318,14 @@ const nearbyBranches = computed(() => {
 </script>
 
 <style scoped>
+/* Stands in for the banner on the first stamp: a thin passport-cover strip */
+.first-band {
+  margin: 0 -18px 0;
+  height: 14px;
+  background: var(--tpl-navy);
+  border-bottom: 3px solid #c8a24a;
+}
+
 .visit-hero {
   display: flex;
   flex-direction: column;

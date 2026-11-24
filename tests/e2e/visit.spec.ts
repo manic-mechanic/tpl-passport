@@ -57,20 +57,51 @@ async function fakeShareSheet(page: Page, outcome: 'save' | 'cancel') {
   }, outcome)
 }
 
-test('a check-in lands on its visit page, which survives a reload and goes back to check-in', async ({ page }) => {
+test('the first check-in lands on its first-stamp page, which survives a reload and goes back to check-in', async ({ page }) => {
   await disableLocationCheck(page)
-  await createCheckIn(page, 'visit page note')
+  await page.goto('/check-in')
+  await page.getByRole('button', { name: 'Stamp my passport' }).click()
+  await page.waitForURL(/\/visit\/[^/]+$/)
   const visitUrl = page.url()
-  await expect(page.getByText('visit page note')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'First stamp!' })).toBeVisible()
+  await expect(page.getByRole('img', { name: '1 of 100 branches' })).toBeVisible()
 
   await page.reload()
   expect(page.url()).toBe(visitUrl)
-  await expect(page.getByText('Stamp collected!')).toBeVisible()
-  await expect(page.getByText('visit page note')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'First stamp!' })).toBeVisible()
 
   await page.goBack()
   await expect(page).toHaveURL(/\/check-in$/)
   await expect(page.getByText("You've already checked in here today")).toBeVisible()
+})
+
+test('a picked branch on an earlier day is stamped without a location check', async ({ page }) => {
+  await disableLocationCheck(page)
+  await createCheckIn(page)
+
+  await page.goto('/check-in')
+  await page.getByRole('button', { name: 'Pick another branch' }).click()
+  await page.getByRole('button', { name: 'Search branches' }).click()
+  await page.getByLabel('Search branches').fill('sanderson')
+  await page.getByRole('radio', { name: 'Sanderson' }).check()
+  await page.getByRole('button', { name: 'Previous day' }).click()
+  await expect(page.getByText(/^Yesterday, /)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Next day' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Stamp my passport' }).click()
+
+  await page.waitForURL(/\/visit\/[^/]+$/)
+  await expect(page.getByText('Stamp collected!')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sanderson' })).toBeVisible()
+
+  // One stamp per branch per day: the same day can't be picked again
+  await page.goto('/check-in')
+  await page.getByRole('button', { name: 'Pick another branch' }).click()
+  await page.getByRole('button', { name: 'Search branches' }).click()
+  await page.getByLabel('Search branches').fill('sanderson')
+  await page.getByRole('radio', { name: 'Sanderson' }).check()
+  await page.getByRole('button', { name: 'Previous day' }).click()
+  await expect(page.getByText('You already have a Sanderson stamp for this day.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Stamp my passport' })).toBeDisabled()
 })
 
 test('History opens a visit on its page', async ({ page }) => {
@@ -132,12 +163,23 @@ test('a changed photo whose upload fails is not shown as uploaded after a reload
 
 test('badges earned show after checking in, not when the visit is opened from History', async ({ page }) => {
   await disableLocationCheck(page)
-  await createCheckIn(page, 'first visit')
+  await createCheckIn(page)
+
+  // A second branch the same day earns Day Tripper
+  await page.goto('/check-in')
+  await page.getByRole('button', { name: 'Pick another branch' }).click()
+  await page.getByRole('button', { name: 'Search branches' }).click()
+  await page.getByLabel('Search branches').fill('sanderson')
+  await page.getByRole('radio', { name: 'Sanderson' }).check()
+  await page.getByRole('button', { name: 'Stamp my passport' }).click()
+  await page.waitForURL(/\/visit\/[^/]+$/)
   await expect(page.getByText('Badge earned!').first()).toBeVisible()
+  const visitUrl = page.url()
 
   await page.goto('/history')
-  await page.locator('.checkin-list a').first().click()
-  await expect(page.getByText('first visit')).toBeVisible()
+  await page.locator(`.checkin-list a[href="${new URL(visitUrl).pathname}"]`).click()
+  await expect(page).toHaveURL(visitUrl)
+  await expect(page.getByRole('heading', { name: 'Sanderson' })).toBeVisible()
   await expect(page.getByText('Badge earned!')).toHaveCount(0)
 })
 

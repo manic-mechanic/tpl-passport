@@ -100,6 +100,27 @@ describe('checkIn', () => {
   })
 })
 
+describe('checkIn on a picked day', () => {
+  it('records the given time and keeps check-ins newest first', () => {
+    const passport = usePassportStore()
+    const today = passport.checkIn('AG')
+    const earlier = passport.checkIn('HP', '', '2026-01-10T17:00:00.000Z')
+    expect(earlier).toBe('2026-01-10T17:00:00.000Z')
+    const middle = passport.checkIn('BL', '', '2026-03-01T17:00:00.000Z')
+    expect(passport.checkIns.map(c => c.timestamp)).toEqual([today, middle, earlier])
+  })
+
+  it('allows one check-in per branch per day, on that day', () => {
+    const passport = usePassportStore()
+    expect(passport.checkIn('HP', '', '2026-01-10T15:00:00.000Z')).toBeTruthy()
+    expect(passport.checkIn('HP', '', '2026-01-10T20:00:00.000Z')).toBeNull()
+    expect(passport.hasVisitedOn('HP', '2026-01-10')).toBe(true)
+    expect(passport.hasVisitedOn('HP', '2026-01-11')).toBe(false)
+    // An earlier day doesn't block today
+    expect(passport.checkIn('HP')).toBeTruthy()
+  })
+})
+
 describe('hasVisited', () => {
   it('returns false for an unvisited branch', () => {
     const passport = usePassportStore()

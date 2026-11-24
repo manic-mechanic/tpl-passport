@@ -46,7 +46,7 @@
           </ul>
         </section>
       </template>
-      <p v-else class="empty-filtered">No memories yet. Add a note or photo when checking in.</p>
+      <p v-else class="empty-filtered">No memories yet. Add a note or photo from a branch page.</p>
     </template>
 
     <div v-else class="empty-state">

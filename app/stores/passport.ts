@@ -53,14 +53,16 @@ export const usePassportStore = defineStore('passport', () => {
 
   // "Today" is the library's day (Toronto time), the same rule the server
   // uses, whatever time zone this device is set to.
-  const hasVisitedToday = (branchCode: string) => {
-    const today = checkInDayKey(new Date())
-    if (!today) return false
+  // One check-in per branch per library day ("YYYY-MM-DD", Toronto time).
+  const hasVisitedOn = (branchCode: string, dayKey: string) => {
+    if (!dayKey) return false
     return checkIns.value.some(
       c => c.branchCode === branchCode &&
-           checkInDayKey(c.timestamp) === today
+           checkInDayKey(c.timestamp) === dayKey
     )
   }
+
+  const hasVisitedToday = (branchCode: string) => hasVisitedOn(branchCode, checkInDayKey(new Date()))
 
   const visitCount = computed(() => visitedBranchCodes.value.size)
 
@@ -86,13 +88,15 @@ export const usePassportStore = defineStore('passport', () => {
 
   // --- Actions ---
 
-  // Adds a check-in. Returns the ISO timestamp of the new check-in,
-  // or null if the user already visited this branch today.
-  function checkIn(branchCode: string, note = ''): string | null {
-    if (hasVisitedToday(branchCode)) return null
+  // Adds a check-in, now or at `timestamp` (a branch picked for an earlier
+  // day). Returns the ISO timestamp of the new check-in, or null if the user
+  // already visited this branch that day.
+  function checkIn(branchCode: string, note = '', timestamp = new Date().toISOString()): string | null {
+    if (hasVisitedOn(branchCode, checkInDayKey(timestamp))) return null
 
-    const timestamp = new Date().toISOString()
-    checkIns.value.unshift({ branchCode, timestamp, note })
+    // Newest first: an earlier day goes after the check-ins that came later.
+    const at = checkIns.value.findIndex(c => c.timestamp < timestamp)
+    checkIns.value.splice(at < 0 ? checkIns.value.length : at, 0, { branchCode, timestamp, note })
     // Fire-and-forget. Signed-out check-ins stay local until sign-in sync.
     if (canSyncToServer()) void pushCheckIn({ branchCode, timestamp, note })
     return timestamp
@@ -188,6 +192,7 @@ export const usePassportStore = defineStore('passport', () => {
     profile,
     visitedBranchCodes,
     hasVisited,
+    hasVisitedOn,
     hasVisitedToday,
     visitCount,
     documentedBranchCount,

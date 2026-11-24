@@ -19,9 +19,9 @@ Open the app on your phone for the best experience — it's designed as a mobile
 
 | Screen | Description |
 |--------|-------------|
-| **Home** | Passport progress, recent visits, and earned badges; sign-in prompt for logged-out users |
+| **Home** | On a first visit, two panels: check in and make your passport. After that, passport progress, recent visits, and earned badges; sign-in prompt for logged-out users |
 | **Explore** | Four tabs: nearby branches, day trips (walking routes, and the Your Library Tour transit routes), upcoming events, and badge suggestions |
-| **Check In** | Select a branch, add an optional note or photo, verify proximity, earn a stamp |
+| **Check In** | Finds the nearest branch and checks you're within 100 m, then stamps your passport. Or pick any branch and day, up to today. The first stamp gets its own page |
 | **Passport** | Stamp book across 5 alphabetical pages + an Extra Credit page for badges |
 | **History** | Check-in log grouped by recency; filter to visits with notes or photos |
 | **Branch detail** | Branch info, hours, events, services, and your visits with notes and photos |
