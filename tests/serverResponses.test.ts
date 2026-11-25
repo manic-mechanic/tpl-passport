@@ -6,7 +6,7 @@ const record = { branch_code: 'AN', timestamp: '2026-11-15T01:00:00.000Z', note:
 describe('isServerCheckIn', () => {
   it('accepts a record with branch and time, and note and photo string, null or missing', () => {
     expect(isServerCheckIn(record)).toBe(true)
-    expect(isServerCheckIn({ branch_code: 'AN', timestamp: 't' })).toBe(true)
+    expect(isServerCheckIn({ branch_code: 'AN', timestamp: '2026-11-15T01:00:00.000Z' })).toBe(true)
     expect(isServerCheckIn({ ...record, note: null, photo_url: 'https://p/x.jpg' })).toBe(true)
   })
 
@@ -14,6 +14,8 @@ describe('isServerCheckIn', () => {
     expect(isServerCheckIn({ ...record, branch_code: undefined })).toBe(false)
     expect(isServerCheckIn({ ...record, branch_code: '' })).toBe(false)
     expect(isServerCheckIn({ ...record, timestamp: 1700000000 })).toBe(false)
+    expect(isServerCheckIn({ ...record, timestamp: '' })).toBe(false)
+    expect(isServerCheckIn({ ...record, timestamp: 'garbage' })).toBe(false)
     expect(isServerCheckIn({ ...record, note: 3 })).toBe(false)
     expect(isServerCheckIn({ ...record, photo_url: {} })).toBe(false)
     expect(isServerCheckIn(null)).toBe(false)
@@ -24,7 +26,7 @@ describe('isServerCheckIn', () => {
 
 describe('readServerCheckIns', () => {
   it('keeps good records and counts the dropped ones', () => {
-    expect(readServerCheckIns([record, { timestamp: 't' }, null])).toEqual({ records: [record], dropped: 2 })
+    expect(readServerCheckIns([record, { timestamp: record.timestamp }, null])).toEqual({ records: [record], dropped: 2 })
     expect(readServerCheckIns([])).toEqual({ records: [], dropped: 0 })
   })
 
@@ -69,8 +71,10 @@ describe('readPublicUrl', () => {
 })
 
 describe('readDuplicateOf', () => {
-  it('is true only for a non-empty duplicateOf string', () => {
+  it('is true for any duplicateOf other than null, missing or empty', () => {
     expect(readDuplicateOf({ ok: true, duplicateOf: '2026-11-14T14:00:00.000Z' })).toBe(true)
+    expect(readDuplicateOf({ ok: true, duplicateOf: 1 })).toBe(true)
+    expect(readDuplicateOf({ ok: true, duplicateOf: true })).toBe(true)
     expect(readDuplicateOf({ ok: true, duplicateOf: null })).toBe(false)
     expect(readDuplicateOf({ ok: true, duplicateOf: '' })).toBe(false)
     expect(readDuplicateOf({ ok: true })).toBe(false)

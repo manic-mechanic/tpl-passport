@@ -12,7 +12,7 @@ const optionalText = (value: unknown) => value == null || typeof value === 'stri
 export function isServerCheckIn(value: unknown): value is ServerCheckInRecord {
   return isObject(value)
     && typeof value.branch_code === 'string' && value.branch_code !== ''
-    && typeof value.timestamp === 'string' && value.timestamp !== ''
+    && typeof value.timestamp === 'string' && !Number.isNaN(Date.parse(value.timestamp))
     && optionalText(value.note)
     && optionalText(value.photo_url)
 }
@@ -46,7 +46,9 @@ export function readPublicUrl(body: unknown): string | null {
 }
 
 // POST /api/checkins. True when the server says another check-in already
-// holds that branch and day (and this one wasn't saved).
+// holds that branch and day (and this one wasn't saved). Any value other
+// than null, missing or '' counts, so an unexpected one errs towards "not
+// saved" and sign-out keeps the device's copy.
 export function readDuplicateOf(body: unknown): boolean {
-  return isObject(body) && typeof body.duplicateOf === 'string' && body.duplicateOf !== ''
+  return isObject(body) && body.duplicateOf != null && body.duplicateOf !== ''
 }
