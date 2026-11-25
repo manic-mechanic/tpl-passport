@@ -1,0 +1,35 @@
+name: Release
+
+# A release is one dev → main PR (#99). When it merges, tag the merge commit
+# with package.json's version (v1.2.0) and create a GitHub release whose
+# notes list the PRs merged since the last release. Bump the version in
+# package.json on dev before opening the release PR; if that version is
+# already tagged, nothing is created and the run says so.
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.pull_request.merged && github.event.pull_request.head.ref == 'dev'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Tag and create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          tag="v$(node -p "require('./package.json').version")"
+          if gh release view "$tag" > /dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$tag" > /dev/null; then
+            echo "::warning::$tag already exists. Bump the version in package.json on dev before the next release PR."
+            exit 0
+          fi
+          gh release create "$tag" --target "$SHA" --title "$tag" --generate-notes
