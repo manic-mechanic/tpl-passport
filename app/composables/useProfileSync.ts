@@ -3,12 +3,8 @@
 
 import { getAuthBase } from '~/lib/config'
 import { reportError } from '~/lib/reportError'
+import { readServerProfile } from '~/lib/serverResponses'
 import type { SyncedProfile } from '~/types/passport'
-
-interface ServerProfileRecord {
-  name?: string | null
-  home_branch?: string | null
-}
 
 export async function fetchProfile(): Promise<SyncedProfile | null> {
   try {
@@ -22,11 +18,15 @@ export async function fetchProfile(): Promise<SyncedProfile | null> {
       })
       return null
     }
-    const data = await res.json() as ServerProfileRecord
-    return {
-      name: data.name ?? '',
-      homeBranch: data.home_branch ?? '',
+    const profile = readServerProfile(await res.json())
+    if (!profile) {
+      reportError(new Error('fetchProfile: response is not an object'), {
+        area: 'sync',
+        operation: 'fetch_profile',
+        endpoint: '/api/profile',
+      })
     }
+    return profile
   } catch (error) {
     reportError(error, {
       area: 'sync',

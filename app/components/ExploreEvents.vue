@@ -176,8 +176,8 @@ import { usePassportStore } from '~/stores/passport'
 import routesData from '#data/routes.json'
 import {
   AGE_GROUPS, TIMES_OF_DAY, addDays, branchLookup, eventTypes, isOver, matchesAge, sortEvents,
-  timeOfDay, toExploreEvents, torontoNow,
-  type AgeGroupId, type EventSort, type ExploreEvent, type RawEvent, type TimeOfDay,
+  readRawEvents, timeOfDay, toExploreEvents, torontoNow,
+  type AgeGroupId, type EventSort, type ExploreEvent, type TimeOfDay,
 } from '~/lib/exploreEvents'
 import IconFilter from '~/components/icons/IconFilter.vue'
 import IconChevron from '~/components/icons/IconChevron.vue'
@@ -227,7 +227,7 @@ async function loadDay(d: string) {
   stateByDay.value[d] = 'loading'
   try {
     const records: unknown = await $fetch('/api/all-events', { query: { offset, days: 1 } })
-    const raw = (Array.isArray(records) ? records : []) as RawEvent[]
+    const raw = readRawEvents(records)
     eventsByDay.value[d] = toExploreEvents(raw.filter(r => r.StartDateLocal === d), branches)
     stateByDay.value[d] = 'done'
   } catch (error) {
@@ -281,7 +281,7 @@ async function loadBranchWeek() {
   branchWeek.value = { key, from, state: 'loading', events: [] }
   try {
     const records: unknown = await $fetch('/api/all-events', { query: { offset: 0, days: DAYS, branches: key } })
-    const raw = (Array.isArray(records) ? records : []) as RawEvent[]
+    const raw = readRawEvents(records)
     // The filter or the day changed meanwhile: a newer request owns it.
     if (branchWeek.value?.key !== key || branchWeek.value.from !== from) return
     branchWeek.value = { key, from, state: 'done', events: toExploreEvents(raw.filter(r => days.value.includes(r.StartDateLocal)), branches) }

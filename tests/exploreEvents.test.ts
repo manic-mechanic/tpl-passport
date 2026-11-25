@@ -1,7 +1,7 @@
 import type { Branch } from '@tpl-passport/shared'
 import { physicalBranches } from '@tpl-passport/shared'
 import {
-  addDays, branchLookup, cleanLocationName, eventTypes, parseTypes, isOver, matchesAge, sortEvents, timeOfDay, toExploreEvents, torontoNow, torontoToday,
+  addDays, branchLookup, cleanLocationName, eventTypes, isRawEvent, parseTypes, isOver, readRawEvents, matchesAge, sortEvents, timeOfDay, toExploreEvents, torontoNow, torontoToday,
   type RawEvent,
 } from '../app/lib/exploreEvents'
 
@@ -105,5 +105,34 @@ describe('event types', () => {
       raw({ Title: 'Chess', EventTypes: 'Games & Sports, Culture' }),
     ], branches)
     expect(eventTypes(events)).toEqual(['Crafts & Hobbies', 'Culture', 'Games & Sports'])
+  })
+})
+
+describe('isRawEvent and readRawEvents', () => {
+  it('accepts feed records, with null for empty cells', () => {
+    expect(isRawEvent(raw({}))).toBe(true)
+    expect(isRawEvent({ _id: 'x1', StartDateLocal: '2026-11-22' })).toBe(true)
+    expect(isRawEvent(raw({ Title: null, EndTime: null, EventTypes: null }))).toBe(true)
+  })
+
+  it('rejects records missing an id or date, or with a non-string field', () => {
+    expect(isRawEvent({ StartDateLocal: '2026-11-22' })).toBe(false)
+    expect(isRawEvent({ _id: 1 })).toBe(false)
+    expect(isRawEvent({ _id: 1, StartDateLocal: 20261122 })).toBe(false)
+    expect(isRawEvent({ ...raw({}), Title: 5 })).toBe(false)
+    expect(isRawEvent({ ...raw({}), LocationName: {} })).toBe(false)
+    expect(isRawEvent(null)).toBe(false)
+  })
+
+  it('keeps only valid records, and nothing from a non-list body', () => {
+    const good = raw({})
+    expect(readRawEvents([good, { _id: 2 }, 'x'])).toEqual([good])
+    expect(readRawEvents({ error: 'x' })).toEqual([])
+    expect(readRawEvents(null)).toEqual([])
+  })
+
+  it('null fields turn into the same defaults as missing ones', () => {
+    const [e] = toExploreEvents([raw({ Title: null, EndTime: null, Audiences: null, EventTypes: null, LocationName: null, EventID: null })], branches)
+    expect(e).toMatchObject({ title: 'Event', end: '', audiences: '', types: [], locationName: 'Online', url: null })
   })
 })
