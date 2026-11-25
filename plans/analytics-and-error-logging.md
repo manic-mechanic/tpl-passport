@@ -60,6 +60,11 @@ public: {
 
 6. **Suppress PostHog in dev** — PostHog's UI lets you filter out localhost events, but cleaner to not send them at all. In the plugin, wrap `posthog.init(...)` with `if (!runtimeConfig.public.isDev)` so local dev doesn't pollute your data.
 
+> **Update, Nov 2026.** Steps 3, 4 and 6 have since changed:
+> - PostHog starts only on Vercel production deploys (`app/lib/analyticsEnabled.ts`, #81).
+> - It's reached through `/ink` on our own domain, rewritten to PostHog at Vercel's edge (`app/lib/posthogProxy.ts`, `nuxt.config.ts`). Content blockers that block posthog.com no longer drop events. `posthogHost` is gone from runtime config; an old `NUXT_PUBLIC_POSTHOG_HOST` env var does nothing.
+> - Signing in with an account whose email hash is in `NUXT_PUBLIC_INTERNAL_EMAIL_HASHES` marks that device's person as internal (`$internal_or_test_user`), which the project's test-account filter excludes (`app/lib/internalUser.ts`, #80). The test-account filter also keeps only `$host = www.librarypassport.ca`.
+
 ---
 
 ### Sentry
