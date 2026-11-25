@@ -12,7 +12,7 @@ export interface Analytics {
 }
 
 export default defineNuxtPlugin(() => {
-  const { public: { isDev, vercelEnv, posthogKey, internalEmailHashes } } = useRuntimeConfig()
+  const { public: { appVersion, isDev, vercelEnv, posthogKey, internalEmailHashes } } = useRuntimeConfig()
 
   // $posthog is null outside Vercel production (dev, previews, custom
   // environments, local and CI builds), so callers use $posthog?.capture(...).
@@ -78,6 +78,8 @@ export default defineNuxtPlugin(() => {
           maskAllInputs: true,
         },
       })
+      // Sent with every event, so a metric change can be traced to a release.
+      posthog.register({ app_version: appVersion })
       if (anonymousId) {
         posthog.identify(anonymousId)
       }
