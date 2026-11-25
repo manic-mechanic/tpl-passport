@@ -4,6 +4,7 @@
 
 import { getAuthBase } from '~/lib/config'
 import { reportError } from '~/lib/reportError'
+import { readDuplicateOf, readServerCheckIns } from '~/lib/serverResponses'
 import type { PassportCheckIn, ServerCheckInPayload, ServerCheckInRecord } from '~/types/passport'
 
 function fromServer(record: ServerCheckInRecord): PassportCheckIn {
@@ -38,8 +39,25 @@ export async function fetchCheckIns(): Promise<PassportCheckIn[] | null> {
       })
       return null
     }
-    const data = await res.json() as ServerCheckInRecord[]
-    return data.map(fromServer)
+    const read = readServerCheckIns(await res.json())
+    if (!read) {
+      reportError(new Error('fetchCheckIns: response is not a list'), {
+        area: 'sync',
+        operation: 'fetch_checkins',
+        endpoint: '/api/checkins',
+      })
+      return null
+    }
+    // One bad row shouldn't fail the whole sync: drop it, report once.
+    if (read.dropped) {
+      reportError(new Error('fetchCheckIns: dropped malformed check-ins'), {
+        area: 'sync',
+        operation: 'fetch_checkins',
+        endpoint: '/api/checkins',
+        dropped: read.dropped,
+      })
+    }
+    return read.records.map(fromServer)
   } catch (error) {
     reportError(error, {
       area: 'sync',
@@ -74,8 +92,8 @@ export async function pushCheckIn(checkIn: PassportCheckIn): Promise<boolean> {
       })
       return false
     }
-    const data = await res.json().catch(() => null) as { duplicateOf?: string | null } | null
-    return !data?.duplicateOf
+    // An older server sends no body, which reads as saved.
+    return !readDuplicateOf(await res.json().catch(() => null))
   } catch (error) {
     reportError(error, {
       area: 'sync',

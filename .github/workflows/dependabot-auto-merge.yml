@@ -1,0 +1,27 @@
+name: Dependabot auto-merge
+
+# Queues Dependabot's minor, patch and GitHub Actions PRs to merge once the
+# required `validate` check passes (branch protection + "Allow auto-merge").
+# Majors are left for a person to look at. A grouped PR counts as its
+# largest update, so a group with a major in it is left too.
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v3
+      - if: >-
+          steps.meta.outputs.package-ecosystem == 'github_actions'
+          || steps.meta.outputs.update-type == 'version-update:semver-minor'
+          || steps.meta.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

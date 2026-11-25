@@ -5,7 +5,7 @@ import { sentryIgnoreErrors } from './app/lib/sentryIgnore'
 
 // The browser bundle has no process.env, so read the DSN from runtime config
 // (set via NUXT_PUBLIC_SENTRY_DSN, read at build time on Vercel).
-const { public: { isDev, sentry, vercelEnv, vercelTargetEnv } } = useRuntimeConfig()
+const { public: { appVersion, isDev, sentry, vercelEnv, vercelTargetEnv } } = useRuntimeConfig()
 const environment = sentryEnvironment({ vercelEnv, vercelTargetEnv, isDev: !!isDev })
 
 Sentry.init({
@@ -19,6 +19,10 @@ Sentry.init({
   tracesSampleRate: environment === 'production' ? 1 : 0.2,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: 0,
+  // package.json's version, so an error can be traced to a release (#99).
+  // Sentry's own `release` stays the commit SHA the bundler plugin sets, which
+  // the uploaded source maps and deploys are tied to.
+  initialScope: { tags: { app_version: appVersion } },
 })
 
 // Session Replay is added once the app is up rather than in init(): it's the

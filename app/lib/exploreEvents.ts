@@ -2,17 +2,36 @@
 import type { Branch } from '@tpl-passport/shared'
 import { BRANCH_TIME_ZONE, eventLocationKey, haversineKm, localDayKey } from '@tpl-passport/shared'
 
-// One record from /api/all-events (the CKAN TPL events feed).
+// One record from /api/all-events (the CKAN TPL events feed). CKAN sends
+// null for empty cells.
 export interface RawEvent {
   _id: string | number
-  EventID?: string
-  Title?: string
+  EventID?: string | null
+  Title?: string | null
   StartDateLocal: string
-  StartTime?: string
-  EndTime?: string
-  LocationName?: string
-  Audiences?: string
-  EventTypes?: string
+  StartTime?: string | null
+  EndTime?: string | null
+  LocationName?: string | null
+  Audiences?: string | null
+  EventTypes?: string | null
+}
+
+const OPTIONAL_TEXT = ['EventID', 'Title', 'StartTime', 'EndTime', 'LocationName', 'Audiences', 'EventTypes'] as const
+
+// The feed is public and outside our control, so check each record has the
+// fields toExploreEvents reads, with the right types, before using it.
+export function isRawEvent(value: unknown): value is RawEvent {
+  if (typeof value !== 'object' || value === null) return false
+  const r = value as Record<string, unknown>
+  if (typeof r._id !== 'string' && typeof r._id !== 'number') return false
+  if (typeof r.StartDateLocal !== 'string') return false
+  return OPTIONAL_TEXT.every(k => r[k] == null || typeof r[k] === 'string')
+}
+
+// The valid records in an /api/all-events response. Bad ones are skipped
+// without reporting: they come from the public feed, not from us.
+export function readRawEvents(body: unknown): RawEvent[] {
+  return Array.isArray(body) ? body.filter(isRawEvent) : []
 }
 
 export interface ExploreEvent {
@@ -38,7 +57,7 @@ export function branchLookup(branches: Branch[]): Map<string, Branch> {
 
 // The feed lists some events twice, once under "<Branch> - Closed", and has
 // "None" for online events.
-export function cleanLocationName(name: string | undefined): string {
+export function cleanLocationName(name: string | null | undefined): string {
   const n = (name ?? '').replace(/\s+-\s+Closed$/i, '').trim()
   if (!n || n === 'None') return 'Online'
   return n
@@ -135,7 +154,7 @@ function audienceList(audiences: string): string[] {
 
 // "Crafts & Hobbies, Culture" → ["Crafts & Hobbies", "Culture"]. Some
 // names carry a stray zero-width space.
-export function parseTypes(raw: string | undefined): string[] {
+export function parseTypes(raw: string | null | undefined): string[] {
   return (raw ?? '').split(',').map(t => t.replace(/\u200b/g, '').trim()).filter(Boolean)
 }
 
@@ -166,7 +185,7 @@ export function timeOfDay(start: string): TimeOfDay | null {
 }
 
 // The bibliocommons page for an event (the feed's EventID).
-export function eventUrl(eventId: string | undefined): string | null {
+export function eventUrl(eventId: string | null | undefined): string | null {
   return eventId ? `https://tpl.bibliocommons.com/events/${encodeURIComponent(eventId)}` : null
 }
 

@@ -3,6 +3,7 @@
 
 import { getAuthBase } from '~/lib/config'
 import { reportError } from '~/lib/reportError'
+import { readPublicUrl } from '~/lib/serverResponses'
 
 // Resize to ≤ maxWidth px wide and re-encode as JPEG to keep IndexedDB and uploads small.
 export function compressPhoto(file: Blob, maxWidth = 1200, quality = 0.82): Promise<Blob | null> {
@@ -50,8 +51,14 @@ export async function uploadCheckInPhotoResult(blob: Blob): Promise<UploadResult
       body: blob,
     })
     if (res.ok) {
-      const { publicUrl } = await res.json() as { publicUrl?: string }
-      return publicUrl ? { ok: true, url: publicUrl } : { ok: false, reason: 'failed' }
+      const url = readPublicUrl(await res.json().catch(() => null))
+      if (url) return { ok: true, url }
+      reportError(new Error('uploadCheckInPhoto: response has no https publicUrl'), {
+        area: 'sync',
+        operation: 'upload_photo',
+        endpoint: '/api/upload/photo',
+      })
+      return { ok: false, reason: 'failed' }
     }
     if (res.status === 401) return { ok: false, reason: 'unauthorized' }
     if (res.status === 429) return { ok: false, reason: 'rate_limited' }
